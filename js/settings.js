@@ -1990,9 +1990,17 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     let _spectrumData = null;
     let _spectrumEma = null;
     let _spectrumLastTs = 0;
-    // Display range after slope compensation
-    const SPECTRUM_TOP_DBFS = -15;
-    const SPECTRUM_FLOOR_DB = -103;
+    // Display range after slope compensation — Hi is fixed, Lo is user-adjustable
+    const spectrumRangeHi = -15;
+    let spectrumRangeLo = -103;
+    const SPECTRUM_RANGE_LO_MIN = -180;
+    const SPECTRUM_RANGE_LO_MAX = -40;
+    try {
+        const l = parseFloat(localStorage.getItem('autoeq-spectrum-range-lo'));
+        if (Number.isFinite(l)) spectrumRangeLo = Math.max(SPECTRUM_RANGE_LO_MIN, Math.min(SPECTRUM_RANGE_LO_MAX, l));
+    } catch {
+        /* ignore */
+    }
     // SPAN-style display: pink-tilt compensation so a flat mix reads flat
     const SPECTRUM_SLOPE_DB_PER_OCT = 4.0;
     const SPECTRUM_SLOPE_PIVOT_HZ = 1000;
@@ -2053,10 +2061,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         }
         const binCount = _spectrumData.length;
         const nyquist = (analyser.context?.sampleRate || 48000) / 2;
-        const dbRange = SPECTRUM_TOP_DBFS - SPECTRUM_FLOOR_DB;
+        const dbRange = Math.max(1, spectrumRangeHi - spectrumRangeLo);
 
         if (!_spectrumEma || _spectrumEma.length !== binCount) {
-            _spectrumEma = new Float32Array(binCount).fill(SPECTRUM_FLOOR_DB);
+            _spectrumEma = new Float32Array(binCount).fill(spectrumRangeLo);
         }
 
         // When held, skip sampling + EMA update so _spectrumEma stays at its
@@ -2069,7 +2077,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const emaAlpha = 1 - Math.exp(-dtMs / spectrumTimeAvgMs);
             for (let i = 0; i < binCount; i++) {
                 const raw = _spectrumData[i];
-                const v = Number.isFinite(raw) ? raw : SPECTRUM_FLOOR_DB;
+                const v = Number.isFinite(raw) ? raw : spectrumRangeLo;
                 _spectrumEma[i] = _spectrumEma[i] * (1 - emaAlpha) + v * emaAlpha;
             }
         } else {
@@ -2095,14 +2103,23 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         const fRatioHi = Math.pow(2, halfOct);
         const binHz = nyquist / binCount;
 
-        // Returns 0..1 with 1 = SPECTRUM_TOP_DBFS after slope compensation,
-        // 0 = SPECTRUM_FLOOR_DB. Applies octave smoothing + +4 dB/oct pink tilt.
+        // Returns 0..1 with 1 = spectrumRangeHi after slope compensation,
+        // 0 = spectrumRangeLo. Applies octave smoothing + +4 dB/oct pink tilt.
+        // Below ~120 Hz the FFT window is wider than the octave window, so the
+        // raw bins show as stair-steps — we force a minimum-3-bin average there
+        // to soften the squared plateaus without affecting treble detail.
         const magAt = (freq) => {
             const fLo = freq * fRatioLo;
             const fHi = freq * fRatioHi;
             let iLo = Math.floor(fLo / binHz);
             let iHi = Math.ceil(fHi / binHz);
             if (iHi < 1) return 0;
+            // Minimum 3-bin window: prevents same-bin plateaus at low freqs
+            if (iHi - iLo < 2) {
+                const center = Math.round(freq / binHz);
+                iLo = center - 1;
+                iHi = center + 1;
+            }
             iLo = Math.max(1, iLo);
             iHi = Math.min(binCount - 1, iHi);
             if (iLo > iHi) iLo = iHi;
@@ -2119,22 +2136,38 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             let db = sum / count;
             // Slope compensation (pink-tilt): flat mixes display flat
             db += SPECTRUM_SLOPE_DB_PER_OCT * Math.log2(freq / SPECTRUM_SLOPE_PIVOT_HZ);
-            const norm = (db - SPECTRUM_FLOOR_DB) / dbRange;
+            const norm = (db - spectrumRangeLo) / dbRange;
             return Math.max(0, Math.min(1, norm));
         };
 
-        // Precompute smoothed heights via 3-tap moving average — light touch
+        // Precompute smoothed heights — kernel width scales with how many pixels
+        // represent one FFT bin at the column's frequency. At low freqs one bin
+        // spans many pixel columns → wider kernel flattens the stair-steps.
         const ys = new Float32Array(cols + 1);
         const raw = new Float32Array(cols + 1);
+        const freqs = new Float32Array(cols + 1);
         for (let i = 0; i <= cols; i++) {
             const freq = Math.pow(10, ((i * step) / w) * LOG_RANGE + LOG_MIN);
+            freqs[i] = freq;
             raw[i] = magAt(freq);
         }
+        // Per-column kernel radius: if neighbour columns are closer in Hz than
+        // one FFT bin, multiple columns alias to the same bin → wider kernel
+        // smooths the plateau. Treble columns span many bins → radius 1.
         for (let i = 0; i <= cols; i++) {
-            const a = raw[Math.max(0, i - 1)];
-            const b = raw[i];
-            const c = raw[Math.min(cols, i + 1)];
-            ys[i] = padTop + h - (a * 0.25 + b * 0.5 + c * 0.25) * h;
+            const df = Math.max(0.1, freqs[Math.min(cols, i + 1)] - freqs[Math.max(0, i - 1)]) / 2;
+            const radius = Math.max(1, Math.min(6, Math.round(binHz / df / 2)));
+            let sum = 0;
+            let wsum = 0;
+            const twoSigmaSq = 2 * Math.max(0.7, radius / 2) ** 2;
+            for (let j = -radius; j <= radius; j++) {
+                const idx = i + j;
+                if (idx < 0 || idx > cols) continue;
+                const kw = Math.exp(-(j * j) / twoSigmaSq);
+                sum += raw[idx] * kw;
+                wsum += kw;
+            }
+            ys[i] = padTop + h - (sum / wsum) * h;
         }
 
         // Trace the curve once via quadratic midpoints so the outline is smooth
@@ -4504,6 +4537,81 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             applySpectrumState();
         });
     }
+
+    // Range Hi / Range Lo knob pills
+    const attachRangeKnob = (btn, valueEl, opts) => {
+        if (!btn || !valueEl) return;
+        const { min, max, defaultValue, storageKey, get, set } = opts;
+        const clamp = (v) => Math.max(min, Math.min(max, v));
+        const render = () => {
+            valueEl.textContent = Math.round(get()).toString();
+        };
+        const persist = () => {
+            try {
+                localStorage.setItem(storageKey, String(get()));
+            } catch {
+                /* ignore */
+            }
+        };
+        render();
+        btn.addEventListener(
+            'wheel',
+            (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -1 : 1;
+                set(clamp(get() + delta));
+                render();
+                persist();
+            },
+            { passive: false }
+        );
+        btn.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            set(defaultValue);
+            render();
+            persist();
+        });
+        btn.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            btn.setPointerCapture(e.pointerId);
+            btn.classList.add('dragging');
+            const startY = e.clientY;
+            const startVal = get();
+            const onMove = (ev) => {
+                const dy = startY - ev.clientY; // up = positive
+                set(clamp(startVal + dy * 0.4));
+                render();
+            };
+            const onUp = (ev) => {
+                btn.releasePointerCapture(e.pointerId);
+                btn.classList.remove('dragging');
+                btn.removeEventListener('pointermove', onMove);
+                btn.removeEventListener('pointerup', onUp);
+                btn.removeEventListener('pointercancel', onUp);
+                persist();
+                ev.preventDefault();
+            };
+            btn.addEventListener('pointermove', onMove);
+            btn.addEventListener('pointerup', onUp);
+            btn.addEventListener('pointercancel', onUp);
+        });
+    };
+
+    attachRangeKnob(
+        document.getElementById('eq-spectrum-range-lo'),
+        document.getElementById('eq-spectrum-range-lo-value'),
+        {
+            min: SPECTRUM_RANGE_LO_MIN,
+            max: SPECTRUM_RANGE_LO_MAX,
+            defaultValue: -103,
+            storageKey: 'autoeq-spectrum-range-lo',
+            get: () => spectrumRangeLo,
+            set: (v) => {
+                spectrumRangeLo = Math.min(spectrumRangeHi - 6, v);
+            },
+        }
+    );
 
     // Hold (pause/play) pill
     const holdBtn = document.getElementById('eq-spectrum-hold');

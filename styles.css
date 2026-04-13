@@ -8146,6 +8146,27 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     z-index: 2;
 }
 
+.eq-spectrum-range {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 2;
+}
+
+.eq-spectrum-knob {
+    cursor: ns-resize;
+    touch-action: none;
+}
+
+.eq-spectrum-knob.dragging {
+    color: var(--primary-foreground);
+    background: rgb(var(--highlight-rgb), 0.35);
+    border-color: rgb(var(--highlight-rgb), 0.6);
+}
+
 .eq-spectrum-pill,
 .eq-spectrum-toggle-in-graph {
     display: inline-flex;
