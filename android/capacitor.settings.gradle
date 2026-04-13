@@ -7,3 +7,6 @@ project(':capacitor-app').projectDir = new File('../node_modules/@capacitor/app/
 
 include ':capacitor-haptics'
 project(':capacitor-haptics').projectDir = new File('../node_modules/@capacitor/haptics/android')
+
+include ':capgo-capacitor-media-session'
+project(':capgo-capacitor-media-session').projectDir = new File('../node_modules/@capgo/capacitor-media-session/android')

@@ -25,9 +25,9 @@
         "type": "git",
         "url": "git+https://github.com/monochrome-music/monochrome.git"
     },
-    "keywords": [],
+    "keywords": ["music"],
     "author": "",
-    "license": "ISC",
+    "license": "Apache-2.0",
     "bugs": {
         "url": "https://github.com/monochrome-music/monochrome/issues"
     },
@@ -68,6 +68,7 @@
         "@capacitor/core": "^8.2.0",
         "@capacitor/haptics": "^8.0.1",
         "@capacitor/ios": "^8.2.0",
+        "@capgo/capacitor-media-session": "^8.0.19",
         "@dantheman827/taglib-ts": "^0.1.5",
         "@ffmpeg/core": "^0.12.10",
         "@ffmpeg/ffmpeg": "^0.12.15",
@@ -76,7 +77,7 @@
         "@svta/common-media-library": "^0.18.1",
         "@types/wicg-file-system-access": "^2023.10.7",
         "@typescript-eslint/eslint-plugin": "^8.57.2",
-        "@uimaxbai/am-lyrics": "^1.2.6",
+        "@uimaxbai/am-lyrics": "^1.2.8",
         "@vitest/web-worker": "^4.1.2",
         "appwrite": "^23.0.0",
         "butterchurn": "^2.6.7",
