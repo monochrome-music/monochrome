@@ -375,7 +375,7 @@ async function handleSelectionAction(action) {
     }
 }
 
-export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
+export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     if (homeStartRadioBtn) {
         homeStartRadioBtn.addEventListener('click', async () => {
             await player.enableRadio();
@@ -384,8 +384,12 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
 
     const sleepTimerBtnMobile = document.getElementById('sleep-timer-btn');
 
-    // History tracking
     let historyLoggedTrackId = null;
+
+    const { listeningTracker } = await import('./listening-tracker.js');
+
+    let _previousTrackId = null;
+    let _trackPlayStartTime = null;
 
     const setupMediaListeners = (element) => {
         element.addEventListener('loadstart', () => {
@@ -397,14 +401,32 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         element.addEventListener('play', async () => {
             if (player.activeElement !== element) return;
 
-            // Initialize audio context manager for EQ (only once)
             if (!audioContextManager.isReady()) {
                 audioContextManager.init(element);
             }
             await audioContextManager.resume();
 
             if (player.currentTrack) {
-                // Scrobble
+                const currentId = player.currentTrack.id;
+                if (currentId !== _previousTrackId) {
+                    if (_previousTrackId !== null) {
+                        const prevSignal = listeningTracker.getSessionSignals();
+                        const prevPlayTime = prevSignal.accumulatedPlayTime || 0;
+                        const prevDuration = prevSignal.trackDuration || 0;
+                        listeningTracker.onSkip();
+                        const prevTrack =
+                            player.getCurrentQueue()[player.currentQueueIndex - 1] ||
+                            player.getCurrentQueue().find((t) => t.id === _previousTrackId);
+                        if (prevTrack && prevPlayTime > 0) {
+                            listeningTracker.updateArtistAffinity(prevTrack, prevPlayTime, prevDuration, true);
+                        }
+                        listeningTracker.forceFlush();
+                    }
+                    _previousTrackId = currentId;
+                    listeningTracker.onTrackStart(player.currentTrack);
+                    _trackPlayStartTime = Date.now();
+                }
+
                 if (scrobbler.isAuthenticated()) {
                     scrobbler.updateNowPlaying(player.currentTrack);
                 }
@@ -433,6 +455,15 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
 
         element.addEventListener('ended', () => {
             if (player.activeElement !== element) return;
+            const elapsedPlayTime = listeningTracker.getSessionSignals().accumulatedPlayTime || 0;
+            const trackDur = listeningTracker.getSessionSignals().trackDuration || 0;
+            listeningTracker.onTrackEnd();
+            if (player.currentTrack) {
+                const effectivePlayTime = elapsedPlayTime || (Date.now() - _trackPlayStartTime) / 1000;
+                listeningTracker.updateArtistAffinity(player.currentTrack, effectivePlayTime, trackDur, false);
+            }
+            listeningTracker.forceFlush();
+            _previousTrackId = null;
             player.playNext();
         });
 
@@ -446,7 +477,8 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
                 progressFill.style.width = `${(currentTime / duration) * 100}%`;
                 currentTimeEl.textContent = formatTime(currentTime);
 
-                // Log to history after 10 seconds of playback
+                listeningTracker.onTimeUpdate(currentTime, duration);
+
                 if (currentTime >= 10 && player.currentTrack && player.currentTrack.id !== historyLoggedTrackId) {
                     historyLoggedTrackId = player.currentTrack.id;
                     const historyEntry = await db.addToHistory(player.currentTrack);
@@ -517,6 +549,8 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             }
         });
     };
+
+    window.addEventListener('volume-change', updateVolumeUI);
 
     setupMediaListeners(audioPlayer);
     if (player.video) {
@@ -2145,10 +2179,25 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                         player.playVideo(clickedTrack);
                     } else {
                         player.setQueue([clickedTrack], 0);
+                        player.enableAutoplay();
                         document.getElementById('shuffle-btn').classList.remove('active');
                         player.playTrackFromQueue();
 
-                        api.getTrackRecommendations(clickedTrack.id).then((recs) => {
+                        const { autoplaySettings } = await import('./storage.js');
+                        const fetchRecs = autoplaySettings.isSmartRecsEnabled()
+                            ? (async () => {
+                                  const { smartRecommendations } = await import('./smart-recommendations.js');
+                                  const recs = await api.getTrackRecommendations(clickedTrack.id);
+                                  if (recs && recs.length > 0) {
+                                      const filtered = smartRecommendations.filterRecommendations(recs);
+                                      const ranked = smartRecommendations.rankRecommendations(filtered);
+                                      return ranked;
+                                  }
+                                  return [];
+                              })()
+                            : api.getTrackRecommendations(clickedTrack.id);
+
+                        fetchRecs.then((recs) => {
                             if (recs && recs.length > 0) {
                                 player.addToQueue(recs);
                             }
@@ -2164,13 +2213,8 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
 
                     player.setQueue(trackList, startIndex);
+                    player.enableAutoplay();
 
-                    // Set artist popular tracks context if on artist page
-                    console.log('[Events] Setting context:', {
-                        page: ui.currentPage,
-                        artistId: ui.currentArtistId,
-                        trackCount: trackList.length,
-                    });
                     if (ui.currentPage === 'artist' && ui.currentArtistId) {
                         player.setArtistPopularTracksContext(ui.currentArtistId, trackList, trackList.length, true);
                     }
@@ -2220,6 +2264,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 if (trackList.length === 0) return;
                 const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
                 player.setQueue(trackList, startIndex);
+                player.enableAutoplay();
                 if (ui.currentPage === 'artist' && ui.currentArtistId) {
                     player.setArtistPopularTracksContext(ui.currentArtistId, trackList, trackList.length, true);
                 }
