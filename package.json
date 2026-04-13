@@ -68,6 +68,7 @@
         "@capacitor/core": "^8.2.0",
         "@capacitor/haptics": "^8.0.1",
         "@capacitor/ios": "^8.2.0",
+        "@capgo/capacitor-media-session": "^8.0.19",
         "@dantheman827/taglib-ts": "^0.1.5",
         "@ffmpeg/core": "^0.12.10",
         "@ffmpeg/ffmpeg": "^0.12.15",
