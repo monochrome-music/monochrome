@@ -8161,12 +8161,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     touch-action: none;
 }
 
-.eq-spectrum-knob.dragging {
-    color: var(--primary-foreground);
-    background: rgb(var(--highlight-rgb), 0.35);
-    border-color: rgb(var(--highlight-rgb), 0.6);
-}
-
 .eq-spectrum-pill,
 .eq-spectrum-toggle-in-graph {
     display: inline-flex;
@@ -8177,25 +8171,39 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     font-weight: 600;
     letter-spacing: 0.02em;
     text-transform: uppercase;
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    border: 1px solid rgb(255 255 255 / 18%);
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.45);
-    color: rgba(255, 255, 255, 0.7);
+    background: rgb(0 0 0 / 45%);
+    color: rgb(255 255 255 / 70%);
     cursor: pointer;
     user-select: none;
     backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
     transition:
         color var(--transition-fast),
         background var(--transition-fast),
         border-color var(--transition-fast);
 }
 
+.eq-spectrum-pill .pill-label {
+    opacity: 0.55;
+    font-weight: 500;
+}
+
+.eq-spectrum-pill .pill-value {
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+
+/* stylelint-disable-next-line no-descending-specificity */
+.eq-spectrum-toggle-in-graph svg {
+    flex-shrink: 0;
+}
+
 .eq-spectrum-pill:hover,
 .eq-spectrum-toggle-in-graph:hover {
     color: #fff;
-    border-color: rgba(255, 255, 255, 0.35);
-    background: rgba(0, 0, 0, 0.6);
+    border-color: rgb(255 255 255 / 35%);
+    background: rgb(0 0 0 / 60%);
 }
 
 .eq-spectrum-toggle-in-graph.active,
@@ -8212,18 +8220,10 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     opacity: 1;
 }
 
-.eq-spectrum-toggle-in-graph svg {
-    flex-shrink: 0;
-}
-
-.eq-spectrum-pill .pill-label {
-    opacity: 0.55;
-    font-weight: 500;
-}
-
-.eq-spectrum-pill .pill-value {
-    color: #fff;
-    font-variant-numeric: tabular-nums;
+.eq-spectrum-knob.dragging {
+    color: var(--primary-foreground);
+    background: rgb(var(--highlight-rgb), 0.35);
+    border-color: rgb(var(--highlight-rgb), 0.6);
 }
 
 .eq-howto-panel {

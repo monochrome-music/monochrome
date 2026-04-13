@@ -1990,13 +1990,17 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     let _spectrumData = null;
     let _spectrumEma = null;
     let _spectrumLastTs = 0;
-    // Display range after slope compensation — Hi is fixed, Lo is user-adjustable
-    const spectrumRangeHi = -15;
+    // Display range after slope compensation — both user-adjustable via in-graph pills
+    let spectrumRangeHi = -15;
     let spectrumRangeLo = -103;
+    const SPECTRUM_RANGE_HI_MIN = -40;
+    const SPECTRUM_RANGE_HI_MAX = 20;
     const SPECTRUM_RANGE_LO_MIN = -180;
     const SPECTRUM_RANGE_LO_MAX = -40;
     try {
+        const h = parseFloat(localStorage.getItem('autoeq-spectrum-range-hi'));
         const l = parseFloat(localStorage.getItem('autoeq-spectrum-range-lo'));
+        if (Number.isFinite(h)) spectrumRangeHi = Math.max(SPECTRUM_RANGE_HI_MIN, Math.min(SPECTRUM_RANGE_HI_MAX, h));
         if (Number.isFinite(l)) spectrumRangeLo = Math.max(SPECTRUM_RANGE_LO_MIN, Math.min(SPECTRUM_RANGE_LO_MAX, l));
     } catch {
         /* ignore */
@@ -2059,9 +2063,11 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     };
 
     const drawSpectrumLayer = (ctx, padLeft, padTop, w, h, sampleRate) => {
+        // Only use the dedicated spectrum analyser. If unavailable, bail so we
+        // never mutate fftSize on the shared visualizer node.
         let analyser = null;
         try {
-            analyser = audioContextManager?.getSpectrumAnalyser?.() || audioContextManager?.getAnalyser?.();
+            analyser = audioContextManager?.getSpectrumAnalyser?.() || null;
         } catch {
             return;
         }
@@ -4561,8 +4567,18 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         if (!btn || !valueEl) return;
         const { min, max, defaultValue, storageKey, get, set } = opts;
         const clamp = (v) => Math.max(min, Math.min(max, v));
+
+        // ARIA: expose as an accessible slider
+        btn.setAttribute('role', 'slider');
+        btn.setAttribute('aria-valuemin', String(min));
+        btn.setAttribute('aria-valuemax', String(max));
+        btn.setAttribute('tabindex', '0');
+
         const render = () => {
-            valueEl.textContent = Math.round(get()).toString();
+            const v = Math.round(get());
+            valueEl.textContent = String(v);
+            btn.setAttribute('aria-valuenow', String(v));
+            btn.setAttribute('aria-valuetext', `${v} dBFS`);
         };
         const persist = () => {
             try {
@@ -4572,6 +4588,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             }
         };
         render();
+
         btn.addEventListener(
             'wheel',
             (e) => {
@@ -4583,26 +4600,79 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             },
             { passive: false }
         );
+
         btn.addEventListener('dblclick', (e) => {
             e.preventDefault();
             set(defaultValue);
             render();
             persist();
         });
+
+        // Keyboard: arrows adjust, Home/End jump to bounds, Shift for coarse
+        btn.addEventListener('keydown', (e) => {
+            const coarse = e.shiftKey ? 6 : 1;
+            let handled = true;
+            switch (e.key) {
+                case 'ArrowUp':
+                case 'ArrowRight':
+                    set(clamp(get() + coarse));
+                    break;
+                case 'ArrowDown':
+                case 'ArrowLeft':
+                    set(clamp(get() - coarse));
+                    break;
+                case 'PageUp':
+                    set(clamp(get() + 10));
+                    break;
+                case 'PageDown':
+                    set(clamp(get() - 10));
+                    break;
+                case 'Home':
+                    set(min);
+                    break;
+                case 'End':
+                    set(max);
+                    break;
+                case 'Enter':
+                case ' ':
+                    set(defaultValue);
+                    break;
+                default:
+                    handled = false;
+            }
+            if (handled) {
+                e.preventDefault();
+                render();
+                persist();
+            }
+        });
+
         btn.addEventListener('pointerdown', (e) => {
             if (e.button !== 0) return;
             e.preventDefault();
-            btn.setPointerCapture(e.pointerId);
+            try {
+                btn.setPointerCapture(e.pointerId);
+            } catch {
+                /* capture may fail on synthetic events */
+            }
             btn.classList.add('dragging');
             const startY = e.clientY;
             const startVal = get();
             const onMove = (ev) => {
-                const dy = startY - ev.clientY; // up = positive
+                const dy = startY - ev.clientY;
                 set(clamp(startVal + dy * 0.4));
                 render();
             };
             const onUp = (ev) => {
-                btn.releasePointerCapture(e.pointerId);
+                // Guard releasePointerCapture: capture may already be lost
+                // (e.g. pointercancel fired before pointerup)
+                try {
+                    if (btn.hasPointerCapture?.(e.pointerId)) {
+                        btn.releasePointerCapture(e.pointerId);
+                    }
+                } catch {
+                    /* ignore */
+                }
                 btn.classList.remove('dragging');
                 btn.removeEventListener('pointermove', onMove);
                 btn.removeEventListener('pointerup', onUp);
@@ -4616,6 +4686,20 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     };
 
+    attachRangeKnob(
+        document.getElementById('eq-spectrum-range-hi'),
+        document.getElementById('eq-spectrum-range-hi-value'),
+        {
+            min: SPECTRUM_RANGE_HI_MIN,
+            max: SPECTRUM_RANGE_HI_MAX,
+            defaultValue: -15,
+            storageKey: 'autoeq-spectrum-range-hi',
+            get: () => spectrumRangeHi,
+            set: (v) => {
+                spectrumRangeHi = Math.max(spectrumRangeLo + 6, v);
+            },
+        }
+    );
     attachRangeKnob(
         document.getElementById('eq-spectrum-range-lo'),
         document.getElementById('eq-spectrum-range-lo-value'),

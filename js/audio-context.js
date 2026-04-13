@@ -524,6 +524,15 @@ class AudioContextManager {
                 }
             }
             this.spectrumAnalyser.smoothingTimeConstant = 0;
+            // Widen decibel bounds to cover the overlay's Range Lo..Hi span so
+            // getFloatFrequencyData isn't clamped at ~[-100, -30] defaults and
+            // the Lo knob can reach -180 dBFS without silent saturation.
+            try {
+                this.spectrumAnalyser.minDecibels = -180;
+                this.spectrumAnalyser.maxDecibels = 0;
+            } catch {
+                /* some engines reject asymmetric ranges */
+            }
 
             // Create binaural DSP processor
             this.binauralDsp = new BinauralDSP(this.audioContext);
@@ -822,9 +831,11 @@ class AudioContextManager {
 
     /**
      * Get the dedicated high-resolution analyser for the EQ spectrum overlay.
+     * Returns null when no dedicated node exists so callers never mutate the
+     * shared visualizer analyser (which would desync its cached binCount).
      */
     getSpectrumAnalyser() {
-        return this.spectrumAnalyser || this.analyser;
+        return this.spectrumAnalyser || null;
     }
 
     /**
