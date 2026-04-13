@@ -550,6 +550,8 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
         });
     };
 
+    window.addEventListener('volume-change', updateVolumeUI);
+
     setupMediaListeners(audioPlayer);
     if (player.video) {
         setupMediaListeners(player.video);
