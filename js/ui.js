@@ -2392,6 +2392,72 @@ export class UIRenderer {
         }
     }
 
+    async renderResetPasswordPage() {
+        await this.showPage('reset-password');
+        const form = document.getElementById('reset-password-form');
+        const errorEl = document.getElementById('reset-password-error');
+        const successEl = document.getElementById('reset-password-success');
+        const btn = document.getElementById('reset-password-submit-btn');
+        const btnText = document.getElementById('reset-password-btn-text');
+        const spinner = document.getElementById('reset-password-btn-spinner');
+        const passwordInput = document.getElementById('reset-password-input');
+        const confirmInput = document.getElementById('reset-password-confirm');
+
+        if (!form) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const userId = params.get('userId');
+        const secret = params.get('secret');
+
+        if (!userId || !secret) {
+            errorEl.textContent = 'Invalid or missing password reset link.';
+            errorEl.style.display = 'block';
+            form.style.display = 'none';
+            return;
+        }
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+
+            const password = passwordInput.value;
+            const confirm = confirmInput.value;
+
+            if (password !== confirm) {
+                errorEl.textContent = 'Passwords do not match.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btnText.style.display = 'none';
+                spinner.style.display = 'block';
+
+                await authManager.resetPassword(userId, secret, password, confirm);
+
+                successEl.textContent = 'Password reset successfully. Opening login...';
+                successEl.style.display = 'block';
+                form.style.display = 'none';
+
+                setTimeout(() => {
+                    const authModal = document.getElementById('email-auth-modal');
+                    if (authModal) {
+                        authModal.classList.add('active');
+                    }
+                }, 2000);
+            } catch (error) {
+                errorEl.textContent = error.message || 'Failed to reset password. Please try again.';
+                errorEl.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btnText.style.display = 'inline';
+                spinner.style.display = 'none';
+            }
+        };
+    }
+
     async renderPartyDetailPage(id) {
         await this.showPage('party-detail');
         await partyManager.joinParty(id);
