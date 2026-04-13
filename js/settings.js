@@ -4550,6 +4550,21 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             applySpectrumState();
         };
         document.addEventListener('visibilitychange', onSpectrumVisibilityChange);
+
+        // Re-evaluate when EQ master toggle flips, when mode changes, or when
+        // the equalizer-container becomes visible again. Without this, the rAF
+        // loop self-stops via shouldAnimate() and never restarts — the graph
+        // then only redraws from other triggers (~2 fps from stray events).
+        const reevalSpectrumLoop = () => {
+            // defer one frame so display:none transitions / mode swaps finish
+            requestAnimationFrame(applySpectrumState);
+        };
+        if (eqToggle) eqToggle.addEventListener('change', reevalSpectrumLoop);
+        window.addEventListener('equalizer-toggle', reevalSpectrumLoop);
+        document.querySelectorAll('.autoeq-mode-btn').forEach((b) =>
+            b.addEventListener('click', reevalSpectrumLoop)
+        );
+
         applySpectrumState();
         spectrumBtn.addEventListener('click', () => {
             spectrumOverlayEnabled = !spectrumOverlayEnabled;
