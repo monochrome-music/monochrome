@@ -60,6 +60,9 @@ async function getButterchurnPresets(...args) {
 let _autoeqIndex = [];
 let _graphAbortController = null;
 let _graphResizeObserver = null;
+// Persisted across initializeSettings() re-runs so listeners from a previous
+// call can be torn down before fresh ones register.
+let _spectrumListenersAbort = null;
 
 export async function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
@@ -1990,17 +1993,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     let _spectrumData = null;
     let _spectrumEma = null;
     let _spectrumLastTs = 0;
-    // Display range after slope compensation — both user-adjustable via in-graph pills
-    let spectrumRangeHi = -15;
+    // Display range after slope compensation. Hi is hard-fixed at -15 dBFS
+    // (never user-adjustable, never restored from storage). Only Lo is
+    // persisted so users can tune their display floor.
+    const spectrumRangeHi = -15;
     let spectrumRangeLo = -103;
-    const SPECTRUM_RANGE_HI_MIN = -40;
-    const SPECTRUM_RANGE_HI_MAX = 20;
     const SPECTRUM_RANGE_LO_MIN = -180;
     const SPECTRUM_RANGE_LO_MAX = -40;
     try {
-        const h = parseFloat(localStorage.getItem('autoeq-spectrum-range-hi'));
         const l = parseFloat(localStorage.getItem('autoeq-spectrum-range-lo'));
-        if (Number.isFinite(h)) spectrumRangeHi = Math.max(SPECTRUM_RANGE_HI_MIN, Math.min(SPECTRUM_RANGE_HI_MAX, h));
         if (Number.isFinite(l)) spectrumRangeLo = Math.max(SPECTRUM_RANGE_LO_MIN, Math.min(SPECTRUM_RANGE_LO_MAX, l));
     } catch {
         /* ignore */
@@ -2034,16 +2035,17 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     let spectrumTimeAvgMs = SPECTRUM_SPEED_PRESETS[spectrumSpeedKey];
     let spectrumFrozen = false;
 
+    const shouldAnimateSpectrum = () =>
+        spectrumOverlayEnabled &&
+        !spectrumFrozen &&
+        equalizerSettings.isEnabled() &&
+        currentMode !== 'legacy' &&
+        eqContainer?.offsetParent !== null;
+
     const startSpectrumLoop = () => {
         if (_spectrumRafId) return;
-        const shouldAnimate = () =>
-            spectrumOverlayEnabled &&
-            equalizerSettings.isEnabled() &&
-            currentMode !== 'legacy' &&
-            eqContainer?.offsetParent !== null;
-
         const tick = () => {
-            if (!shouldAnimate()) {
+            if (!shouldAnimateSpectrum()) {
                 _spectrumRafId = null;
                 scheduleDrawAutoEQGraph();
                 return;
@@ -4549,20 +4551,26 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         const onSpectrumVisibilityChange = () => {
             applySpectrumState();
         };
-        document.addEventListener('visibilitychange', onSpectrumVisibilityChange);
-
         // Re-evaluate when EQ master toggle flips, when mode changes, or when
         // the equalizer-container becomes visible again. Without this, the rAF
-        // loop self-stops via shouldAnimate() and never restarts — the graph
-        // then only redraws from other triggers (~2 fps from stray events).
+        // loop self-stops via shouldAnimateSpectrum() and never restarts — the
+        // graph then only redraws from other triggers (~2 fps from stray events).
         const reevalSpectrumLoop = () => {
             // defer one frame so display:none transitions / mode swaps finish
             requestAnimationFrame(applySpectrumState);
         };
-        if (eqToggle) eqToggle.addEventListener('change', reevalSpectrumLoop);
-        window.addEventListener('equalizer-toggle', reevalSpectrumLoop);
+
+        // Tear down listeners from a previous initializeSettings() call so we
+        // don't accumulate duplicate handlers across re-inits.
+        if (_spectrumListenersAbort) _spectrumListenersAbort.abort();
+        _spectrumListenersAbort = new AbortController();
+        const sigOpts = { signal: _spectrumListenersAbort.signal };
+
+        document.addEventListener('visibilitychange', onSpectrumVisibilityChange, sigOpts);
+        if (eqToggle) eqToggle.addEventListener('change', reevalSpectrumLoop, sigOpts);
+        window.addEventListener('equalizer-toggle', reevalSpectrumLoop, sigOpts);
         document.querySelectorAll('.autoeq-mode-btn').forEach((b) =>
-            b.addEventListener('click', reevalSpectrumLoop)
+            b.addEventListener('click', reevalSpectrumLoop, sigOpts)
         );
 
         applySpectrumState();
@@ -4701,20 +4709,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     };
 
-    attachRangeKnob(
-        document.getElementById('eq-spectrum-range-hi'),
-        document.getElementById('eq-spectrum-range-hi-value'),
-        {
-            min: SPECTRUM_RANGE_HI_MIN,
-            max: SPECTRUM_RANGE_HI_MAX,
-            defaultValue: -15,
-            storageKey: 'autoeq-spectrum-range-hi',
-            get: () => spectrumRangeHi,
-            set: (v) => {
-                spectrumRangeHi = Math.max(spectrumRangeLo + 6, v);
-            },
-        }
-    );
+    // Hi is hard-fixed — only wire the Lo knob
     attachRangeKnob(
         document.getElementById('eq-spectrum-range-lo'),
         document.getElementById('eq-spectrum-range-lo-value'),
@@ -4748,6 +4743,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         holdBtn.addEventListener('click', () => {
             spectrumFrozen = !spectrumFrozen;
             applyHold();
+            // Re-evaluate the rAF loop: pause when freezing, resume when
+            // unfreezing (shouldAnimateSpectrum will gate either way).
+            if (spectrumFrozen) stopSpectrumLoop();
+            else startSpectrumLoop();
         });
     }
 
