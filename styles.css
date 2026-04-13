@@ -8136,6 +8136,75 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     background: var(--highlight);
 }
 
+.eq-spectrum-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 2;
+}
+
+.eq-spectrum-pill,
+.eq-spectrum-toggle-in-graph {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px 4px 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    user-select: none;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition:
+        color var(--transition-fast),
+        background var(--transition-fast),
+        border-color var(--transition-fast);
+}
+
+.eq-spectrum-pill:hover,
+.eq-spectrum-toggle-in-graph:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.eq-spectrum-toggle-in-graph.active,
+.eq-spectrum-pill.active {
+    color: var(--primary-foreground);
+    background: var(--highlight);
+    border-color: var(--highlight);
+    box-shadow: 0 0 0 1px rgb(var(--highlight-rgb), 0.3);
+}
+
+.eq-spectrum-pill.active .pill-value,
+.eq-spectrum-pill.active .pill-label {
+    color: inherit;
+    opacity: 1;
+}
+
+.eq-spectrum-toggle-in-graph svg {
+    flex-shrink: 0;
+}
+
+.eq-spectrum-pill .pill-label {
+    opacity: 0.55;
+    font-weight: 500;
+}
+
+.eq-spectrum-pill .pill-value {
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+
 .eq-howto-panel {
     border: 1px solid var(--border);
     border-radius: var(--radius);

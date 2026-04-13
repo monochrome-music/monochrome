@@ -509,6 +509,22 @@ class AudioContextManager {
             this.analyser.fftSize = 1024;
             this.analyser.smoothingTimeConstant = 0.7;
 
+            // High-resolution spectrum analyser for EQ graph overlay.
+            // Large fftSize gives ~5.9 Hz/bin at 48 kHz — critical for bass detail.
+            // Settings.js does its own time-averaging, so smoothing is disabled here.
+            this.spectrumAnalyser = this.audioContext.createAnalyser();
+            try {
+                this.spectrumAnalyser.fftSize = 8192;
+            } catch {
+                // Older browsers cap fftSize — fall back gracefully
+                try {
+                    this.spectrumAnalyser.fftSize = 4096;
+                } catch {
+                    this.spectrumAnalyser.fftSize = 2048;
+                }
+            }
+            this.spectrumAnalyser.smoothingTimeConstant = 0;
+
             // Create binaural DSP processor
             this.binauralDsp = new BinauralDSP(this.audioContext);
             void this._loadBinauralSettings();
@@ -610,6 +626,13 @@ class AudioContextManager {
             }
             this.analyser.connect(this.volumeNode);
             this.volumeNode.connect(this.audioContext.destination);
+            // Parallel tap for the hi-res EQ spectrum overlay (dead-end is fine
+            // for AnalyserNode — it only needs input to sample from).
+            try {
+                if (this.spectrumAnalyser) this.analyser.connect(this.spectrumAnalyser);
+            } catch {
+                /* ignore */
+            }
         };
 
         try {
@@ -664,6 +687,7 @@ class AudioContextManager {
             this.geqFilters.forEach(safeDisconnect);
             safeDisconnect(this.geqOutputNode);
             safeDisconnect(this.analyser);
+            safeDisconnect(this.spectrumAnalyser);
             safeDisconnect(this.volumeNode);
 
             // --- 2. Reconnect the graph ---
@@ -794,6 +818,13 @@ class AudioContextManager {
      */
     getAnalyser() {
         return this.analyser;
+    }
+
+    /**
+     * Get the dedicated high-resolution analyser for the EQ spectrum overlay.
+     */
+    getSpectrumAnalyser() {
+        return this.spectrumAnalyser || this.analyser;
     }
 
     /**

@@ -4619,6 +4619,68 @@
                                         </div>
                                         <div class="autoeq-graph-wrapper" id="autoeq-graph-wrapper">
                                             <canvas id="autoeq-response-canvas" class="autoeq-response-canvas"></canvas>
+                                            <div class="eq-spectrum-controls">
+                                                <button
+                                                    type="button"
+                                                    class="eq-spectrum-pill"
+                                                    id="eq-spectrum-hold"
+                                                    title="Hold spectrum (freeze analyser)"
+                                                    aria-pressed="false"
+                                                >
+                                                    <svg
+                                                        id="eq-spectrum-hold-icon"
+                                                        width="10"
+                                                        height="10"
+                                                        viewBox="0 0 24 24"
+                                                        fill="currentColor"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <rect x="6" y="4" width="4" height="16" rx="1" />
+                                                        <rect x="14" y="4" width="4" height="16" rx="1" />
+                                                    </svg>
+                                                    <span class="pill-value" id="eq-spectrum-hold-value">Hold</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="eq-spectrum-pill"
+                                                    id="eq-spectrum-speed"
+                                                    title="Spectrum response speed"
+                                                >
+                                                    <span class="pill-label">Speed</span>
+                                                    <span class="pill-value" id="eq-spectrum-speed-value">Med</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="eq-spectrum-pill"
+                                                    id="eq-spectrum-fft"
+                                                    title="FFT resolution"
+                                                >
+                                                    <span class="pill-label">FFT</span>
+                                                    <span class="pill-value" id="eq-spectrum-fft-value">8K</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="eq-spectrum-toggle-in-graph"
+                                                    id="eq-spectrum-toggle"
+                                                    title="Toggle live spectrum analyzer (0 dBFS normalized)"
+                                                    aria-pressed="false"
+                                                >
+                                                    <svg
+                                                        width="12"
+                                                        height="12"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        stroke-width="2.4"
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <path d="M3 20V10M7 20V5M11 20V13M15 20V8M19 20V15" />
+                                                    </svg>
+                                                    <span>Spectrum</span>
+                                                </button>
+                                            </div>
                                         </div>
                                         <div class="autoeq-auto-preamp">
                                             <div class="autoeq-preamp-row">
