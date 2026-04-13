@@ -2542,6 +2542,135 @@ body.multi-select-mode .track-item:hover {
     border-radius: var(--radius-full);
 }
 
+.detail-header-banner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+}
+
+.detail-header-banner video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.6);
+    display: block;
+}
+
+#page-artist .detail-header {
+    position: relative;
+    padding: 12rem 3rem 4rem 3rem;
+    border-radius: 0;
+    overflow: hidden;
+    margin-top: -8rem;
+    margin-left: calc(var(--spacing-xl) * -1);
+    margin-right: calc(var(--spacing-xl) * -1);
+    margin-bottom: var(--spacing-xl);
+    min-height: 550px;
+    display: flex;
+    align-items: flex-end;
+}
+
+@media (max-width: 1024px) {
+    #page-artist .detail-header {
+        margin-top: -7rem;
+        margin-left: calc(var(--spacing-lg) * -1);
+        margin-right: calc(var(--spacing-lg) * -1);
+        padding: 10rem 2rem 3rem 2rem;
+        min-height: 450px;
+    }
+}
+
+@media (max-width: 768px) {
+    #page-artist .detail-header {
+        margin-top: -6rem;
+        margin-left: calc(var(--spacing-md) * -1);
+        margin-right: calc(var(--spacing-md) * -1);
+        padding: 8rem 1rem 2rem 1rem;
+        min-height: 400px;
+    }
+}
+
+@media (max-width: 480px) {
+    #page-artist .detail-header {
+        margin-top: -5rem;
+        margin-left: -1rem;
+        margin-right: -1rem;
+        padding: 5rem 1rem 2rem 1rem;
+        min-height: 300px;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1.25rem;
+    }
+
+    #page-artist .detail-header-image {
+        width: 140px;
+        height: 140px;
+        border-width: 3px;
+    }
+
+    #page-artist .detail-header-info .title {
+        font-size: 2rem;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    #page-artist .detail-header-info .meta {
+        justify-content: center;
+        font-size: 0.85rem;
+    }
+
+    #page-artist .detail-header-actions {
+        justify-content: center;
+        margin-top: 1rem;
+    }
+
+    #page-artist .artist-bio {
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+}
+
+.detail-header-banner::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.4) 0%,
+        rgba(0, 0, 0, 0) 40%,
+        rgba(0, 0, 0, 0.2) 70%,
+        var(--background) 100%
+    );
+    z-index: 1;
+}
+
+#page-artist .detail-header-image {
+    width: 200px;
+    height: 200px;
+    border: 4px solid var(--background);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    z-index: 2;
+}
+
+#page-artist .detail-header-info {
+    z-index: 2;
+    text-shadow: 0 2px 15px rgba(0, 0, 0, 0.7);
+}
+
+
 .detail-header-info .type {
     font-weight: 600;
     margin-bottom: 0.5rem;

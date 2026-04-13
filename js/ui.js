@@ -29,6 +29,7 @@ import {
     contentBlockingSettings,
     settingsUiState,
     fullscreenCoverNoRoundSettings,
+    artistBannerSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
@@ -4775,6 +4776,16 @@ export class UIRenderer {
         await this.showPage('artist');
         this.currentArtistId = artistId;
 
+        const bannerContainer = document.getElementById('artist-detail-banner-container');
+        if (bannerContainer) {
+            const oldVideo = bannerContainer.querySelector('video');
+            if (oldVideo && oldVideo._hls) {
+                oldVideo._hls.destroy();
+            }
+            bannerContainer.innerHTML = '';
+            bannerContainer.style.opacity = '0';
+        }
+
         const imageEl = document.getElementById('artist-detail-image');
         const nameEl = document.getElementById('artist-detail-name');
         const metaEl = document.getElementById('artist-detail-meta');
@@ -4822,6 +4833,39 @@ export class UIRenderer {
 
         try {
             const artist = await this.api.getArtist(artistId, provider);
+
+            const currentId = this.currentArtistId;
+            this.api
+                .getArtistBanner(artist.name)
+                .then(async (banner) => {
+                    if (this.currentArtistId !== currentId) return;
+
+                    if (banner && banner.hlsUrl && bannerContainer) {
+                        const video = document.createElement('video');
+                        video.autoplay = true;
+                        video.loop = true;
+                        video.muted = true;
+                        video.playsInline = true;
+                        video.setAttribute('muted', '');
+                        video.setAttribute('autoplay', '');
+                        video.setAttribute('playsinline', '');
+                        video.style.opacity = '1';
+
+                        try {
+                            await this.setupHlsVideo(video, banner, null);
+                            if (this.currentArtistId === currentId) {
+                                bannerContainer.appendChild(video);
+                                bannerContainer.style.opacity = '1';
+                                video.play().catch(() => {});
+                            }
+                        } catch (e) {
+                            console.warn('Failed to setup artist banner video:', e);
+                        }
+                    }
+                })
+                .catch((e) => {
+                    console.warn('Failed to fetch artist banner:', e);
+                });
 
             // Handle Biography
             if (bioEl) {

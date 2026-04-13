@@ -8,6 +8,7 @@ import {
     backgroundSettings,
     dynamicColorSettings,
     cardSettings,
+    artistBannerSettings,
     waveformSettings,
     replayGainSettings,
     downloadQualitySettings,
@@ -6274,6 +6275,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         compactArtistToggle.checked = cardSettings.isCompactArtist();
         compactArtistToggle.addEventListener('change', (e) => {
             cardSettings.setCompactArtist(e.target.checked);
+        });
+    }
+
+    // Artist Banners Toggle
+    const artistBannersToggle = document.getElementById('artist-banners-toggle');
+    if (artistBannersToggle) {
+        artistBannersToggle.checked = artistBannerSettings.isEnabled();
+        artistBannersToggle.addEventListener('change', (e) => {
+            artistBannerSettings.setEnabled(e.target.checked);
         });
     }
 
