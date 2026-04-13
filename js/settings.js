@@ -2032,7 +2032,18 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
     const startSpectrumLoop = () => {
         if (_spectrumRafId) return;
+        const shouldAnimate = () =>
+            spectrumOverlayEnabled &&
+            equalizerSettings.isEnabled() &&
+            currentMode !== 'legacy' &&
+            eqContainer?.offsetParent !== null;
+
         const tick = () => {
+            if (!shouldAnimate()) {
+                _spectrumRafId = null;
+                scheduleDrawAutoEQGraph();
+                return;
+            }
             _spectrumRafId = requestAnimationFrame(tick);
             scheduleDrawAutoEQGraph();
         };
