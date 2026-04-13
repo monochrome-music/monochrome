@@ -4531,12 +4531,19 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // Spectrum overlay toggle
     const spectrumBtn = document.getElementById('eq-spectrum-toggle');
     if (spectrumBtn) {
+        const shouldRunSpectrumLoop = () => {
+            return spectrumOverlayEnabled && !document.hidden && spectrumBtn.offsetParent !== null;
+        };
         const applySpectrumState = () => {
             spectrumBtn.classList.toggle('active', spectrumOverlayEnabled);
             spectrumBtn.setAttribute('aria-pressed', String(spectrumOverlayEnabled));
-            if (spectrumOverlayEnabled) startSpectrumLoop();
+            if (shouldRunSpectrumLoop()) startSpectrumLoop();
             else stopSpectrumLoop();
         };
+        const onSpectrumVisibilityChange = () => {
+            applySpectrumState();
+        };
+        document.addEventListener('visibilitychange', onSpectrumVisibilityChange);
         applySpectrumState();
         spectrumBtn.addEventListener('click', () => {
             spectrumOverlayEnabled = !spectrumOverlayEnabled;
