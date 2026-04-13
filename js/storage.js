@@ -2371,6 +2371,37 @@ export const radioSettings = {
     },
 };
 
+export const autoplaySettings = {
+    ENABLED_KEY: 'autoplay-enabled',
+    SMART_RECS_KEY: 'smart-recommendations-enabled',
+
+    isEnabled() {
+        try {
+            const val = localStorage.getItem(this.ENABLED_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
+    },
+
+    isSmartRecsEnabled() {
+        try {
+            const val = localStorage.getItem(this.SMART_RECS_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setSmartRecsEnabled(enabled) {
+        localStorage.setItem(this.SMART_RECS_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const analyticsSettings = {
     ENABLED_KEY: 'analytics-enabled',
 
