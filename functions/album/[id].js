@@ -162,6 +162,10 @@ export async function onRequest(context) {
             }
         }
 
+        if (album && album.copyright && album.copyright.toLowerCase().includes(atob('emVl'))) {
+            return new Response('This content was removed due to a DMCA notice.', { status: 200 });
+        }
+
         if (album && (album.title || album.name)) {
             try {
                 const title = album.title || album.name;

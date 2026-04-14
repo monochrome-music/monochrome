@@ -188,6 +188,10 @@ export async function onRequest(context) {
             }
         }
 
+        if (track && track.copyright && track.copyright.toLowerCase().includes(atob('emVl'))) {
+            return new Response('This content was removed due to a DMCA notice.', { status: 200 });
+        }
+
         if (track) {
             try {
                 const title = getTrackTitle(track);
