@@ -52,7 +52,11 @@ import {
 } from './tracker.js';
 
 let _isBlockedCopyright = (_c) => false;
-import('./content-filter.ts').then((m) => { _isBlockedCopyright = m.isBlockedCopyright; }).catch(() => {});
+import('./content-filter.ts')
+    .then((m) => {
+        _isBlockedCopyright = m.isBlockedCopyright;
+    })
+    .catch(() => {});
 
 fontSettings.applyFont().catch(console.error);
 fontSettings.applyFontSize();
