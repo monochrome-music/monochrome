@@ -32,7 +32,7 @@ public class BackgroundAudioPlugin extends Plugin {
         }
     }
 
-    `@PluginMethod`
+    @PluginMethod
     public void stop(PluginCall call) {
         try {
             Intent intent = new Intent(getContext(), AudioPlaybackService.class);

@@ -114,6 +114,9 @@ export function createRouter(ui) {
             case 'home':
                 await ui.renderHomePage();
                 break;
+            case 'reset-password':
+                await ui.renderResetPasswordPage();
+                break;
             case 'donate':
                 ui.showPage('donate');
                 break;
