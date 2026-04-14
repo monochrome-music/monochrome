@@ -1,7 +1,13 @@
 :root {
     color-scheme: light dark;
 
-    --font-family: 'Inter', -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, sans-serif;
+    --font-family:
+        'Inter', 'Noto Sans', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans HK', 'Noto Sans JP', 'Noto Sans KR',
+        'Noto Sans Hebrew', 'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Thai',
+        'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam',
+        'Noto Sans Sinhala', 'Noto Sans Khmer', 'Noto Sans Lao', 'Noto Sans Myanmar', 'Noto Sans Georgian',
+        'Noto Sans Armenian', 'Noto Sans Ethiopic', system-ui, -apple-system, blinkmacsystemfont, 'Segoe UI', roboto,
+        sans-serif;
     --font-size-scale: 100%;
     --text-xs: 0.75rem;
     --text-sm: 0.875rem;
@@ -2567,7 +2573,7 @@ body.multi-select-mode .track-item:hover {
 
 #page-artist .detail-header {
     position: relative;
-    padding: 12rem 3rem 4rem 3rem;
+    padding: 12rem 3rem 4rem;
     border-radius: 0;
     overflow: hidden;
     margin-top: -8rem;
@@ -2584,7 +2590,7 @@ body.multi-select-mode .track-item:hover {
         margin-top: -7rem;
         margin-left: calc(var(--spacing-lg) * -1);
         margin-right: calc(var(--spacing-lg) * -1);
-        padding: 10rem 2rem 3rem 2rem;
+        padding: 10rem 2rem 3rem;
         min-height: 450px;
     }
 }
@@ -2594,7 +2600,7 @@ body.multi-select-mode .track-item:hover {
         margin-top: -6rem;
         margin-left: calc(var(--spacing-md) * -1);
         margin-right: calc(var(--spacing-md) * -1);
-        padding: 8rem 1rem 2rem 1rem;
+        padding: 8rem 1rem 2rem;
         min-height: 400px;
     }
 }
@@ -2604,7 +2610,7 @@ body.multi-select-mode .track-item:hover {
         margin-top: -5rem;
         margin-left: -1rem;
         margin-right: -1rem;
-        padding: 5rem 1rem 2rem 1rem;
+        padding: 5rem 1rem 2rem;
         min-height: 300px;
         flex-direction: column;
         align-items: center;
@@ -2649,9 +2655,9 @@ body.multi-select-mode .track-item:hover {
     inset: 0;
     background: linear-gradient(
         to bottom,
-        rgba(0, 0, 0, 0.4) 0%,
-        rgba(0, 0, 0, 0) 40%,
-        rgba(0, 0, 0, 0.2) 70%,
+        rgb(0, 0, 0, 0.4) 0%,
+        rgb(0, 0, 0, 0) 40%,
+        rgb(0, 0, 0, 0.2) 70%,
         var(--background) 100%
     );
     z-index: 1;
@@ -2661,15 +2667,14 @@ body.multi-select-mode .track-item:hover {
     width: 200px;
     height: 200px;
     border: 4px solid var(--background);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 12px 32px rgb(0, 0, 0, 0.6);
     z-index: 2;
 }
 
 #page-artist .detail-header-info {
     z-index: 2;
-    text-shadow: 0 2px 15px rgba(0, 0, 0, 0.7);
+    text-shadow: 0 2px 15px rgb(0, 0, 0, 0.7);
 }
-
 
 .detail-header-info .type {
     font-weight: 600;
@@ -10912,7 +10917,12 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
     height: 100%;
     width: 100%;
-    font-family: 'SF Pro Display', Inter, sans-serif;
+    font-family:
+        'SF Pro Display', Inter, 'Noto Sans', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans HK', 'Noto Sans JP',
+        'Noto Sans KR', 'Noto Sans Hebrew', 'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali',
+        'Noto Sans Thai', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada',
+        'Noto Sans Malayalam', 'Noto Sans Sinhala', 'Noto Sans Khmer', 'Noto Sans Lao', 'Noto Sans Myanmar',
+        'Noto Sans Georgian', 'Noto Sans Armenian', 'Noto Sans Ethiopic', system-ui, sans-serif;
 
     --lyplus-font-size-base: clamp(34px, 3vw, 52px);
     --lyplus-padding-line: 8px;

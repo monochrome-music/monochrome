@@ -660,7 +660,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    initializePlayerEvents(Player.instance, audioPlayer, scrobbler, UIRenderer.instance);
+    await initializePlayerEvents(Player.instance, audioPlayer, scrobbler, UIRenderer.instance);
     initializeTrackInteractions(
         Player.instance,
         MusicAPI.instance,
@@ -1087,6 +1087,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
 
                     Player.instance.setQueue(sortedTracks, 0);
+                    Player.instance.enableAutoplay();
                     const shuffleBtn = document.getElementById('shuffle-btn');
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
                     Player.instance.shuffleActive = false;
@@ -1118,6 +1119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (tracks && tracks.length > 0) {
                     const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
                     Player.instance.setQueue(shuffledTracks, 0);
+                    Player.instance.enableAutoplay();
                     const shuffleBtn = document.getElementById('shuffle-btn');
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
                     Player.instance.shuffleActive = false;
@@ -1186,6 +1188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const shuffledTracks = [...allTracks].sort(() => Math.random() - 0.5);
                 Player.instance.setQueue(shuffledTracks, 0);
+                Player.instance.enableAutoplay();
                 const shuffleBtn = document.getElementById('shuffle-btn');
                 if (shuffleBtn) shuffleBtn.classList.remove('active');
                 Player.instance.shuffleActive = false;
@@ -2730,7 +2733,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const headerAccountIcon = document.getElementById('header-account-icon');
 
     // Temporarily disable accounts - show popup
-    const isAccountsDisabled = false;
+    const isAccountsDisabled = true;
 
     if (headerAccountBtn && headerAccountDropdown) {
         if (isAccountsDisabled) {
@@ -2740,7 +2743,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             headerAccountBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 alert(
-                    "We're moving authentication and data storing systems.\n\nAccounts, profiles, playlists, and community themes will not work during this period (approximately 2 days).\n\nYou will need to re-login after the migration is complete."
+                    '(april 14, 2026) The server hosting the database has unfortunately fried. we are working extremely hard to recover all data and host the database & auth on a much more reliable server. please be patient with us in the time being.'
                 );
             });
         } else {

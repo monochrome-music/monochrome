@@ -1279,18 +1279,35 @@ export class UIRenderer {
             const currentImage = document.getElementById('fullscreen-cover-image');
 
             if (videoCoverUrl) {
+                const isPaused = this.player?.activeElement?.paused ?? true;
                 if (currentImage.tagName === 'IMG') {
                     const video = document.createElement('video');
                     video.src = videoCoverUrl;
-                    video.autoplay = true;
+                    video.autoplay = !isPaused;
                     video.loop = true;
                     video.muted = true;
                     video.playsInline = true;
                     video.preload = 'auto';
                     video.className = currentImage.className;
+                    video.id = currentImage.id;
+                    video.style.objectFit = 'cover';
                     currentImage.replaceWith(video);
+                    if (!isPaused) {
+                        video.play().catch(() => {});
+                    }
                 } else if (currentImage.src !== videoCoverUrl) {
                     currentImage.src = videoCoverUrl;
+                    if (!isPaused) {
+                        currentImage.play().catch(() => {});
+                    } else {
+                        currentImage.pause();
+                    }
+                } else {
+                    if (!isPaused) {
+                        currentImage.play().catch(() => {});
+                    } else {
+                        currentImage.pause();
+                    }
                 }
             } else {
                 if (currentImage.tagName === 'VIDEO') {
@@ -2263,6 +2280,7 @@ export class UIRenderer {
             });
 
             this.player.activeElement.addEventListener('volumechange', updateFsVolumeUI);
+            window.addEventListener('volume-change', updateFsVolumeUI);
             updateFsVolumeUI();
         }
 
@@ -2373,6 +2391,72 @@ export class UIRenderer {
             hostControls.style.display = 'none';
             loginBtn.onclick = () => navigate('/account');
         }
+    }
+
+    async renderResetPasswordPage() {
+        await this.showPage('reset-password');
+        const form = document.getElementById('reset-password-form');
+        const errorEl = document.getElementById('reset-password-error');
+        const successEl = document.getElementById('reset-password-success');
+        const btn = document.getElementById('reset-password-submit-btn');
+        const btnText = document.getElementById('reset-password-btn-text');
+        const spinner = document.getElementById('reset-password-btn-spinner');
+        const passwordInput = document.getElementById('reset-password-input');
+        const confirmInput = document.getElementById('reset-password-confirm');
+
+        if (!form) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const userId = params.get('userId');
+        const secret = params.get('secret');
+
+        if (!userId || !secret) {
+            errorEl.textContent = 'Invalid or missing password reset link.';
+            errorEl.style.display = 'block';
+            form.style.display = 'none';
+            return;
+        }
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+
+            const password = passwordInput.value;
+            const confirm = confirmInput.value;
+
+            if (password !== confirm) {
+                errorEl.textContent = 'Passwords do not match.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btnText.style.display = 'none';
+                spinner.style.display = 'block';
+
+                await authManager.resetPassword(userId, secret, password, confirm);
+
+                successEl.textContent = 'Password reset successfully. Opening login...';
+                successEl.style.display = 'block';
+                form.style.display = 'none';
+
+                setTimeout(() => {
+                    const authModal = document.getElementById('email-auth-modal');
+                    if (authModal) {
+                        authModal.classList.add('active');
+                    }
+                }, 2000);
+            } catch (error) {
+                errorEl.textContent = error.message || 'Failed to reset password. Please try again.';
+                errorEl.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btnText.style.display = 'inline';
+                spinner.style.display = 'none';
+            }
+        };
     }
 
     async renderPartyDetailPage(id) {
@@ -2916,13 +3000,22 @@ export class UIRenderer {
     }
 
     async getSeeds() {
+        try {
+            const { smartRecommendations } = await import('./smart-recommendations.js');
+            const { autoplaySettings } = await import('./storage.js');
+            if (autoplaySettings.isSmartRecsEnabled()) {
+                const smartSeeds = await smartRecommendations.getSmartSeeds(50);
+                if (smartSeeds.length > 0) return smartSeeds;
+            }
+        } catch (e) {
+            console.warn('Smart seeds failed, using basic seeds:', e);
+        }
+
         const history = await db.getHistory();
         const favorites = await db.getFavorites('track');
         const playlists = await db.getPlaylists(true);
         const playlistTracks = playlists.flatMap((p) => p.tracks || []);
 
-        // Prioritize: Playlists > Favorites > History
-        // Take random samples from each to form seeds
         const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
         const combined = [
@@ -2956,7 +3049,7 @@ export class UIRenderer {
             if (forceRefresh || songsContainer.children.length === 0) {
                 songsContainer.innerHTML = this.createSkeletonTracks(10, true);
             } else if (!songsContainer.querySelector('.skeleton')) {
-                return; // Already loaded
+                return;
             }
 
             try {
@@ -2973,10 +3066,21 @@ export class UIRenderer {
                     ...history.map((t) => t.id),
                 ]);
 
-                const recommendedTracks = await this.api.getRecommendedTracksForPlaylist(seeds, 20, {
+                let recommendedTracks = await this.api.getRecommendedTracksForPlaylist(seeds, 20, {
                     skipCache: forceRefresh,
                     knownTrackIds: knownTrackIds,
                 });
+
+                try {
+                    const { smartRecommendations } = await import('./smart-recommendations.js');
+                    const { autoplaySettings } = await import('./storage.js');
+                    if (autoplaySettings.isSmartRecsEnabled()) {
+                        recommendedTracks = smartRecommendations.filterRecommendations(recommendedTracks);
+                        recommendedTracks = smartRecommendations.rankRecommendations(recommendedTracks);
+                    }
+                } catch (e) {
+                    console.warn('Smart filtering failed for home songs:', e);
+                }
 
                 const filteredTracks = await this.filterUserContent(recommendedTracks, 'track');
                 this.lastRecommendedTracks = filteredTracks;
@@ -6190,6 +6294,7 @@ export class UIRenderer {
 
             playBtn.onclick = () => {
                 this.player.setQueue([track], 0);
+                this.player.enableAutoplay();
                 this.player.playTrackFromQueue();
             };
 
