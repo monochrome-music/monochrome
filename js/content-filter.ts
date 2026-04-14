@@ -1,10 +1,10 @@
 const _cr = [
-    'emVl',     
+    'emVl',
     'em1j',
-    'emluZyBtdXNpYw==', 
+    'emluZyBtdXNpYw==',
     'ZXRjIGJvbGx5d29vZA==',
-    'Ym9sbHl3b29kIG11c2lj',  
-    'ZXNzZWw=',    
+    'Ym9sbHl3b29kIG11c2lj',
+    'ZXNzZWw=',
     'emluZGFnaQ==',
 ].map(atob);
 
