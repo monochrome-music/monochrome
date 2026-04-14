@@ -39,13 +39,13 @@
 
 <p align="center">
   <a href="https://monochrome.tf/album/90502209">
-    <img width="2559" height="1439" alt="Image of 'NASIR' By Nas On Monochrome" src="https://i.samidy.xyz/NASIR.png"  alt="Monochrome UI" width="800">
+    <img width="2559" height="1439" alt="Image of 'NASIR' By Nas On Monochrome" src="https://i.samidy.xyz/NASIR.png"  alt="Monochrome UI">
   </a>
 </p>
 
 <p align="center">
   <a href="https://monochrome.tf/album/413189044">
-    <img width="2559" height="1439" alt="Image of 'Jump Out' By Osamason On Monochrome" src="https://i.samidy.xyz/jumpout.png"  alt="Monochrome UI" width="800">
+    <img width="2559" height="1439" alt="Image of 'Jump Out' By Osamason On Monochrome" src="https://i.samidy.xyz/jumpout.png"  alt="Monochrome UI">
   </a>
 </p>
 
