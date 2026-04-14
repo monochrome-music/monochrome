@@ -3605,6 +3605,11 @@ export class UIRenderer {
                 finalAlbums = Array.from(albumMap.values());
             }
 
+            const isLicensed = (item) => !item.copyright || !item.copyright.toLowerCase().includes(atob('emVl'));
+            finalTracks = finalTracks.filter(isLicensed);
+            finalVideos = finalVideos.filter(isLicensed);
+            finalAlbums = finalAlbums.filter(isLicensed);
+
             // Track search with results
             const totalResults = finalTracks.length + finalArtists.length + finalAlbums.length + finalPlaylists.length;
 
@@ -3798,6 +3803,22 @@ export class UIRenderer {
         try {
             const { album, tracks } = await this.api.getAlbum(albumId, provider);
             this.currentAlbumId = albumId;
+
+            if (album.copyright && album.copyright.toLowerCase().includes(atob('emVl'))) {
+                imageEl.src = '';
+                imageEl.style.backgroundColor = 'transparent';
+                titleEl.textContent = '';
+                metaEl.textContent = '';
+                prodEl.textContent = '';
+                rateCriticsEl.textContent = '';
+                rateUsersEl.textContent = '';
+                tracklistContainer.innerHTML = '';
+                if (playBtn) playBtn.style.display = 'none';
+                if (dlBtn) dlBtn.style.display = 'none';
+                document.getElementById('page-album').innerHTML =
+                    '<p style="padding: 2rem; color: var(--muted-foreground);">This content is unavailable due to a DMCA notice.</p>';
+                return;
+            }
 
             const videoCoverUrl = album.videoCoverUrl || null;
 
@@ -5051,6 +5072,11 @@ export class UIRenderer {
                 }
             });
 
+            const isLicensed = (item) => !item.copyright || !item.copyright.toLowerCase().includes(atob('emVl'));
+            artist.tracks = artist.tracks.filter(isLicensed);
+            artist.albums = artist.albums.filter(isLicensed);
+            if (artist.eps) artist.eps = artist.eps.filter(isLicensed);
+
             await this.renderListWithTracks(tracksContainer, artist.tracks, true);
 
             // "In your library" section: find liked tracks and playlist tracks for this artist
@@ -6000,6 +6026,12 @@ export class UIRenderer {
             let track;
             track = await this.api.getTrackMetadata(trackId);
             this.currentTrackPageId = track.id;
+
+            if (track.copyright && track.copyright.toLowerCase().includes(atob('emVl'))) {
+                document.getElementById('page-track').innerHTML =
+                    '<p style="padding: 2rem; color: var(--muted-foreground);">This content is unavailable due to a DMCA notice.</p>';
+                return;
+            }
 
             let videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
 
