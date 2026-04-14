@@ -175,6 +175,8 @@ const _cr = [
     'emVlIHN0dWRpb3M=',
     'emluZGFnaSBtdXNpYw==',
     'emVlNQ==',
+    'Ym9sbHl3b29kIG11c2lj',
+    'ZXNzZWw=',
 ].map(atob);
 const _isBlockedCopyright = (c) => !!c && _cr.some((s) => c.toLowerCase().includes(s));
 
