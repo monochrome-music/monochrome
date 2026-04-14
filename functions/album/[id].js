@@ -134,6 +134,9 @@ class ServerAPI {
     }
 }
 
+const _cr = ['emVl','em1j','emVlIG11c2lj','emVlIGVudGVydGFpbm1lbnQ=','emVlbA==','Ym9sbHl3b29kIG11c2ljIGluZGlh','emVlIHJlY29yZHM=','emluZyBtdXNpYw==','ZXRjIGJvbGx5d29vZA==','emVlIHN0dWRpb3M=','emluZGFnaSBtdXNpYw==','emVlNQ=='].map(atob);
+const _isBlockedCopyright = (c) => !!c && _cr.some((s) => c.toLowerCase().includes(s));
+
 export async function onRequest(context) {
     const { request, params, env } = context;
     const userAgent = request.headers.get('User-Agent') || '';
@@ -162,12 +165,7 @@ export async function onRequest(context) {
             }
         }
 
-        if (
-            album &&
-            album.copyright &&
-            (album.copyright.toLowerCase().includes(atob('emVl')) ||
-                album.copyright.toLowerCase().includes(atob('em1j')))
-        ) {
+        if (album && _isBlockedCopyright(album.copyright)) {
             return new Response('This content was removed due to a DMCA notice.', { status: 200 });
         }
 
