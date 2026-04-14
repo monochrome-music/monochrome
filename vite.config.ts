@@ -18,7 +18,7 @@ function getGitCommitHash() {
     }
 }
 
-export default defineConfig((_options) => {
+export default defineConfig(({ command }) => {
     const commitHash = getGitCommitHash();
 
     return {
@@ -65,7 +65,7 @@ export default defineConfig((_options) => {
         //     allowedHosts: ['<your_tailscale_hostname>'], // e.g. pi5.tailf5f622.ts.net
         // },
         esbuild: {
-            drop: ['console', 'debugger'],
+            drop: command === 'build' ? ['console', 'debugger'] : [],
         },
         build: {
             outDir: 'dist',

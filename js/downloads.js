@@ -195,7 +195,11 @@ export function addDownloadTask(trackId, track, _filename, api, abortController)
 
     container.appendChild(taskEl);
 
-    downloadTasks.set(trackId, { taskEl, abortController });
+    const progressFill = taskEl.querySelector('.download-progress-fill');
+    const statusEl = taskEl.querySelector('.download-status');
+    const cancelBtn = taskEl.querySelector('.download-cancel');
+
+    downloadTasks.set(trackId, { taskEl, abortController, progressFill, statusEl, cancelBtn });
 
     taskEl.querySelector('.download-cancel').addEventListener('click', () => {
         abortController.abort();
@@ -209,9 +213,7 @@ export function updateDownloadProgress(trackId, progress) {
     const task = downloadTasks.get(trackId);
     if (!task) return;
 
-    const { taskEl } = task;
-    const progressFill = taskEl.querySelector('.download-progress-fill');
-    const statusEl = taskEl.querySelector('.download-status');
+    const { progressFill, statusEl } = task;
 
     if (progress instanceof DownloadProgress && progress.receivedBytes && progress.totalBytes) {
         const percent = progress.totalBytes ? Math.round((progress.receivedBytes / progress.totalBytes) * 100) : 0;
@@ -253,10 +255,7 @@ export function completeDownloadTask(trackId, success = true, message = null) {
     const task = downloadTasks.get(trackId);
     if (!task) return;
 
-    const { taskEl } = task;
-    const progressFill = taskEl.querySelector('.download-progress-fill');
-    const statusEl = taskEl.querySelector('.download-status');
-    const cancelBtn = taskEl.querySelector('.download-cancel');
+    const { taskEl, progressFill, statusEl, cancelBtn } = task;
 
     if (success) {
         progressFill.style.width = '100%';
@@ -934,7 +933,10 @@ function createBulkDownloadNotification(type, name, _totalItems) {
     container.appendChild(notifEl);
 
     const abortController = new AbortController();
-    bulkDownloadTasks.set(notifEl, { abortController });
+    const progressFill = notifEl.querySelector('.download-progress-fill');
+    const statusEl = notifEl.querySelector('.download-status');
+
+    bulkDownloadTasks.set(notifEl, { abortController, progressFill, statusEl });
 
     notifEl.querySelector('.download-cancel').addEventListener('click', () => {
         abortController.abort();
@@ -954,11 +956,10 @@ function createBulkDownloadNotification(type, name, _totalItems) {
  * @returns
  */
 function updateBulkDownloadProgress(notifEl, current, total, currentItem, progress = null) {
-    /** @type {HTMLElement | null} */
-    const progressFill = notifEl.querySelector('.download-progress-fill');
+    const task = bulkDownloadTasks.get(notifEl);
+    if (!task) return;
 
-    /** @type {HTMLElement | null} */
-    const statusEl = notifEl.querySelector('.download-status');
+    const { progressFill, statusEl } = task;
 
     if (!progressFill || !statusEl) {
         console.log('Progress elements not found in notification');
@@ -988,8 +989,10 @@ function updateBulkDownloadProgress(notifEl, current, total, currentItem, progre
 }
 
 function completeBulkDownload(notifEl, success = true, message = null) {
-    const progressFill = notifEl.querySelector('.download-progress-fill');
-    const statusEl = notifEl.querySelector('.download-status');
+    const task = bulkDownloadTasks.get(notifEl);
+    if (!task) return;
+
+    const { progressFill, statusEl } = task;
 
     if (success) {
         progressFill.style.width = '100%';

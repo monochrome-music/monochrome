@@ -423,15 +423,17 @@ export class MusicDatabase {
     }
 
     async exportData() {
-        const tracks = await this.getFavorites('track');
-        const albums = await this.getFavorites('album');
-        const artists = await this.getFavorites('artist');
-        const playlists = await this.getFavorites('playlist');
-        const mixes = await this.getFavorites('mix');
-        const history = await this.getHistory();
+        const [tracks, albums, artists, playlists, mixes, history, userPlaylists, userFolders] = await Promise.all([
+            this.getFavorites('track'),
+            this.getFavorites('album'),
+            this.getFavorites('artist'),
+            this.getFavorites('playlist'),
+            this.getFavorites('mix'),
+            this.getHistory(),
+            this.getPlaylists(true),
+            this.getFolders(),
+        ]);
 
-        const userPlaylists = await this.getPlaylists(true);
-        const userFolders = await this.getFolders();
         const data = {
             favorites_tracks: tracks.map((t) => this._minifyItem('track', t)),
             favorites_albums: albums.map((a) => this._minifyItem('album', a)),

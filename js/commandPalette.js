@@ -938,6 +938,8 @@ class CommandPalette {
 
         let index = this.flatItems.length;
 
+        const fragment = document.createDocumentFragment();
+
         for (const [heading, items] of Object.entries(musicGroups)) {
             const groupEl = document.createElement('div');
             groupEl.className = 'cmdk-group';
@@ -955,8 +957,9 @@ class CommandPalette {
                 index++;
             }
 
-            this.resultsContainer.appendChild(groupEl);
+            fragment.appendChild(groupEl);
         }
+        this.resultsContainer.appendChild(fragment);
     }
 
     groupBy(items, key) {
@@ -986,6 +989,8 @@ class CommandPalette {
             return;
         }
 
+        const fragment = document.createDocumentFragment();
+
         for (const [heading, items] of groupEntries) {
             const groupEl = document.createElement('div');
             groupEl.className = 'cmdk-group';
@@ -1002,9 +1007,10 @@ class CommandPalette {
                 index++;
             }
 
-            this.resultsContainer.appendChild(groupEl);
+            fragment.appendChild(groupEl);
         }
 
+        this.resultsContainer.appendChild(fragment);
         this.updateSelection();
     }
 

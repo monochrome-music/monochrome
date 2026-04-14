@@ -127,6 +127,8 @@ async function fetchcontributors() {
         const con = document.querySelector('.about-contributors');
         if (!con) return;
 
+        const fragment = document.createDocumentFragment();
+
         data.forEach((user) => {
             const userDIV = document.createElement('div');
             userDIV.innerHTML = `
@@ -136,8 +138,9 @@ async function fetchcontributors() {
             <span class="contrib">Contributions: ${user.contributions}</span>
             </a>
             `;
-            con.appendChild(userDIV);
+            fragment.appendChild(userDIV);
         });
+        con.appendChild(fragment);
     } catch (e) {
         const con = document.querySelector('.about-contributors-failed');
         if (!con) return;
@@ -1061,8 +1064,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.addEventListener('click', async (e) => {
-        if (e.target.closest('#play-album-btn')) {
-            const btn = e.target.closest('#play-album-btn');
+        let btn;
+
+        if ((btn = e.target.closest('#play-album-btn'))) {
             if (btn.disabled) return;
 
             const pathParts = window.location.pathname.split('/');
@@ -1098,10 +1102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const { showNotification } = await loadDownloadsModule();
                 showNotification('Failed to play album');
             }
-        }
-
-        if (e.target.closest('#shuffle-album-btn')) {
-            const btn = e.target.closest('#shuffle-album-btn');
+        } else if ((btn = e.target.closest('#shuffle-album-btn'))) {
             if (btn.disabled) return;
 
             const pathParts = window.location.pathname.split('/');
@@ -1133,10 +1134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const { showNotification } = await loadDownloadsModule();
                 showNotification('Failed to shuffle album');
             }
-        }
-
-        if (e.target.closest('#shuffle-artist-btn')) {
-            const btn = e.target.closest('#shuffle-artist-btn');
+        } else if ((btn = e.target.closest('#shuffle-artist-btn'))) {
             if (btn.disabled) return;
             const artistId = window.location.pathname.split('/')[2];
             if (!artistId) return;
