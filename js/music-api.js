@@ -245,7 +245,8 @@ export class MusicAPI {
         if (this.videoArtworkCache.has(cacheKey)) {
             return this.videoArtworkCache.get(cacheKey);
         }
-
+        // artwork.boidu.dev developer asked us to disable his API for the time being due to rate limits.
+        /* 
         try {
             const url = `https://artwork.boidu.dev/?s=${encodeURIComponent(title)}&a=${encodeURIComponent(artist)}`;
             const response = await fetch(url);
@@ -257,10 +258,12 @@ export class MusicAPI {
             };
             this.videoArtworkCache.set(cacheKey, result);
             return result;
+        
         } catch (error) {
             console.warn('Failed to fetch video artwork:', error);
             return null;
         }
+        */
     }
 
     getArtistPictureUrl(id, size = '320') {
