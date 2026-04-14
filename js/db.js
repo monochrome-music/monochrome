@@ -159,6 +159,49 @@ export class MusicDatabase {
         });
     }
 
+    // Listening Stats (Native "Wrapped" / Replay)
+    async getListeningStats(year = new Date().getFullYear()) {
+        const history = await this.getHistory();
+        const stats = {
+            totalMinutes: 0,
+            topTracks: {},
+            topArtists: {},
+            topAlbums: {},
+        };
+
+        const startOfYear = new Date(year, 0, 1).getTime();
+        const endOfYear = new Date(year, 11, 31, 23, 59, 59).getTime();
+
+        history.forEach((track) => {
+            if (track.timestamp >= startOfYear && track.timestamp <= endOfYear) {
+                stats.totalMinutes += (track.duration || 0) / 60;
+
+                stats.topTracks[track.id] = stats.topTracks[track.id] || { count: 0, track: track };
+                stats.topTracks[track.id].count++;
+
+                const artistName = track.artist?.name || track.artist || 'Unknown';
+                stats.topArtists[artistName] = stats.topArtists[artistName] || { count: 0 };
+                stats.topArtists[artistName].count++;
+
+                if (track.album?.title) {
+                    stats.topAlbums[track.album.title] = stats.topAlbums[track.album.title] || {
+                        count: 0,
+                        cover: track.album.cover,
+                    };
+                    stats.topAlbums[track.album.title].count++;
+                }
+            }
+        });
+
+        const sortByCount = (obj) => Object.values(obj).sort((a, b) => b.count - a.count);
+        return {
+            totalMinutes: Math.round(stats.totalMinutes),
+            topTracks: sortByCount(stats.topTracks).slice(0, 100),
+            topArtists: sortByCount(stats.topArtists).slice(0, 50),
+            topAlbums: sortByCount(stats.topAlbums).slice(0, 50),
+        };
+    }
+
     async clearHistory() {
         const storeName = 'history_tracks';
         const db = await this.open();
@@ -605,6 +648,27 @@ export class MusicDatabase {
         return playlist;
     }
 
+    async createSmartPlaylist(name, rules, cover = '', description = '') {
+        const id = crypto.randomUUID();
+        const playlist = {
+            id: id,
+            name: name,
+            isSmart: true,
+            smartRules: rules,
+            tracks: await this.evaluateSmartRules(rules),
+            cover: cover,
+            description: description,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            images: [],
+        };
+        playlist.numberOfTracks = playlist.tracks.length;
+        await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
+        this._dispatchPlaylistSync('create', playlist);
+        window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
+        return playlist;
+    }
+
     async addTrackToPlaylist(playlistId, track) {
         const playlist = await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
         if (!playlist) throw new Error('Playlist not found');
@@ -677,7 +741,44 @@ export class MusicDatabase {
     }
 
     async getPlaylist(playlistId) {
-        return await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
+        const playlist = await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
+
+        // Auto-update smart playlists dynamically upon fetch
+        if (playlist && playlist.isSmart && playlist.smartRules) {
+            playlist.tracks = await this.evaluateSmartRules(playlist.smartRules);
+            playlist.numberOfTracks = playlist.tracks.length;
+        }
+
+        return playlist;
+    }
+
+    async evaluateSmartRules(rules) {
+        let baseTracks = rules.source === 'history' ? await this.getHistory() : await this.getFavorites('track');
+        const now = Date.now();
+
+        return baseTracks.filter((track) => {
+            if (rules.addedWithinDays) {
+                const daysMs = rules.addedWithinDays * 24 * 60 * 60 * 1000;
+                if (now - (track.addedAt || track.timestamp || 0) > daysMs) return false;
+            }
+            if (
+                rules.artist &&
+                !String(track.artist?.name || track.artist)
+                    .toLowerCase()
+                    .includes(rules.artist.toLowerCase())
+            ) {
+                return false;
+            }
+            if (
+                rules.genre &&
+                !String(track.mediaMetadata?.tags?.genre || '')
+                    .toLowerCase()
+                    .includes(rules.genre.toLowerCase())
+            ) {
+                return false;
+            }
+            return true;
+        });
     }
 
     async updatePlaylist(playlist) {

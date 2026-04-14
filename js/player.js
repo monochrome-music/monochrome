@@ -77,6 +77,8 @@ export class Player {
             isFetching: false,
             hasMore: true,
         };
+        // Document PiP Window
+        this.pipWindow = null;
     }
 
     static async initialize(audioElement, api, quality) {
@@ -199,6 +201,10 @@ export class Player {
             if (document.visibilityState === 'visible' && this.autoplayBlocked) {
                 this.autoplayBlocked = false;
                 el.play().catch(() => {});
+            }
+
+            if (this.pipWindow) {
+                this.updatePipUI();
             }
         });
 
@@ -1063,6 +1069,7 @@ export class Player {
         this.updatePlayingTrackIndicator();
         this.updateMediaSession(track);
         this.updateMediaSessionPlaybackState();
+        this.updatePipUI();
 
         try {
             let streamUrl;
@@ -1750,6 +1757,7 @@ export class Player {
             el.pause();
             await this.saveQueueState();
         }
+        this.updatePipUI();
     }
 
     seekBackward(seconds = 10) {
@@ -2533,5 +2541,64 @@ export class Player {
 
         updateBtn(timerBtn);
         updateBtn(timerBtnDesktop);
+    }
+
+    // Document Picture-in-Picture Mini Player
+    async toggleMiniPlayer() {
+        if (!('documentPictureInPicture' in window)) {
+            console.warn('Document Picture-in-Picture is not supported in this browser.');
+            alert('Mini Player is not supported in your browser. Please try Chrome 116+ or Edge 116+.');
+            return;
+        }
+
+        if (this.pipWindow) {
+            this.pipWindow.close();
+            return;
+        }
+
+        try {
+            this.pipWindow = await window.documentPictureInPicture.requestWindow({
+                width: 320,
+                height: 400,
+            });
+
+            // Build PiP UI
+            this.pipWindow.document.body.innerHTML = `
+                <div class="pip-container" style="display:flex; flex-direction:column; align-items:center; padding: 20px; background: #09090b; color: #fff; height: 100vh; box-sizing: border-box; font-family: system-ui, sans-serif;">
+                    <img id="pip-cover" src="" style="width: 100%; aspect-ratio: 1; border-radius: 8px; object-fit: cover; margin-bottom: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.5);" />
+                    <h3 id="pip-title" style="margin:0; font-size:16px; text-align:center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;"></h3>
+                    <p id="pip-artist" style="margin:4px 0 20px 0; font-size:14px; opacity:0.7; text-align:center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;"></p>
+                    <div style="display:flex; gap: 20px; align-items: center;">
+                        <button id="pip-prev" style="background:none; border:none; color:#fff; font-size: 24px; cursor:pointer;">⏮</button>
+                        <button id="pip-play" style="background:#fff; border:none; color:#000; font-size: 24px; cursor:pointer; width: 48px; height: 48px; border-radius: 50%; display:flex; align-items:center; justify-content:center;">▶️</button>
+                        <button id="pip-next" style="background:none; border:none; color:#fff; font-size: 24px; cursor:pointer;">⏭</button>
+                    </div>
+                </div>
+            `;
+            this.pipWindow.document.body.style.margin = '0';
+
+            // Bind events
+            this.pipWindow.document.getElementById('pip-play').onclick = () => this.handlePlayPause();
+            this.pipWindow.document.getElementById('pip-prev').onclick = () => this.playPrev();
+            this.pipWindow.document.getElementById('pip-next').onclick = () => this.playNext();
+
+            this.updatePipUI();
+
+            this.pipWindow.addEventListener('pagehide', () => {
+                this.pipWindow = null;
+            });
+        } catch (err) {
+            console.error('Failed to open PiP window', err);
+        }
+    }
+
+    updatePipUI() {
+        if (!this.pipWindow || !this.currentTrack) return;
+        const track = this.currentTrack;
+        this.pipWindow.document.getElementById('pip-title').textContent = track.title || 'Unknown Title';
+        this.pipWindow.document.getElementById('pip-artist').textContent = getTrackArtists(track) || 'Unknown Artist';
+        const coverId = track.image || track.cover || track.album?.cover;
+        this.pipWindow.document.getElementById('pip-cover').src = coverId ? this.api.getCoverUrl(coverId) : '';
+        this.pipWindow.document.getElementById('pip-play').textContent = this.activeElement.paused ? '▶️' : '⏸';
     }
 }

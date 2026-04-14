@@ -1013,6 +1013,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    document.getElementById('mini-player-btn')?.addEventListener('click', () => {
+        if (Player.instance) {
+            Player.instance.toggleMiniPlayer();
+        }
+    });
+
+    // Initialize Remote Control listener (Remote playback over PocketBase)
+    if (typeof syncManager !== 'undefined' && syncManager.pb) {
+        syncManager.pb
+            .collection('playback_commands')
+            .subscribe('*', function (e) {
+                if (!Player.instance) return;
+                // Ensure the command is meant for this device/user
+                if (e.action === 'create' && e.record.user === authManager?.user?.id) {
+                    const command = e.record.command;
+                    switch (command) {
+                        case 'play_pause':
+                            Player.instance.handlePlayPause();
+                            break;
+                        case 'next':
+                            Player.instance.playNext();
+                            break;
+                        case 'prev':
+                            Player.instance.playPrev();
+                            break;
+                        case 'volume_up':
+                            Player.instance.setVolume(Player.instance.userVolume + 0.1);
+                            break;
+                        case 'volume_down':
+                            Player.instance.setVolume(Player.instance.userVolume - 0.1);
+                            break;
+                    }
+                }
+            })
+            .catch((err) => console.warn('Failed to subscribe to remote commands', err));
+    }
+
     // Auto-update lyrics when track changes
     let previousTrackId = null;
     audioPlayer.addEventListener('play', async () => {
