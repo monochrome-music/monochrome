@@ -3710,7 +3710,7 @@ export class UIRenderer {
                 finalAlbums = Array.from(albumMap.values());
             }
 
-            const isLicensed = (item) => !item.copyright || !item.copyright.toLowerCase().includes(atob('emVl'));
+            const isLicensed = (item) => !item.copyright || (!item.copyright.toLowerCase().includes(atob('emVl')) && !item.copyright.toLowerCase().includes(atob('em1j')));
             finalTracks = finalTracks.filter(isLicensed);
             finalVideos = finalVideos.filter(isLicensed);
             finalAlbums = finalAlbums.filter(isLicensed);
@@ -3909,7 +3909,7 @@ export class UIRenderer {
             const { album, tracks } = await this.api.getAlbum(albumId, provider);
             this.currentAlbumId = albumId;
 
-            if (album.copyright && album.copyright.toLowerCase().includes(atob('emVl'))) {
+            if (album.copyright && (album.copyright.toLowerCase().includes(atob('emVl')) || album.copyright.toLowerCase().includes(atob('em1j')))) {
                 imageEl.src = '';
                 imageEl.style.backgroundColor = 'transparent';
                 titleEl.textContent = '';
@@ -5220,7 +5220,7 @@ export class UIRenderer {
                 }
             });
 
-            const isLicensed = (item) => !item.copyright || !item.copyright.toLowerCase().includes(atob('emVl'));
+            const isLicensed = (item) => !item.copyright || (!item.copyright.toLowerCase().includes(atob('emVl')) && !item.copyright.toLowerCase().includes(atob('em1j')));
             artist.tracks = artist.tracks.filter(isLicensed);
             artist.albums = artist.albums.filter(isLicensed);
             if (artist.eps) artist.eps = artist.eps.filter(isLicensed);
@@ -6175,7 +6175,7 @@ export class UIRenderer {
             track = await this.api.getTrackMetadata(trackId);
             this.currentTrackPageId = track.id;
 
-            if (track.copyright && track.copyright.toLowerCase().includes(atob('emVl'))) {
+            if (track.copyright && (track.copyright.toLowerCase().includes(atob('emVl')) || track.copyright.toLowerCase().includes(atob('em1j')))) {
                 document.getElementById('page-track').innerHTML =
                     '<p style="padding: 2rem; color: var(--muted-foreground);">This content is unavailable due to a DMCA notice.</p>';
                 return;
