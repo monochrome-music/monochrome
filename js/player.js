@@ -210,6 +210,23 @@ export class Player {
 
         this._setupVideoSync();
         this._setupAnimatedCoverSync();
+        this._setupPipSync();
+    }
+
+    _setupPipSync() {
+        const syncPipUI = () => {
+            if (this.pipWindow) {
+                this.updatePipUI();
+            }
+        };
+        this.audio.addEventListener('play', syncPipUI);
+        this.audio.addEventListener('pause', syncPipUI);
+        this.audio.addEventListener('emptied', syncPipUI);
+        if (this.video) {
+            this.video.addEventListener('play', syncPipUI);
+            this.video.addEventListener('pause', syncPipUI);
+            this.video.addEventListener('emptied', syncPipUI);
+        }
     }
 
     _setupAnimatedCoverSync() {
@@ -1069,7 +1086,6 @@ export class Player {
         this.updatePlayingTrackIndicator();
         this.updateMediaSession(track);
         this.updateMediaSessionPlaybackState();
-        this.updatePipUI();
 
         try {
             let streamUrl;
@@ -1757,7 +1773,6 @@ export class Player {
             el.pause();
             await this.saveQueueState();
         }
-        this.updatePipUI();
     }
 
     seekBackward(seconds = 10) {
@@ -2569,9 +2584,9 @@ export class Player {
                     <h3 id="pip-title" style="margin:0; font-size:16px; text-align:center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;"></h3>
                     <p id="pip-artist" style="margin:4px 0 20px 0; font-size:14px; opacity:0.7; text-align:center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;"></p>
                     <div style="display:flex; gap: 20px; align-items: center;">
-                        <button id="pip-prev" style="background:none; border:none; color:#fff; font-size: 24px; cursor:pointer;">⏮</button>
-                        <button id="pip-play" style="background:#fff; border:none; color:#000; font-size: 24px; cursor:pointer; width: 48px; height: 48px; border-radius: 50%; display:flex; align-items:center; justify-content:center;">▶️</button>
-                        <button id="pip-next" style="background:none; border:none; color:#fff; font-size: 24px; cursor:pointer;">⏭</button>
+                        <button id="pip-prev" aria-label="Previous" title="Previous" style="background:none; border:none; color:#fff; font-size: 24px; cursor:pointer;">⏮</button>
+                        <button id="pip-play" aria-label="Play" title="Play" style="background:#fff; border:none; color:#000; font-size: 24px; cursor:pointer; width: 48px; height: 48px; border-radius: 50%; display:flex; align-items:center; justify-content:center;">▶️</button>
+                        <button id="pip-next" aria-label="Next" title="Next" style="background:none; border:none; color:#fff; font-size: 24px; cursor:pointer;">⏭</button>
                     </div>
                 </div>
             `;
@@ -2599,6 +2614,10 @@ export class Player {
         this.pipWindow.document.getElementById('pip-artist').textContent = getTrackArtists(track) || 'Unknown Artist';
         const coverId = track.image || track.cover || track.album?.cover;
         this.pipWindow.document.getElementById('pip-cover').src = coverId ? this.api.getCoverUrl(coverId) : '';
-        this.pipWindow.document.getElementById('pip-play').textContent = this.activeElement.paused ? '▶️' : '⏸';
+        const playBtn = this.pipWindow.document.getElementById('pip-play');
+        const isPaused = this.activeElement.paused;
+        playBtn.textContent = isPaused ? '▶️' : '⏸';
+        playBtn.setAttribute('aria-label', isPaused ? 'Play' : 'Pause');
+        playBtn.setAttribute('title', isPaused ? 'Play' : 'Pause');
     }
 }
