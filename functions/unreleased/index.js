@@ -1,8 +1,15 @@
 export async function onRequest(context) {
-    const { request } = context;
-    const pageUrl = request.url;
+    const { request, env } = context;
+    const userAgent = request.headers.get('User-Agent') || '';
+    const isBot =
+        /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot|telegrambot|linkedinbot|mastodon|signal|snapchat|redditbot|skypeuripreview|viberbot|linebot|embedly|quora|outbrain|tumblr|duckduckbot|yandexbot|rogerbot|showyoubot|kakaotalk|naverbot|seznambot|mediapartners|adsbot|petalbot|applebot|ia_archiver/i.test(
+            userAgent
+        );
 
-    const metaHtml = `
+    if (isBot) {
+        const pageUrl = request.url;
+
+        const metaHtml = `
         <!DOCTYPE html>
         <html lang="en">
         <head>
@@ -28,7 +35,12 @@ export async function onRequest(context) {
         </html>
     `;
 
-    return new Response(metaHtml, {
-        headers: { 'content-type': 'text/html;charset=UTF-8' },
-    });
+        return new Response(metaHtml, {
+            headers: { 'content-type': 'text/html;charset=UTF-8' },
+        });
+    }
+
+    const url = new URL(request.url);
+    url.pathname = '/';
+    return env.ASSETS.fetch(new Request(url, request));
 }
