@@ -51,6 +51,9 @@ import {
     createTrackFromSong,
 } from './tracker.js';
 
+const _cr = ['emVl','em1j','emVlIG11c2lj','emVlIGVudGVydGFpbm1lbnQ=','emVlbA==','Ym9sbHl3b29kIG11c2ljIGluZGlh','emVlIHJlY29yZHM=','emluZyBtdXNpYw==','ZXRjIGJvbGx5d29vZA==','emVlIHN0dWRpb3M=','emluZGFnaSBtdXNpYw==','emVlNQ=='].map(atob);
+const _isBlockedCopyright = (c) => !!c && _cr.some((s) => c.toLowerCase().includes(s));
+
 fontSettings.applyFont().catch(console.error);
 fontSettings.applyFontSize();
 
@@ -3710,13 +3713,9 @@ export class UIRenderer {
                 finalAlbums = Array.from(albumMap.values());
             }
 
-            const isLicensed = (item) =>
-                !item.copyright ||
-                (!item.copyright.toLowerCase().includes(atob('emVl')) &&
-                    !item.copyright.toLowerCase().includes(atob('em1j')));
-            finalTracks = finalTracks.filter(isLicensed);
-            finalVideos = finalVideos.filter(isLicensed);
-            finalAlbums = finalAlbums.filter(isLicensed);
+            finalTracks = finalTracks.filter((t) => !_isBlockedCopyright(t.copyright));
+            finalVideos = finalVideos.filter((t) => !_isBlockedCopyright(t.copyright));
+            finalAlbums = finalAlbums.filter((t) => !_isBlockedCopyright(t.copyright));
 
             // Track search with results
             const totalResults = finalTracks.length + finalArtists.length + finalAlbums.length + finalPlaylists.length;
@@ -3912,11 +3911,7 @@ export class UIRenderer {
             const { album, tracks } = await this.api.getAlbum(albumId, provider);
             this.currentAlbumId = albumId;
 
-            if (
-                album.copyright &&
-                (album.copyright.toLowerCase().includes(atob('emVl')) ||
-                    album.copyright.toLowerCase().includes(atob('em1j')))
-            ) {
+            if (_isBlockedCopyright(album.copyright)) {
                 imageEl.src = '';
                 imageEl.style.backgroundColor = 'transparent';
                 titleEl.textContent = '';
@@ -5227,13 +5222,9 @@ export class UIRenderer {
                 }
             });
 
-            const isLicensed = (item) =>
-                !item.copyright ||
-                (!item.copyright.toLowerCase().includes(atob('emVl')) &&
-                    !item.copyright.toLowerCase().includes(atob('em1j')));
-            artist.tracks = artist.tracks.filter(isLicensed);
-            artist.albums = artist.albums.filter(isLicensed);
-            if (artist.eps) artist.eps = artist.eps.filter(isLicensed);
+            artist.tracks = artist.tracks.filter((t) => !_isBlockedCopyright(t.copyright));
+            artist.albums = artist.albums.filter((t) => !_isBlockedCopyright(t.copyright));
+            if (artist.eps) artist.eps = artist.eps.filter((t) => !_isBlockedCopyright(t.copyright));
 
             await this.renderListWithTracks(tracksContainer, artist.tracks, true);
 
@@ -6185,11 +6176,7 @@ export class UIRenderer {
             track = await this.api.getTrackMetadata(trackId);
             this.currentTrackPageId = track.id;
 
-            if (
-                track.copyright &&
-                (track.copyright.toLowerCase().includes(atob('emVl')) ||
-                    track.copyright.toLowerCase().includes(atob('em1j')))
-            ) {
+            if (_isBlockedCopyright(track.copyright)) {
                 document.getElementById('page-track').innerHTML =
                     '<p style="padding: 2rem; color: var(--muted-foreground);">This content is unavailable due to a DMCA notice.</p>';
                 return;
