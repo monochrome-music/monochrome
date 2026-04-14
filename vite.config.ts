@@ -64,17 +64,14 @@ export default defineConfig((_options) => {
         //     host: true,
         //     allowedHosts: ['<your_tailscale_hostname>'], // e.g. pi5.tailf5f622.ts.net
         // },
+        esbuild: {
+            drop: ['console', 'debugger'],
+        },
         build: {
             outDir: 'dist',
             emptyOutDir: true,
             sourcemap: true,
-            minify: 'terser',
-            terserOptions: {
-                compress: {
-                    drop_console: true,
-                    drop_debugger: true,
-                },
-            },
+            minify: 'esbuild',
             rollupOptions: {
                 treeshake: true,
             },
