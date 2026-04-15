@@ -51,6 +51,13 @@ import {
     createTrackFromSong,
 } from './tracker.js';
 
+let _isBlockedCopyright = (_c) => false;
+import('./content-filter.ts')
+    .then((m) => {
+        _isBlockedCopyright = m.isBlockedCopyright;
+    })
+    .catch(() => {});
+
 fontSettings.applyFont().catch(console.error);
 fontSettings.applyFontSize();
 
@@ -3753,6 +3760,10 @@ export class UIRenderer {
                 finalAlbums = Array.from(albumMap.values());
             }
 
+            finalTracks = finalTracks.filter((t) => !_isBlockedCopyright(t.copyright));
+            finalVideos = finalVideos.filter((t) => !_isBlockedCopyright(t.copyright));
+            finalAlbums = finalAlbums.filter((t) => !_isBlockedCopyright(t.copyright));
+
             // Track search with results
             const totalResults = finalTracks.length + finalArtists.length + finalAlbums.length + finalPlaylists.length;
 
@@ -3946,6 +3957,22 @@ export class UIRenderer {
         try {
             const { album, tracks } = await this.api.getAlbum(albumId, provider);
             this.currentAlbumId = albumId;
+
+            if (_isBlockedCopyright(album.copyright)) {
+                imageEl.src = '';
+                imageEl.style.backgroundColor = 'transparent';
+                titleEl.textContent = '';
+                metaEl.textContent = '';
+                prodEl.textContent = '';
+                rateCriticsEl.textContent = '';
+                rateUsersEl.textContent = '';
+                tracklistContainer.innerHTML = '';
+                if (playBtn) playBtn.style.display = 'none';
+                if (dlBtn) dlBtn.style.display = 'none';
+                document.getElementById('page-album').innerHTML =
+                    '<p style="padding: 2rem; color: var(--muted-foreground);">This content is unavailable due to a DMCA notice.</p>';
+                return;
+            }
 
             const videoCoverUrl = album.videoCoverUrl || null;
 
@@ -5242,6 +5269,10 @@ export class UIRenderer {
                 }
             });
 
+            artist.tracks = artist.tracks.filter((t) => !_isBlockedCopyright(t.copyright));
+            artist.albums = artist.albums.filter((t) => !_isBlockedCopyright(t.copyright));
+            if (artist.eps) artist.eps = artist.eps.filter((t) => !_isBlockedCopyright(t.copyright));
+
             await this.renderListWithTracks(tracksContainer, artist.tracks, true);
 
             // "In your library" section: find liked tracks and playlist tracks for this artist
@@ -6191,6 +6222,12 @@ export class UIRenderer {
             let track;
             track = await this.api.getTrackMetadata(trackId);
             this.currentTrackPageId = track.id;
+
+            if (_isBlockedCopyright(track.copyright)) {
+                document.getElementById('page-track').innerHTML =
+                    '<p style="padding: 2rem; color: var(--muted-foreground);">This content is unavailable due to a DMCA notice.</p>';
+                return;
+            }
 
             let videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
 
