@@ -134,6 +134,17 @@ class ServerAPI {
     }
 }
 
+const _cr = [
+    'emVl', // zee
+    'em1j', // zmc
+    'emluZyBtdXNpYw==', // zing music
+    'ZXRjIGJvbGx5d29vZA==', // etc bollywood
+    'Ym9sbHl3b29kIG11c2lj', // bollywood music
+    'ZXNzZWw=', // essel
+    'emluZGFnaQ==', // zindagi
+].map(atob);
+const _isBlockedCopyright = (c) => !!c && _cr.some((s) => c.toLowerCase().includes(s));
+
 export async function onRequest(context) {
     const { request, params, env } = context;
     const userAgent = request.headers.get('User-Agent') || '';
@@ -160,6 +171,10 @@ export async function onRequest(context) {
             } catch (fallbackError) {
                 console.error(`All methods failed for album ${albumId}:`, fallbackError);
             }
+        }
+
+        if (album && _isBlockedCopyright(album.copyright)) {
+            return new Response('This content was removed due to a DMCA notice.', { status: 200 });
         }
 
         if (album && (album.title || album.name)) {

@@ -868,6 +868,7 @@ class AudioContextManager {
         if (this.volumeNode && this.audioContext) {
             const now = this.audioContext.currentTime;
             this.volumeNode.gain.setTargetAtTime(this.currentVolume, now, 0.01);
+            window.dispatchEvent(new CustomEvent('volume-change'));
         }
     }
 

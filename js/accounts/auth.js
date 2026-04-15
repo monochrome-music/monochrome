@@ -15,12 +15,14 @@ export class AuthManager {
         const isOAuthRedirect = params.get('oauth') === '1';
 
         if (userId && secret && userId !== 'null' && secret !== 'null') {
-            try {
-                await auth.createSession(userId, secret);
-                window.history.replaceState({}, '', window.location.pathname);
-            } catch (error) {
-                console.warn('OAuth session handoff failed:', error.message);
-                window.history.replaceState({}, '', window.location.pathname);
+            if (window.location.pathname !== '/reset-password') {
+                try {
+                    await auth.createSession(userId, secret);
+                    window.history.replaceState({}, '', window.location.pathname);
+                } catch (error) {
+                    console.warn('OAuth session handoff failed:', error.message);
+                    window.history.replaceState({}, '', window.location.pathname);
+                }
             }
         } else if (isOAuthRedirect) {
             await new Promise((resolve) => setTimeout(resolve, 500));
@@ -133,6 +135,18 @@ export class AuthManager {
         } catch (error) {
             console.error('Password reset failed:', error);
             alert(`Failed to send reset email: ${error.message}`);
+            throw error;
+        }
+    }
+
+    async resetPassword(userId, secret, password, confirmPassword) {
+        if (password !== confirmPassword) {
+            throw new Error('Passwords do not match');
+        }
+        try {
+            await auth.updateRecovery(userId, secret, password, password);
+        } catch (error) {
+            console.error('Password reset failed:', error);
             throw error;
         }
     }

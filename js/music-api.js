@@ -245,12 +245,9 @@ export class MusicAPI {
         if (this.videoArtworkCache.has(cacheKey)) {
             return this.videoArtworkCache.get(cacheKey);
         }
-
+        // artwork.boidu.dev developer asked us to disable his API for the time being due to rate limits.
+        /* 
         try {
-            /*
-            Maintainer of artwork.boidu.dev has asked for his API to be removed for the time being due to spam
-            */
-            /*
             const url = `https://artwork.boidu.dev/?s=${encodeURIComponent(title)}&a=${encodeURIComponent(artist)}`;
             const response = await fetch(url);
             if (!response.ok) return null;
@@ -261,12 +258,12 @@ export class MusicAPI {
             };
             this.videoArtworkCache.set(cacheKey, result);
             return result;
-            */
-            throw new Error('Video artwork is disabled for now.');
+        
         } catch (error) {
             console.warn('Failed to fetch video artwork:', error);
             return null;
         }
+        */
     }
 
     getArtistPictureUrl(id, size = '320') {
