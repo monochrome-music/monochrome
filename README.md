@@ -39,8 +39,7 @@
 
 [![Monochrome UI: NASIR by Nas](https://i.samidy.xyz/NASIR.png)](https://monochrome.tf/album/90502209)
 
-[![Monochrome UI: Jump Out by Osamason](https://i.samidy.xyz/jumpout.png)](https://monochrome.tf/album/413189044)
----
+## [![Monochrome UI: Jump Out by Osamason](https://i.samidy.xyz/jumpout.png)](https://monochrome.tf/album/413189044)
 
 ## Features
 
