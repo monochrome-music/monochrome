@@ -1340,12 +1340,16 @@ class HiFiClient {
                 force: unauthorized,
             });
 
-            res = await fetch(final, {
-                headers: {
-                    authorization: `Bearer ${token}`,
-                },
-                signal,
-            });
+            try {
+                res = await fetch(final, {
+                    headers: {
+                        authorization: `Bearer ${token}`,
+                    },
+                    signal,
+                });
+            } catch (err: unknown) {
+                throw new ResponseError(0, err instanceof Error ? err.message : String(err));
+            }
 
             if (previousResponse && unauthorized && res.status === 401) {
                 throw new ResponseError(401, 'Unauthorized: Invalid or expired token');
