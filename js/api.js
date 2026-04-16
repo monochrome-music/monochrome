@@ -79,6 +79,9 @@ export class LosslessAPI {
 
                 return await HiFiClient.instance.query(relativePath);
             } catch (err) {
+                if (options.directOnly) {
+                    throw err;
+                }
                 console.warn(
                     `Direct fetch failed for ${relativePath}. Falling back to configured API instances...`,
                     err
@@ -446,7 +449,10 @@ export class LosslessAPI {
         try {
             // Keep direct TIDAL combined search behavior for normal mode.
             // If direct query fails, fall back to hifi-api-compatible scoped searches (?s, ?a, ?al, ?v, ?p).
-            const response = await HiFiClient.instance.query(`/search/?q=${encodeURIComponent(query)}`, options.signal);
+            const response = await this.fetchWithRetry(`/search/?q=${encodeURIComponent(query)}`, {
+                ...options,
+                directOnly: true,
+            });
             const data = await response.json();
 
             // Check if backend returned an error or if this looks like individual fallback
