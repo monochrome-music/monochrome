@@ -444,7 +444,9 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/search/?q=${encodeURIComponent(query)}`, options);
+            // Keep direct TIDAL combined search behavior for normal mode.
+            // If direct query fails, fall back to hifi-api-compatible scoped searches (?s, ?a, ?al, ?v, ?p).
+            const response = await HiFiClient.instance.query(`/search/?q=${encodeURIComponent(query)}`, options.signal);
             const data = await response.json();
 
             // Check if backend returned an error or if this looks like individual fallback
