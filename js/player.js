@@ -18,6 +18,7 @@ import {
     radioSettings,
     autoplaySettings,
     binauralDspSettings,
+    contentBlockingSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
 import { isIos, isSafari } from './platform-detection.js';
@@ -675,6 +676,132 @@ export class Player {
         }
     }
 
+    shouldFetchMoreArtistPopularTracks(currentQueue = this.getCurrentQueue()) {
+        return (
+            !this.radioEnabled &&
+            this.artistPopularTracksState.artistId &&
+            this.artistPopularTracksState.hasMore &&
+            !this.artistPopularTracksState.isFetching &&
+            this.currentQueueIndex >= currentQueue.length - 1
+        );
+    }
+
+    async fetchMoreArtistPopularTracksForPlayback(currentQueue = this.getCurrentQueue()) {
+        if (!this.shouldFetchMoreArtistPopularTracks(currentQueue)) {
+            return;
+        }
+
+        console.log('[playTrackFromQueue] Fetching more tracks!');
+        const newTracks = await this.fetchMoreArtistPopularTracks();
+        console.log('[playTrackFromQueue] Got tracks:', newTracks?.length);
+        if (newTracks && newTracks.length > 0) {
+            await this.addToQueue(newTracks);
+        }
+    }
+
+    backfillReplayGainFromTrack(track, currentSequence) {
+        void this.api
+            .getTrack(track.id, this.quality)
+            .then((trackData) => {
+                if (this.playbackSequence !== currentSequence || this.currentTrack?.id !== track.id) {
+                    return;
+                }
+
+                if (trackData?.info) {
+                    this.currentRgValues = {
+                        trackReplayGain: trackData.info.trackReplayGain,
+                        trackPeakAmplitude: trackData.info.trackPeakAmplitude,
+                        albumReplayGain: trackData.info.albumReplayGain,
+                        albumPeakAmplitude: trackData.info.albumPeakAmplitude,
+                    };
+                } else {
+                    this.currentRgValues = null;
+                }
+
+                this.applyReplayGain();
+            })
+            .catch(() => {});
+    }
+
+    tryStartPreloadedTrackImmediately({
+        track,
+        activeElement,
+        previousActiveElement,
+        currentSequence,
+        startTime = 0,
+        recursiveCount = 0,
+    }) {
+        const streamInfo = this.preloadCache.get(track.id);
+        const streamUrl = streamInfo?.url;
+        const canReuseAudioElement = previousActiveElement === this.audio && activeElement === this.audio;
+
+        if (!canReuseAudioElement || !streamUrl) {
+            return false;
+        }
+
+        const requiresShaka = !track.isLocal && (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd'));
+        if (requiresShaka && (!this.shakaPlayer || this.shakaPlayer.getMediaElement() !== activeElement)) {
+            return false;
+        }
+
+        if (streamInfo.rgInfo) {
+            this.currentRgValues = streamInfo.rgInfo;
+            this.applyReplayGain();
+        } else if (streamInfo.rgInfoFallback) {
+            this.currentRgValues = streamInfo.rgInfoFallback;
+            this.applyReplayGain();
+        } else {
+            this.currentRgValues = null;
+            this.applyReplayGain();
+            this.backfillReplayGainFromTrack(track, currentSequence);
+        }
+
+        const retryImmediateHandoff = async (error) => {
+            if (this.playbackSequence !== currentSequence || this.currentTrack?.id !== track.id) {
+                return;
+            }
+
+            console.error('Immediate preloaded handoff failed:', error);
+            await this.playTrackFromQueue(startTime, recursiveCount, false);
+        };
+
+        let loadPromise = Promise.resolve();
+
+        if (requiresShaka) {
+            const loadTarget = streamInfo.preloadManager || streamUrl;
+            loadPromise =
+                startTime > 0 ? this.shakaPlayer.load(loadTarget, startTime) : this.shakaPlayer.load(loadTarget);
+            this.shakaInitialized = true;
+
+            void loadPromise
+                .then(() => {
+                    if (this.playbackSequence !== currentSequence || this.currentTrack?.id !== track.id) {
+                        return;
+                    }
+
+                    this.applyAudioEffects();
+                    const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
+                    this.forceQuality(savedAdaptiveQuality);
+                    this.updateAdaptiveQualityBadge();
+                })
+                .catch((error) => retryImmediateHandoff(error).catch(console.error));
+        } else {
+            activeElement.src = streamUrl;
+            this.applyAudioEffects();
+            this.updateAdaptiveQualityBadge();
+
+            if (startTime > 0) {
+                activeElement.currentTime = startTime;
+            }
+        }
+
+        const playPromise = this.safePlay(activeElement);
+        void playPromise.catch((error) => retryImmediateHandoff(error).catch(console.error));
+
+        this.preloadNextTracks();
+        return true;
+    }
+
     async setupHlsVideo(video, result, fallbackImg) {
         const url = result.videoUrl || result.hlsUrl || result;
         const Hls = (await import('hls.js')).default;
@@ -846,7 +973,8 @@ export class Player {
         if (fullscreenCover) await syncCover(fullscreenCover);
     }
 
-    async playTrackFromQueue(startTime = 0, recursiveCount = 0, isRetry = false) {
+    async playTrackFromQueue(startTime = 0, recursiveCount = 0, isRetry = false, options = {}) {
+        const { preserveGestureToken = false } = options;
         if (!isRetry) {
             this.isFallbackRetry = false;
         }
@@ -864,13 +992,15 @@ export class Player {
             return;
         }
 
-        // Check if track is blocked
-        const { contentBlockingSettings } = await import('./storage.js');
         if (contentBlockingSettings.shouldHideTrack(track)) {
             console.warn(`Attempted to play blocked track: ${track.title}. Skipping...`);
             await this.playNext();
             return;
         }
+
+        const previousActiveElement = this.activeElement;
+        const shouldPreserveGestureToken =
+            preserveGestureToken && previousActiveElement === this.audio && track.type !== 'video';
 
         // Proactively fetch more artist tracks when the last track starts playing
         console.log('[playTrackFromQueue] Check for fetch:', {
@@ -883,23 +1013,19 @@ export class Player {
             isLastTrack: this.currentQueueIndex >= currentQueue.length - 1,
         });
 
-        if (
-            !this.radioEnabled &&
-            this.artistPopularTracksState.artistId &&
-            this.artistPopularTracksState.hasMore &&
-            !this.artistPopularTracksState.isFetching &&
-            this.currentQueueIndex >= currentQueue.length - 1
-        ) {
-            console.log('[playTrackFromQueue] Fetching more tracks!');
-            await this.fetchMoreArtistPopularTracks().then(async (newTracks) => {
-                console.log('[playTrackFromQueue] Got tracks:', newTracks?.length);
-                if (newTracks && newTracks.length > 0) {
-                    await this.addToQueue(newTracks);
-                }
-            });
+        if (this.shouldFetchMoreArtistPopularTracks(currentQueue)) {
+            if (shouldPreserveGestureToken) {
+                void this.fetchMoreArtistPopularTracksForPlayback(currentQueue).catch(console.error);
+            } else {
+                await this.fetchMoreArtistPopularTracksForPlayback(currentQueue);
+            }
         }
 
-        await this.saveQueueState();
+        if (shouldPreserveGestureToken) {
+            void this.saveQueueState().catch(console.error);
+        } else {
+            await this.saveQueueState();
+        }
 
         this.currentTrack = track;
         this.addToRecentlyPlayed(track.id);
@@ -912,7 +1038,7 @@ export class Player {
             this.api.getVideoArtwork(trackTitle, artistName).then((result) => {
                 if (this.currentTrack?.id === track.id && result && (result.videoUrl || result.hlsUrl)) {
                     track.videoCoverUrl = result.videoUrl || result.hlsUrl;
-                    this.updateVideoCovers(track.videoCoverUrl);
+                    void this.updateVideoCovers(track.videoCoverUrl);
 
                     if (
                         UIRenderer.instance &&
@@ -994,7 +1120,7 @@ export class Player {
                 const coverSrcset = videoCoverUrl ? null : this.api.getCoverSrcset(coverId);
 
                 if (videoCoverUrl) {
-                    this.updateVideoCovers(videoCoverUrl);
+                    void this.updateVideoCovers(videoCoverUrl);
                 } else {
                     let imgEl = coverEl;
                     if (coverEl.tagName === 'VIDEO') {
@@ -1204,6 +1330,20 @@ export class Player {
 
                 await this.safePlay(activeElement);
             } else {
+                if (
+                    shouldPreserveGestureToken &&
+                    this.tryStartPreloadedTrackImmediately({
+                        track,
+                        activeElement,
+                        previousActiveElement,
+                        currentSequence,
+                        startTime,
+                        recursiveCount,
+                    })
+                ) {
+                    return;
+                }
+
                 // Tidal: Try to get ReplayGain from manifest first, supplement with track info if needed
                 const streamInfoPromise = this.preloadCache.has(track.id)
                     ? Promise.resolve(this.preloadCache.get(track.id))
@@ -1333,99 +1473,97 @@ export class Player {
         }
     }
 
-    async playNext(recursiveCount = 0) {
-        const currentQueue = this.getCurrentQueue();
-        const isLastTrack = this.currentQueueIndex >= currentQueue.length - 1;
+    async playNext(recursiveCount = 0, options = {}) {
+        try {
+            const currentQueue = this.getCurrentQueue();
+            const isLastTrack = this.currentQueueIndex >= currentQueue.length - 1;
 
-        if (recursiveCount > currentQueue.length) {
-            if (this.radioEnabled && isLastTrack) {
-                this.fetchRadioRecommendations().then(async () => {
-                    const updatedQueue = this.getCurrentQueue();
-                    if (this.currentQueueIndex < updatedQueue.length - 1) {
-                        await this.playNext(0);
-                    }
-                });
-                return;
-            }
-            if (this.autoplayEnabled && isLastTrack) {
-                this.fetchAutoplayRecommendations().then(async () => {
-                    const updatedQueue = this.getCurrentQueue();
-                    if (this.currentQueueIndex < updatedQueue.length - 1) {
-                        await this.playNext(0);
-                    }
-                });
-                return;
-            }
-            if (this.artistPopularTracksState.artistId && this.artistPopularTracksState.hasMore) {
-                await this.fetchMoreArtistPopularTracks().then(async (newTracks) => {
-                    if (newTracks && newTracks.length > 0) {
-                        await this.addToQueue(newTracks);
-                        await this.playNext(0);
-                    } else {
-                        this.activeElement.pause();
-                    }
-                });
-                return;
-            }
-            this.activeElement.pause();
-            return;
-        }
-
-        import('./storage.js')
-            .then(async ({ contentBlockingSettings }) => {
-                if (
-                    this.repeatMode === REPEAT_MODE.ONE &&
-                    !currentQueue[this.currentQueueIndex]?.isUnavailable &&
-                    !contentBlockingSettings.shouldHideTrack(currentQueue[this.currentQueueIndex])
-                ) {
-                    await this.playTrackFromQueue(0, recursiveCount);
-                    return;
-                }
-
-                if (!isLastTrack) {
-                    this.currentQueueIndex++;
-                    const track = currentQueue[this.currentQueueIndex];
-                    if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
-                        return this.playNext(recursiveCount + 1);
-                    }
-                } else if (this.radioEnabled) {
+            if (recursiveCount > currentQueue.length) {
+                if (this.radioEnabled && isLastTrack) {
                     this.fetchRadioRecommendations().then(async () => {
                         const updatedQueue = this.getCurrentQueue();
                         if (this.currentQueueIndex < updatedQueue.length - 1) {
-                            await this.playNext(0);
+                            await this.playNext(0, options);
                         }
                     });
                     return;
-                } else if (this.autoplayEnabled) {
+                }
+                if (this.autoplayEnabled && isLastTrack) {
                     this.fetchAutoplayRecommendations().then(async () => {
                         const updatedQueue = this.getCurrentQueue();
                         if (this.currentQueueIndex < updatedQueue.length - 1) {
-                            await this.playNext(0);
+                            await this.playNext(0, options);
                         }
                     });
-                    return;
-                } else if (this.artistPopularTracksState.artistId && this.artistPopularTracksState.hasMore) {
-                    await this.fetchMoreArtistPopularTracks().then(async (newTracks) => {
-                        if (newTracks && newTracks.length > 0) {
-                            await this.addToQueue(newTracks);
-                        }
-                        this.currentQueueIndex++;
-                        await this.playTrackFromQueue(0, recursiveCount);
-                    });
-                    return;
-                } else if (this.repeatMode === REPEAT_MODE.ALL) {
-                    this.currentQueueIndex = 0;
-                    const track = currentQueue[this.currentQueueIndex];
-                    if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
-                        return this.playNext(recursiveCount + 1);
-                    }
-                } else {
                     return;
                 }
+                if (this.artistPopularTracksState.artistId && this.artistPopularTracksState.hasMore) {
+                    const newTracks = await this.fetchMoreArtistPopularTracks();
+                    if (newTracks && newTracks.length > 0) {
+                        await this.addToQueue(newTracks);
+                        await this.playNext(0, options);
+                    } else {
+                        this.activeElement.pause();
+                    }
+                    return;
+                }
+                this.activeElement.pause();
+                return;
+            }
 
-                await this.playTrackFromQueue(0, recursiveCount);
-            })
-            .catch(console.error);
+            if (
+                this.repeatMode === REPEAT_MODE.ONE &&
+                !currentQueue[this.currentQueueIndex]?.isUnavailable &&
+                !contentBlockingSettings.shouldHideTrack(currentQueue[this.currentQueueIndex])
+            ) {
+                await this.playTrackFromQueue(0, recursiveCount, false, options);
+                return;
+            }
+
+            if (!isLastTrack) {
+                this.currentQueueIndex++;
+                const track = currentQueue[this.currentQueueIndex];
+                if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
+                    return this.playNext(recursiveCount + 1, options);
+                }
+            } else if (this.radioEnabled) {
+                this.fetchRadioRecommendations().then(async () => {
+                    const updatedQueue = this.getCurrentQueue();
+                    if (this.currentQueueIndex < updatedQueue.length - 1) {
+                        await this.playNext(0, options);
+                    }
+                });
+                return;
+            } else if (this.autoplayEnabled) {
+                this.fetchAutoplayRecommendations().then(async () => {
+                    const updatedQueue = this.getCurrentQueue();
+                    if (this.currentQueueIndex < updatedQueue.length - 1) {
+                        await this.playNext(0, options);
+                    }
+                });
+                return;
+            } else if (this.artistPopularTracksState.artistId && this.artistPopularTracksState.hasMore) {
+                const newTracks = await this.fetchMoreArtistPopularTracks();
+                if (newTracks && newTracks.length > 0) {
+                    await this.addToQueue(newTracks);
+                }
+                this.currentQueueIndex++;
+                await this.playTrackFromQueue(0, recursiveCount, false, options);
+                return;
+            } else if (this.repeatMode === REPEAT_MODE.ALL) {
+                this.currentQueueIndex = 0;
+                const track = currentQueue[this.currentQueueIndex];
+                if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
+                    return this.playNext(recursiveCount + 1, options);
+                }
+            } else {
+                return;
+            }
+
+            await this.playTrackFromQueue(0, recursiveCount, false, options);
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     async enableRadio(seeds = []) {
