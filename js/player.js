@@ -691,9 +691,7 @@ export class Player {
             return;
         }
 
-        console.log('[playTrackFromQueue] Fetching more tracks!');
         const newTracks = await this.fetchMoreArtistPopularTracks();
-        console.log('[playTrackFromQueue] Got tracks:', newTracks?.length);
         if (newTracks && newTracks.length > 0) {
             await this.addToQueue(newTracks);
         }
@@ -765,26 +763,27 @@ export class Player {
             await this.playTrackFromQueue(startTime, recursiveCount, false);
         };
 
-        let loadPromise = Promise.resolve();
+        const skipPlay = Symbol('skip-immediate-play');
+        let handoffPromise = Promise.resolve();
 
         if (requiresShaka) {
             const loadTarget = streamInfo.preloadManager || streamUrl;
-            loadPromise =
+            handoffPromise =
                 startTime > 0 ? this.shakaPlayer.load(loadTarget, startTime) : this.shakaPlayer.load(loadTarget);
             this.shakaInitialized = true;
 
-            void loadPromise
-                .then(() => {
-                    if (this.playbackSequence !== currentSequence || this.currentTrack?.id !== track.id) {
-                        return;
-                    }
+            handoffPromise = handoffPromise.then(() => {
+                if (this.playbackSequence !== currentSequence || this.currentTrack?.id !== track.id) {
+                    return skipPlay;
+                }
 
-                    this.applyAudioEffects();
-                    const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
-                    this.forceQuality(savedAdaptiveQuality);
-                    this.updateAdaptiveQualityBadge();
-                })
-                .catch((error) => retryImmediateHandoff(error).catch(console.error));
+                this.applyAudioEffects();
+                const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
+                this.forceQuality(savedAdaptiveQuality);
+                this.updateAdaptiveQualityBadge();
+
+                return this.safePlay(activeElement);
+            });
         } else {
             activeElement.src = streamUrl;
             this.applyAudioEffects();
@@ -793,14 +792,23 @@ export class Player {
             if (startTime > 0) {
                 activeElement.currentTime = startTime;
             }
+            handoffPromise = this.safePlay(activeElement);
         }
 
-        void this.safePlay(activeElement)
+        void handoffPromise
             .then((played) => {
+                if (played === skipPlay) {
+                    return;
+                }
+
                 if (!played) {
                     return retryImmediateHandoff(new Error('Immediate handoff did not start playback')).catch(
                         console.error
                     );
+                }
+
+                if (this.playbackSequence !== currentSequence || this.currentTrack?.id !== track.id) {
+                    return;
                 }
 
                 this.preloadNextTracks();
