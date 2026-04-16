@@ -805,10 +805,18 @@ export class Player {
             }
         }
 
-        const playPromise = this.safePlay(activeElement);
-        void playPromise.catch((error) => retryImmediateHandoff(error).catch(console.error));
+        void this.safePlay(activeElement)
+            .then((played) => {
+                if (!played) {
+                    return retryImmediateHandoff(new Error('Immediate handoff did not start playback')).catch(
+                        console.error
+                    );
+                }
 
-        this.preloadNextTracks();
+                this.preloadNextTracks();
+            })
+            .catch((error) => retryImmediateHandoff(error).catch(console.error));
+
         return true;
     }
 
@@ -1549,10 +1557,20 @@ export class Player {
                 const newTracks = await this.fetchMoreArtistPopularTracks();
                 if (newTracks && newTracks.length > 0) {
                     await this.addToQueue(newTracks);
+                    this.currentQueueIndex++;
+                    await this.playTrackFromQueue(0, recursiveCount, false, options);
+                    return;
                 }
-                this.currentQueueIndex++;
-                await this.playTrackFromQueue(0, recursiveCount, false, options);
-                return;
+
+                if (this.repeatMode === REPEAT_MODE.ALL) {
+                    this.currentQueueIndex = 0;
+                    const track = currentQueue[this.currentQueueIndex];
+                    if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
+                        return this.playNext(recursiveCount + 1, options);
+                    }
+                } else {
+                    return;
+                }
             } else if (this.repeatMode === REPEAT_MODE.ALL) {
                 this.currentQueueIndex = 0;
                 const track = currentQueue[this.currentQueueIndex];
