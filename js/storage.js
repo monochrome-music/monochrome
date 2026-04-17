@@ -116,7 +116,9 @@ export const apiSettings = {
 
             if (data.streaming && Array.isArray(data.streaming)) {
                 groupedInstances.streaming = data.streaming.filter((item) => !isBlockedInstance(item));
-            } else if (groupedInstances.api.length > 0) {
+            }
+            
+            if (groupedInstances.streaming.length === 0 && groupedInstances.api.length > 0) {
                 groupedInstances.streaming = [...groupedInstances.api];
             }
 
@@ -148,7 +150,10 @@ export const apiSettings = {
         instancesObj = await this.loadInstancesFromGitHub();
         const userInst = this._loadUserInstances();
 
-        const defaultUrls = instancesObj[type] || instancesObj.api || [];
+        let defaultUrls = instancesObj[type] || [];
+        if (defaultUrls.length === 0 && instancesObj.api) {
+            defaultUrls = instancesObj.api;
+        }
         const userUrls = userInst[type] || [];
 
         const combined = [
