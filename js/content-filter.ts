@@ -8,5 +8,7 @@ const _cr = [
     'emluZGFnaQ==',
 ].map(atob);
 
-export const isBlockedCopyright = (c: string | null | undefined): boolean =>
-    !!c && _cr.some((s) => c.toLowerCase().includes(s));
+export const isBlockedCopyright = (c: string | { text?: string } | null | undefined): boolean => {
+    const text = typeof c === 'string' ? c : c?.text;
+    return !!text && _cr.some((s) => text.toLowerCase().includes(s));
+};

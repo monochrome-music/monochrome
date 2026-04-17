@@ -171,7 +171,10 @@ const _cr = [
     'ZXNzZWw=', // essel
     'emluZGFnaQ==', // zindagi
 ].map(atob);
-const _isBlockedCopyright = (c) => !!c && _cr.some((s) => c.toLowerCase().includes(s));
+const _isBlockedCopyright = (c) => {
+    const text = typeof c === 'string' ? c : c?.text;
+    return !!text && _cr.some((s) => text.toLowerCase().includes(s));
+};
 
 export async function onRequest(context) {
     const { request, params, env } = context;

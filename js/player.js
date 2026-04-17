@@ -38,7 +38,7 @@ export class Player {
     }
 
     /** @private */
-    constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
+    constructor(audioElement, api, quality = 'LOSSLESS') {
         this.audio = audioElement;
         this.video = document.getElementById('video-player');
         this.api = api;
@@ -664,17 +664,12 @@ export class Player {
                             );
                         }
                     } else {
-                        // For static files (FLAC, MP3), standard fetch of the first ~5MB completely primes the cache.
+                        // For static files (FLAC, MP3), the audio element completely primes the cache.
                         const preloader = new Audio();
                         preloader.preload = 'auto';
                         preloader.muted = true;
                         preloader.src = streamUrl;
                         streamInfo.preloader = preloader; // Hold reference
-
-                        fetch(streamUrl, {
-                            headers: { Range: 'bytes=0-5242880' },
-                            signal: this.preloadAbortController.signal,
-                        }).catch(() => {});
                     }
                 }
             } catch (error) {
