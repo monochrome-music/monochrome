@@ -1507,6 +1507,11 @@ export class LosslessAPI {
             };
         }
 
+        if (streamUrl && streamUrl.includes('tidal.com')) {
+            const encodedUrl = encodeURIComponent(streamUrl);
+            streamUrl = `/proxy-audio?url=${encodedUrl}`;
+        }
+
         const result = { url: streamUrl, rgInfo: manifestRgInfo };
         this.streamCache.set(cacheKey, result);
 
@@ -1552,6 +1557,11 @@ export class LosslessAPI {
 
         if (!streamUrl) {
             throw new Error(`Could not resolve video stream URL for ID: ${id}`);
+        }
+
+        if (streamUrl && streamUrl.includes('tidal.com')) {
+            const encodedUrl = encodeURIComponent(streamUrl);
+            streamUrl = `/proxy-audio?url=${encodedUrl}`;
         }
 
         if (!(lookup instanceof TidalResponse)) {
