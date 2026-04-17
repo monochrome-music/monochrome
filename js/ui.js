@@ -517,13 +517,14 @@ export class UIRenderer {
             isUnavailable ? 'unavailable' : '',
             isBlocked ? 'blocked' : '',
             showRowLike ? 'track-item--inline-like' : '',
+            this.currentPage === 'search' ? 'no-duration' : '',
         ]
             .filter(Boolean)
             .join(' ');
 
         return `
-            <div class="${classList}" 
-                 data-track-id="${track.id}" 
+            <div class="${classList}"
+                 data-track-id="${track.id}"
                  ${isVideo ? 'data-type="video"' : 'data-type="track"'}
                  ${track.isLocal ? 'data-is-local="true"' : ''}
                  ${isUnavailable ? 'title="This track is currently unavailable"' : ''}
@@ -892,8 +893,9 @@ export class UIRenderer {
     }
 
     createSkeletonTrack(showCover = false) {
+        const noDurationClass = this.currentPage === 'search' ? ' no-duration' : '';
         return `
-            <div class="skeleton-track">
+            <div class="skeleton-track${noDurationClass}">
                 ${showCover ? '<div class="skeleton skeleton-track-cover"></div>' : '<div class="skeleton skeleton-track-number"></div>'}
                 <div class="skeleton-track-info">
                     <div class="skeleton-track-details">
@@ -4061,9 +4063,9 @@ export class UIRenderer {
                                 const quote = decodeHtml(review.text || review.quote || 'No review text available.');
 
                                 reviewdiv.innerHTML = `
-                                    <img src="${review.image}" width="50" height="50" style="border-radius: 8px; object-fit: cover; background: var(--highlight);" 
-                                         onerror="this.src='images/monochrome-logo.svg'; this.onerror=null;" 
-                                         loading="lazy" 
+                                    <img src="${review.image}" width="50" height="50" style="border-radius: 8px; object-fit: cover; background: var(--highlight);"
+                                         onerror="this.src='images/monochrome-logo.svg'; this.onerror=null;"
+                                         loading="lazy"
                                          referrerpolicy="no-referrer">
                                     <div style="flex: 1;">
                                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
