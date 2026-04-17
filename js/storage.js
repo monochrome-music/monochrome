@@ -3126,6 +3126,55 @@ export const modalSettings = {
     },
 };
 
+export const devModeSettings = {
+    STORAGE_KEY: 'dev-mode-enabled',
+    URL_KEY: 'dev-mode-url',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+
+    getUrl() {
+        try {
+            return localStorage.getItem(this.URL_KEY) || 'http://127.0.0.1:8000';
+        } catch {
+            return 'http://127.0.0.1:8000';
+        }
+    },
+
+    setUrl(url) {
+        localStorage.setItem(this.URL_KEY, url);
+    },
+};
+
+export const serverDisruptionSettings = {
+    STORAGE_KEY: 'server-disruption-dismissed',
+
+    isDismissed() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    dismiss() {
+        localStorage.setItem(this.STORAGE_KEY, 'true');
+    },
+
+    reset() {
+        localStorage.removeItem(this.STORAGE_KEY);
+    },
+};
+
 export const contentBlockingSettings = {
     BLOCKED_ARTISTS_KEY: 'blocked-artists',
     BLOCKED_TRACKS_KEY: 'blocked-tracks',
