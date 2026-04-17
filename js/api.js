@@ -79,9 +79,6 @@ export class LosslessAPI {
 
                 return await HiFiClient.instance.query(relativePath);
             } catch (err) {
-                if (options.directOnly) {
-                    throw err;
-                }
                 console.warn(
                     `Direct fetch failed for ${relativePath}. Falling back to configured API instances...`,
                     err
@@ -451,7 +448,6 @@ export class LosslessAPI {
             // If direct query fails, fall back to hifi-api-compatible scoped searches (?s, ?a, ?al, ?v, ?p).
             const response = await this.fetchWithRetry(`/search/?q=${encodeURIComponent(query)}`, {
                 ...options,
-                directOnly: true,
             });
             const data = await response.json();
 
