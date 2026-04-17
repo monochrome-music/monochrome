@@ -44,6 +44,8 @@ export async function onRequest(context) {
                 cacheResponse.headers.set('Access-Control-Allow-Origin', '*');
                 cacheResponse.headers.set('Cache-Control', 'public, max-age=2592000');
 
+                cacheResponse.headers.delete('Set-Cookie');
+
                 context.waitUntil(cache.put(cacheKey, cacheResponse.clone()));
                 response = cacheResponse;
             }
