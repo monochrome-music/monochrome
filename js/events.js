@@ -652,7 +652,33 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
             progressBar.style.maskImage = '';
 
             try {
-                const { url: streamUrl } = await player.api.getStreamUrl(player.currentTrack.id, 'LOW');
+                // The waveform pipeline fetches the stream and hands it to
+                // decodeAudioData — so it needs a direct audio file URL, not
+                // an HLS playlist (.m3u8) or a DASH MPD blob. Tidal's LOW
+                // quality is HLS, which decodeAudioData cannot parse. Fall
+                // back through the qualities until we get a decodable URL.
+                const isDecodableUrl = (candidate) => {
+                    if (!candidate || typeof candidate !== 'string') return false;
+                    if (candidate.startsWith('blob:')) return false;
+                    const lower = candidate.split('?')[0].toLowerCase();
+                    if (lower.includes('.m3u8') || lower.includes('.mpd')) return false;
+                    return true;
+                };
+                let streamUrl = null;
+                for (const quality of ['HIGH', 'LOSSLESS', 'LOW']) {
+                    try {
+                        const result = await player.api.getStreamUrl(player.currentTrack.id, quality);
+                        if (isDecodableUrl(result?.url)) {
+                            streamUrl = result.url;
+                            break;
+                        }
+                    } catch {
+                        // Quality unavailable for this track; try the next one.
+                    }
+                }
+                if (!streamUrl) {
+                    throw new Error('No decodable stream URL available for waveform');
+                }
                 const waveformData = await waveformGenerator.getWaveform(streamUrl, player.currentTrack.id);
 
                 if (waveformData && currentTrackIdForWaveform === player.currentTrack.id) {
