@@ -2172,7 +2172,8 @@ class HiFiClient {
             return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: parseOpenApiSearch(fallback) });
         }
 
-        const includeQ = 'albums,albums.coverArt,albums.artists,tracks,tracks.artists,tracks.albums,tracks.albums.coverArt,artists,playlists,videos';
+        const includeQ =
+            'albums,albums.coverArt,albums.artists,tracks,tracks.artists,tracks.albums,tracks.albums.coverArt,artists,playlists,videos';
         const includeS = 'tracks,tracks.artists,tracks.albums,tracks.albums.coverArt';
         const includeA = 'artists,artists.profileArt,tracks,tracks.artists,tracks.albums,tracks.albums.coverArt';
         const includeAl = 'albums,albums.artists,albums.coverArt';
