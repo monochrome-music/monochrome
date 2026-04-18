@@ -2,9 +2,7 @@
 // Shared Audio Context Manager - handles EQ and provides context for visualizer
 // Supports 3-32 parametric EQ bands
 
-import { isIos } from './platform-detection.js';
 import { equalizerSettings, monoAudioSettings, binauralDspSettings } from './storage.js';
-import { BinauralDSP } from './binaural-dsp.js';
 
 // Generate frequency array for given number of bands using logarithmic spacing
 function generateFrequencies(bandCount, minFreq = 20, maxFreq = 20000) {
@@ -475,11 +473,6 @@ class AudioContextManager {
 
         this.audio = audioElement;
 
-        if (isIos) {
-            console.log('[AudioContext] Skipping Web Audio initialization on iOS for lock screen compatibility');
-            return;
-        }
-
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
 
@@ -490,28 +483,9 @@ class AudioContextManager {
                 this.audioContext = new AudioContext();
             }
 
-            if (!this.sources.has(audioElement)) {
-                const src = this.audioContext.createMediaElementSource(audioElement);
-                this.sources.set(audioElement, src);
-            }
-            this.source = this.sources.get(audioElement);
-
-            // Enable multichannel passthrough for Atmos/spatial content
-            try {
-                this.audioContext.destination.channelCount = Math.min(this.audioContext.destination.maxChannelCount, 8);
-                this.audioContext.destination.channelCountMode = 'explicit';
-                this.audioContext.destination.channelInterpretation = 'discrete';
-            } catch {
-                // Some browsers may not support changing destination channel count
-            }
-
             this.analyser = this.audioContext.createAnalyser();
             this.analyser.fftSize = 1024;
             this.analyser.smoothingTimeConstant = 0.7;
-
-            // Create binaural DSP processor
-            this.binauralDsp = new BinauralDSP(this.audioContext);
-            void this._loadBinauralSettings();
 
             this._createEQ();
             this._createGraphicEQ();
@@ -528,15 +502,12 @@ class AudioContextManager {
 
             this.monoMergerNode = this.audioContext.createChannelMerger(2);
 
-            this._connectGraph();
-
             // Auto-recover from unexpected suspensions (e.g. background throttling)
             this.audioContext.addEventListener('statechange', () => {
                 if (this.audioContext.state === 'interrupted' || this.audioContext.state === 'suspended') {
                     console.log(`[AudioContext] State changed to ${this.audioContext.state}, attempting resume`);
-                    // Use a short delay to let the system settle before resuming
                     setTimeout(() => {
-                        if (this.audioContext && this.audioContext.state !== 'running' && this.source) {
+                        if (this.audioContext && this.audioContext.state !== 'running') {
                             this.audioContext.resume().catch((e) => {
                                 console.warn('[AudioContext] Auto-resume failed:', e);
                             });
@@ -558,28 +529,7 @@ class AudioContextManager {
         }
         if (this.audio === audioElement) return;
 
-        try {
-            if (this.source) {
-                try {
-                    this.source.disconnect();
-                } catch {
-                    // node may already be disconnected
-                }
-            }
-
-            this.audio = audioElement;
-
-            if (!this.sources.has(audioElement)) {
-                this.sources.set(audioElement, this.audioContext.createMediaElementSource(audioElement));
-            }
-            this.source = this.sources.get(audioElement);
-
-            if (this.isInitialized) {
-                this._connectGraph();
-            }
-        } catch (e) {
-            console.warn('changeSource failed:', e);
-        }
+        this.audio = audioElement;
     }
 
     /**
@@ -588,179 +538,7 @@ class AudioContextManager {
      * the new chain is wired up first, then the old connections are torn down.
      */
     _connectGraph() {
-        if (!this.isInitialized || !this.source || !this.audioContext) return;
-
-        // Ensure graphic EQ nodes exist
-        if (this.geqFilters.length === 0 && this.isGraphicEQEnabled) {
-            this._createGraphicEQ();
-        }
-
-        // Helper: connect a chain segment from lastNode through graphic EQ (if enabled) to analyser -> volume -> dest
-        const connectTail = (lastNode) => {
-            if (this.isGraphicEQEnabled && this.geqFilters.length > 0) {
-                lastNode.connect(this.geqPreampNode);
-                this.geqPreampNode.connect(this.geqFilters[0]);
-                for (let i = 0; i < this.geqFilters.length - 1; i++) {
-                    this.geqFilters[i].connect(this.geqFilters[i + 1]);
-                }
-                this.geqFilters[this.geqFilters.length - 1].connect(this.geqOutputNode);
-                this.geqOutputNode.connect(this.analyser);
-            } else {
-                lastNode.connect(this.analyser);
-            }
-            this.analyser.connect(this.volumeNode);
-            this.volumeNode.connect(this.audioContext.destination);
-        };
-
-        try {
-            // Ensure mono gain node exists if needed
-            if (this.isMonoAudioEnabled && this.monoMergerNode && !this.monoGainNode) {
-                this.monoGainNode = this.audioContext.createGain();
-                this.monoGainNode.gain.value = 0.5;
-            }
-
-            // --- 1. Disconnect all existing connections ---
-            const safeDisconnect = (node) => {
-                try {
-                    node?.disconnect();
-                } catch {
-                    /* */
-                }
-            };
-            safeDisconnect(this.source);
-            safeDisconnect(this.monoGainNode);
-            safeDisconnect(this.monoMergerNode);
-            // Binaural DSP disconnects internally
-            if (this.binauralDsp) {
-                const { input, output } = this.binauralDsp.getNodes();
-                safeDisconnect(input);
-                safeDisconnect(output);
-            }
-            safeDisconnect(this.preampNode);
-            this.filters.forEach(safeDisconnect);
-            safeDisconnect(this.outputNode);
-            // M/S nodes
-            safeDisconnect(this.msSplitter);
-            safeDisconnect(this.msEncoderMidL);
-            safeDisconnect(this.msEncoderMidR);
-            safeDisconnect(this.msEncoderSideL);
-            safeDisconnect(this.msEncoderSideR);
-            safeDisconnect(this.msMidInput);
-            safeDisconnect(this.msSideInput);
-            this.midFilters.forEach(safeDisconnect);
-            this.sideFilters.forEach(safeDisconnect);
-            safeDisconnect(this.midOutputNode);
-            safeDisconnect(this.sideOutputNode);
-            safeDisconnect(this.msDecoderMidToL);
-            safeDisconnect(this.msDecoderSideToL);
-            safeDisconnect(this.msDecoderMidToR);
-            safeDisconnect(this.msDecoderSideToR);
-            safeDisconnect(this.msLMix);
-            safeDisconnect(this.msRMix);
-            safeDisconnect(this.msMerger);
-            safeDisconnect(this.msOutputNode);
-            // Graphic EQ + tail
-            safeDisconnect(this.geqPreampNode);
-            this.geqFilters.forEach(safeDisconnect);
-            safeDisconnect(this.geqOutputNode);
-            safeDisconnect(this.analyser);
-            safeDisconnect(this.volumeNode);
-
-            // --- 2. Reconnect the graph ---
-            let lastNode = this.source;
-
-            if (this.isMonoAudioEnabled && this.monoMergerNode) {
-                this.source.connect(this.monoGainNode);
-                this.monoGainNode.connect(this.monoMergerNode, 0, 0);
-                this.monoGainNode.connect(this.monoMergerNode, 0, 1);
-                lastNode = this.monoMergerNode;
-            }
-
-            // Insert binaural DSP before EQ
-            if (this.isBinauralEnabled && this.binauralDsp) {
-                const { input, output } = this.binauralDsp.getNodes();
-                lastNode.connect(input);
-                this.binauralDsp.reconnect();
-                lastNode = output;
-            }
-
-            if (this.isEQEnabled && this.filters.length > 0) {
-                const useMS = this.msEnabled && this.midFilters.length > 0 && this.sideFilters.length > 0;
-
-                // Connect preamp
-                if (this.preampNode) {
-                    lastNode.connect(this.preampNode);
-                    lastNode = this.preampNode;
-                }
-
-                if (useMS) {
-                    // === M/S processing path ===
-                    // Encode L/R → M/S
-                    lastNode.connect(this.msSplitter);
-
-                    this.msSplitter.connect(this.msEncoderMidL, 0); // L → Mid
-                    this.msSplitter.connect(this.msEncoderMidR, 1); // R → Mid
-                    this.msEncoderMidL.connect(this.msMidInput);
-                    this.msEncoderMidR.connect(this.msMidInput); // Mid = (L+R)*0.5
-
-                    this.msSplitter.connect(this.msEncoderSideL, 0); // L → Side
-                    this.msSplitter.connect(this.msEncoderSideR, 1); // R → Side (-0.5)
-                    this.msEncoderSideL.connect(this.msSideInput);
-                    this.msEncoderSideR.connect(this.msSideInput); // Side = (L-R)*0.5
-
-                    // Mid filter chain
-                    this.msMidInput.connect(this.midFilters[0]);
-                    for (let i = 0; i < this.midFilters.length - 1; i++) {
-                        this.midFilters[i].connect(this.midFilters[i + 1]);
-                    }
-                    this.midFilters[this.midFilters.length - 1].connect(this.midOutputNode);
-
-                    // Side filter chain
-                    this.msSideInput.connect(this.sideFilters[0]);
-                    for (let i = 0; i < this.sideFilters.length - 1; i++) {
-                        this.sideFilters[i].connect(this.sideFilters[i + 1]);
-                    }
-                    this.sideFilters[this.sideFilters.length - 1].connect(this.sideOutputNode);
-
-                    // Decode M/S → L/R
-                    this.midOutputNode.connect(this.msDecoderMidToL);
-                    this.sideOutputNode.connect(this.msDecoderSideToL);
-                    this.msDecoderMidToL.connect(this.msLMix);
-                    this.msDecoderSideToL.connect(this.msLMix); // L = Mid + Side
-
-                    this.midOutputNode.connect(this.msDecoderMidToR);
-                    this.sideOutputNode.connect(this.msDecoderSideToR);
-                    this.msDecoderMidToR.connect(this.msRMix);
-                    this.msDecoderSideToR.connect(this.msRMix); // R = Mid - Side
-
-                    this.msLMix.connect(this.msMerger, 0, 0);
-                    this.msRMix.connect(this.msMerger, 0, 1);
-                    this.msMerger.connect(this.msOutputNode);
-
-                    connectTail(this.msOutputNode);
-                } else {
-                    // === Normal stereo path ===
-                    lastNode.connect(this.filters[0]);
-                    for (let i = 0; i < this.filters.length - 1; i++) {
-                        this.filters[i].connect(this.filters[i + 1]);
-                    }
-                    this.filters[this.filters.length - 1].connect(this.outputNode);
-                    connectTail(this.outputNode);
-                }
-            } else {
-                connectTail(lastNode);
-            }
-
-            // Notify visualizers that graph has been reconnected
-            this._notifyGraphChange();
-        } catch (e) {
-            console.warn('[AudioContext] Failed to connect graph:', e);
-            try {
-                this.source.connect(this.audioContext.destination);
-            } catch {
-                /* ignore */
-            }
-        }
+        if (!this.isInitialized || !this.audioContext) return;
     }
 
     /**
