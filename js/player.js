@@ -1280,11 +1280,8 @@ export class Player {
                     // which delays the event loop and natively adds gap/latency
                     await this.safePlay(activeElement);
                 } else {
-                    const src = await this._resolveAudioSrc(streamUrl);
+                    const src = this._resolveAudioSrc(streamUrl);
                     if (this.playbackSequence !== currentSequence) return;
-                    if (activeElement.src?.startsWith('blob:')) {
-                        URL.revokeObjectURL(activeElement.src);
-                    }
                     activeElement.src = src;
                     this.applyAudioEffects();
                     this.updateAdaptiveQualityBadge();
@@ -2409,19 +2406,17 @@ export class Player {
         });
     }
 
-    async _resolveAudioSrc(url) {
+    _resolveAudioSrc(url) {
         try {
-            const { hostname } = new URL(url);
-            if (hostname === 'tidal.com' || hostname.endsWith('.tidal.com')) {
-                // window.fetch is patched by fetch-proxy.js to route through /proxy-audio
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`Audio fetch failed: ${response.status}`);
-                const blob = await response.blob();
-                return URL.createObjectURL(blob);
+            const { hostname, protocol } = new URL(url);
+            if (
+                (protocol === 'https:' || protocol === 'http:') &&
+                (hostname === 'tidal.com' || hostname.endsWith('.tidal.com'))
+            ) {
+                return `/proxy-audio?url=${encodeURIComponent(url)}`;
             }
-        } catch (e) {
-            if (!(e instanceof TypeError)) throw e;
-            // URL parse error — not a TIDAL URL, fall through
+        } catch {
+            // unparseable — fall through
         }
         return url;
     }

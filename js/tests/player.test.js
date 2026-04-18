@@ -201,50 +201,31 @@ describe('Player', () => {
             player = new Player(audioElement, api);
         });
 
-        test('returns blob URL for tidal.com subdomain', async () => {
-            const fakeBlob = new Blob(['audio'], { type: 'audio/flac' });
-            const mockResponse = { ok: true, blob: vi.fn(() => Promise.resolve(fakeBlob)) };
-            vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(mockResponse)));
-            vi.stubGlobal('URL', {
-                ...URL,
-                createObjectURL: vi.fn(() => 'blob:http://localhost/fake-uuid'),
-            });
-
-            const result = await player._resolveAudioSrc('https://lgf.audio.tidal.com/track.flac?token=x');
-            expect(fetch).toHaveBeenCalledWith('https://lgf.audio.tidal.com/track.flac?token=x');
-            expect(result).toBe('blob:http://localhost/fake-uuid');
+        test('rewrites tidal.com subdomain to proxy URL', () => {
+            const result = player._resolveAudioSrc('https://lgf.audio.tidal.com/track.flac?token=x');
+            expect(result).toBe(
+                '/proxy-audio?url=https%3A%2F%2Flgf.audio.tidal.com%2Ftrack.flac%3Ftoken%3Dx',
+            );
         });
 
-        test('returns blob URL for tidal.com apex', async () => {
-            const fakeBlob = new Blob(['audio'], { type: 'audio/flac' });
-            const mockResponse = { ok: true, blob: vi.fn(() => Promise.resolve(fakeBlob)) };
-            vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(mockResponse)));
-            vi.stubGlobal('URL', {
-                ...URL,
-                createObjectURL: vi.fn(() => 'blob:http://localhost/fake-uuid-2'),
-            });
-
-            const result = await player._resolveAudioSrc('https://tidal.com/some/audio');
-            expect(result).toBe('blob:http://localhost/fake-uuid-2');
+        test('rewrites tidal.com apex to proxy URL', () => {
+            const result = player._resolveAudioSrc('https://tidal.com/some/audio');
+            expect(result).toBe('/proxy-audio?url=https%3A%2F%2Ftidal.com%2Fsome%2Faudio');
         });
 
-        test('returns url unchanged for non-TIDAL host', async () => {
-            const result = await player._resolveAudioSrc('https://example.com/audio.mp4');
+        test('returns url unchanged for non-TIDAL host', () => {
+            const result = player._resolveAudioSrc('https://example.com/audio.mp4');
             expect(result).toBe('https://example.com/audio.mp4');
         });
 
-        test('returns url unchanged for lookalike domain', async () => {
-            const result = await player._resolveAudioSrc('https://evil-tidal.com/audio.flac');
+        test('returns url unchanged for lookalike domain', () => {
+            const result = player._resolveAudioSrc('https://evil-tidal.com/audio.flac');
             expect(result).toBe('https://evil-tidal.com/audio.flac');
         });
 
-        test('throws when fetch response not ok', async () => {
-            const mockResponse = { ok: false, status: 403 };
-            vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(mockResponse)));
-
-            await expect(player._resolveAudioSrc('https://lgf.audio.tidal.com/track.flac')).rejects.toThrow(
-                'Audio fetch failed: 403',
-            );
+        test('returns url unchanged for blob URLs', () => {
+            const result = player._resolveAudioSrc('blob:http://localhost/some-uuid');
+            expect(result).toBe('blob:http://localhost/some-uuid');
         });
     });
 });
