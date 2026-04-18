@@ -2,7 +2,9 @@
 // Shared Audio Context Manager - handles EQ and provides context for visualizer
 // Supports 3-32 parametric EQ bands
 
+import { isIos } from './platform-detection.js';
 import { equalizerSettings, monoAudioSettings, binauralDspSettings } from './storage.js';
+import { BinauralDSP } from './binaural-dsp.js';
 
 // Generate frequency array for given number of bands using logarithmic spacing
 function generateFrequencies(bandCount, minFreq = 20, maxFreq = 20000) {
@@ -473,6 +475,11 @@ class AudioContextManager {
 
         this.audio = audioElement;
 
+        if (isIos) {
+            console.log('[AudioContext] Skipping Web Audio initialization on iOS for lock screen compatibility');
+            return;
+        }
+
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
 
@@ -481,6 +488,20 @@ class AudioContextManager {
                 console.log(`[AudioContext] Created: ${this.audioContext.sampleRate}Hz`);
             } catch {
                 this.audioContext = new AudioContext();
+            }
+
+            if (!this.sources.has(audioElement)) {
+                const src = this.audioContext.createMediaElementSource(audioElement);
+                this.sources.set(audioElement, src);
+            }
+            this.source = this.sources.get(audioElement);
+
+            try {
+                this.audioContext.destination.channelCount = Math.min(this.audioContext.destination.maxChannelCount, 8);
+                this.audioContext.destination.channelCountMode = 'explicit';
+                this.audioContext.destination.channelInterpretation = 'discrete';
+            } catch {
+                // Some browsers may not support changing destination channel count
             }
 
             this.analyser = this.audioContext.createAnalyser();
@@ -546,6 +567,7 @@ class AudioContextManager {
             });
 
             this.isInitialized = true;
+            this._connectGraph();
         } catch (e) {
             console.warn('[AudioContext] Init failed:', e);
         }
@@ -558,7 +580,28 @@ class AudioContextManager {
         }
         if (this.audio === audioElement) return;
 
-        this.audio = audioElement;
+        try {
+            if (this.source) {
+                try {
+                    this.source.disconnect();
+                } catch {
+                    // node may already be disconnected
+                }
+            }
+
+            this.audio = audioElement;
+
+            if (!this.sources.has(audioElement)) {
+                this.sources.set(audioElement, this.audioContext.createMediaElementSource(audioElement));
+            }
+            this.source = this.sources.get(audioElement);
+
+            if (this.isInitialized) {
+                this._connectGraph();
+            }
+        } catch (e) {
+            console.warn('changeSource failed:', e);
+        }
     }
 
     /**
