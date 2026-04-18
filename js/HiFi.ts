@@ -1717,11 +1717,7 @@ class HiFiClient {
             const artist_url = `https://openapi.tidal.com/v2/artists/${id}`;
             const payload = await this.#fetchJson<any>(
                 artist_url,
-                {
-                    countryCode: this.#countryCode,
-                    include: 'albums,albums.coverArt,tracks,tracks.albums,biography,profileArt',
-                    collapseBy: 'FINGERPRINT',
-                },
+                { countryCode: this.#countryCode, include: 'albums,albums.coverArt,tracks,tracks.albums,biography,profileArt', collapseBy: 'FINGERPRINT' },
                 signal
             );
 
@@ -1750,7 +1746,7 @@ class HiFiClient {
                 picture: getPic(data, 'profileArt') || data?.attributes?.selectedAlbumCoverFallback || null,
             };
 
-            const picture = artist_data.picture;
+            let picture = artist_data.picture;
             let cover: ArtistCover | null = null;
             if (picture) {
                 const slug = picture.replace(/-/g, '/');
@@ -1776,7 +1772,7 @@ class HiFiClient {
                             releaseDate: al.attributes?.releaseDate,
                             type: al.attributes?.albumType,
                             cover: getPic(al, 'coverArt'),
-                            artist: { id: artist_data.id, name: artist_data.name },
+                            artist: { id: artist_data.id, name: artist_data.name }
                         });
                     }
                 }
@@ -1788,34 +1784,24 @@ class HiFiClient {
                     if (tr) {
                         let albumInfo = undefined;
                         if (tr.relationships?.albums?.data?.[0]) {
-                            const aRef = tr.relationships.albums.data[0];
-                            const aItem = includedMap.get(`albums:${aRef.id}`);
-                            if (aItem) {
-                                albumInfo = {
-                                    id: Number(aItem.id),
-                                    title: aItem.attributes?.title,
-                                    cover: getPic(aItem, 'coverArt'),
-                                };
-                            }
+                             const aRef = tr.relationships.albums.data[0];
+                             const aItem = includedMap.get(`albums:${aRef.id}`);
+                             if (aItem) {
+                                 albumInfo = { id: Number(aItem.id), title: aItem.attributes?.title, cover: getPic(aItem, 'coverArt') };
+                             }
                         }
                         tracks.push({
                             id: Number(tr.id),
                             title: tr.attributes?.title,
                             duration: tr.attributes?.duration ? 100 : undefined,
                             album: albumInfo,
-                            artist: { id: artist_data.id, name: artist_data.name },
+                            artist: { id: artist_data.id, name: artist_data.name }
                         });
                     }
                 }
             }
 
-            return HiFiClient.#jsonResponse({
-                version: HiFiClient.API_VERSION,
-                artist: artist_data,
-                cover,
-                albums: { items: albums },
-                tracks,
-            });
+            return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, artist: artist_data, cover, albums: { items: albums }, tracks });
         }
 
         // fallback to original f logic
