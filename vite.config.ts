@@ -1,5 +1,3 @@
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import authGatePlugin from './vite-plugin-auth-gate.js';
@@ -82,97 +80,6 @@ export default defineConfig((_options) => {
             },
         },
         plugins: [
-            {
-                name: 'proxy-audio-dev',
-                configureServer(server) {
-                    server.middlewares.use('/proxy-audio', (req, res, _next) => {
-                        let urlParam: string | null;
-                        try {
-                            urlParam = new URL(req.url ?? '', `http://${req.headers.host ?? 'localhost'}`).searchParams.get('url');
-                        } catch {
-                            res.writeHead(400);
-                            res.end('Invalid request URL');
-                            return;
-                        }
-
-                        if (!urlParam) {
-                            res.writeHead(400);
-                            res.end('Missing url parameter');
-                            return;
-                        }
-
-                        let parsed: URL;
-                        try {
-                            parsed = new URL(urlParam);
-                        } catch {
-                            res.writeHead(400);
-                            res.end('Invalid target URL');
-                            return;
-                        }
-
-                        const host = parsed.hostname;
-                        if (
-                            (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') ||
-                            !(host === 'tidal.com' || host.endsWith('.tidal.com'))
-                        ) {
-                            res.writeHead(400);
-                            res.end('Target host not allowed');
-                            return;
-                        }
-
-                        (async () => {
-                            const controller = new AbortController();
-                            const onClose = () => controller.abort();
-                            req.on('close', onClose);
-
-                            const upstream = await fetch(urlParam!, {
-                                method: req.method ?? 'GET',
-                                headers: {
-                                    'User-Agent':
-                                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                                    ...(req.headers.range ? { range: req.headers.range as string } : {}),
-                                },
-                                redirect: 'follow',
-                                signal: controller.signal,
-                            });
-
-                            const headers: Record<string, string> = {
-                                'content-type': upstream.headers.get('content-type') ?? 'application/octet-stream',
-                                'access-control-allow-origin': '*',
-                            };
-                            const contentLength = upstream.headers.get('content-length');
-                            const contentRange = upstream.headers.get('content-range');
-                            const acceptRanges = upstream.headers.get('accept-ranges');
-                            if (contentLength) headers['content-length'] = contentLength;
-                            if (contentRange) headers['content-range'] = contentRange;
-                            if (acceptRanges) headers['accept-ranges'] = acceptRanges;
-
-                            res.writeHead(upstream.status, headers);
-
-                            if (!upstream.body) {
-                                req.off('close', onClose);
-                                res.end();
-                                return;
-                            }
-
-                            const nodeStream = Readable.fromWeb(upstream.body as any);
-                            try {
-                                await pipeline(nodeStream, res);
-                            } finally {
-                                req.off('close', onClose);
-                            }
-                        })().catch((e: any) => {
-                            if (res.writableEnded || res.destroyed) return;
-                            if (!res.headersSent) {
-                                res.writeHead(500);
-                                res.end('Proxy error: ' + (e instanceof Error ? e.message : String(e)));
-                                return;
-                            }
-                            res.destroy(e);
-                        });
-                    });
-                },
-            },
             purgecss({
                 variables: false, // DO NOT REMOVE UNUSED VARIABLES (breaks web components like am-lyrics)
                 safelist: {

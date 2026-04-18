@@ -490,9 +490,20 @@ class AudioContextManager {
                 this.audioContext = new AudioContext();
             }
 
+            if (audioElement.crossOrigin === null) {
+                // No crossorigin attribute — media loads in no-cors mode; Web Audio would silence output
+                console.warn('[AudioContext] Skipping Web Audio: element has no crossorigin attribute');
+                return;
+            }
+
             if (!this.sources.has(audioElement)) {
-                const src = this.audioContext.createMediaElementSource(audioElement);
-                this.sources.set(audioElement, src);
+                try {
+                    const src = this.audioContext.createMediaElementSource(audioElement);
+                    this.sources.set(audioElement, src);
+                } catch (corsErr) {
+                    console.warn('[AudioContext] Web Audio unavailable (CORS-tainted source):', corsErr.message);
+                    return;
+                }
             }
             this.source = this.sources.get(audioElement);
 
@@ -569,8 +580,20 @@ class AudioContextManager {
 
             this.audio = audioElement;
 
+            if (audioElement.crossOrigin === null) {
+                console.warn('[AudioContext] Skipping Web Audio: element has no crossorigin attribute');
+                this.source = null;
+                return;
+            }
+
             if (!this.sources.has(audioElement)) {
-                this.sources.set(audioElement, this.audioContext.createMediaElementSource(audioElement));
+                try {
+                    this.sources.set(audioElement, this.audioContext.createMediaElementSource(audioElement));
+                } catch (corsErr) {
+                    console.warn('[AudioContext] Web Audio unavailable (CORS-tainted source):', corsErr.message);
+                    this.source = null;
+                    return;
+                }
             }
             this.source = this.sources.get(audioElement);
 

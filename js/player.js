@@ -1280,9 +1280,8 @@ export class Player {
                     // which delays the event loop and natively adds gap/latency
                     await this.safePlay(activeElement);
                 } else {
-                    const src = this._resolveAudioSrc(streamUrl);
                     if (this.playbackSequence !== currentSequence) return;
-                    activeElement.src = src;
+                    activeElement.src = streamUrl;
                     this.applyAudioEffects();
                     this.updateAdaptiveQualityBadge();
 
@@ -2406,20 +2405,6 @@ export class Player {
         });
     }
 
-    _resolveAudioSrc(url) {
-        try {
-            const { hostname, protocol } = new URL(url);
-            if (
-                (protocol === 'https:' || protocol === 'http:') &&
-                (hostname === 'tidal.com' || hostname.endsWith('.tidal.com'))
-            ) {
-                return `/proxy-audio?url=${encodeURIComponent(url)}`;
-            }
-        } catch {
-            // unparseable — fall through
-        }
-        return url;
-    }
 
     async safePlay(element = this.activeElement) {
         try {

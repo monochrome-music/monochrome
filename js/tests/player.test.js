@@ -196,36 +196,4 @@ describe('Player', () => {
         expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(0.01);
     });
 
-    describe('_resolveAudioSrc', () => {
-        beforeEach(() => {
-            player = new Player(audioElement, api);
-        });
-
-        test('rewrites tidal.com subdomain to proxy URL', () => {
-            const result = player._resolveAudioSrc('https://lgf.audio.tidal.com/track.flac?token=x');
-            expect(result).toBe(
-                '/proxy-audio?url=https%3A%2F%2Flgf.audio.tidal.com%2Ftrack.flac%3Ftoken%3Dx',
-            );
-        });
-
-        test('rewrites tidal.com apex to proxy URL', () => {
-            const result = player._resolveAudioSrc('https://tidal.com/some/audio');
-            expect(result).toBe('/proxy-audio?url=https%3A%2F%2Ftidal.com%2Fsome%2Faudio');
-        });
-
-        test('returns url unchanged for non-TIDAL host', () => {
-            const result = player._resolveAudioSrc('https://example.com/audio.mp4');
-            expect(result).toBe('https://example.com/audio.mp4');
-        });
-
-        test('returns url unchanged for lookalike domain', () => {
-            const result = player._resolveAudioSrc('https://evil-tidal.com/audio.flac');
-            expect(result).toBe('https://evil-tidal.com/audio.flac');
-        });
-
-        test('returns url unchanged for blob URLs', () => {
-            const result = player._resolveAudioSrc('blob:http://localhost/some-uuid');
-            expect(result).toBe('blob:http://localhost/some-uuid');
-        });
-    });
 });
