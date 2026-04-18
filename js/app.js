@@ -1,4 +1,5 @@
 //js/app.js
+import './dead-node-reroute.js';
 import discordSvg from '../images/discord.svg?svg&size=22';
 import googleSvg from '../images/google.svg?svg&size=22';
 import githubSvg from '../images/github.svg?svg&size=22';

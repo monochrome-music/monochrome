@@ -82,21 +82,9 @@ export const apiSettings = {
                         { url: 'https://us-west.monochrome.tf', version: '2.7' },
                         { url: 'https://api.monochrome.tf', version: '2.5' },
                         { url: 'https://monochrome-api.samidy.com', version: '2.3' },
-                        { url: 'https://maus.qqdl.site', version: '2.6' },
-                        { url: 'https://vogel.qqdl.site', version: '2.6' },
-                        { url: 'https://katze.qqdl.site', version: '2.6' },
-                        { url: 'https://hund.qqdl.site', version: '2.6' },
                         { url: 'https://tidal.kinoplus.online', version: '2.2' },
-                        { url: 'https://wolf.qqdl.site', version: '2.2' },
                     ],
-                    streaming: [
-                        { url: 'https://hifi.geeked.wtf', version: '2.7' },
-                        { url: 'https://maus.qqdl.site', version: '2.6' },
-                        { url: 'https://vogel.qqdl.site', version: '2.6' },
-                        { url: 'https://katze.qqdl.site', version: '2.6' },
-                        { url: 'https://hund.qqdl.site', version: '2.6' },
-                        { url: 'https://wolf.qqdl.site', version: '2.6' },
-                    ],
+                    streaming: [{ url: 'https://hifi.geeked.wtf', version: '2.7' }],
                 };
                 this.instancesLoaded = true;
                 this._loadPromise = null;
