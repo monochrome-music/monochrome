@@ -11284,3 +11284,242 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     opacity: 0.8;
     vertical-align: middle;
 }
+
+/* ── Add-to-playlist grid modal ─────────────────────────────── */
+
+.playlist-select-header {
+    padding: 0.9rem 0.9rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.playlist-select-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+}
+
+.playlist-select-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.playlist-select-close {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--secondary);
+    border: none;
+    color: var(--secondary-foreground);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+}
+
+.playlist-select-controls {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.playlist-select-search-wrap {
+    flex: 1;
+    position: relative;
+}
+
+.playlist-select-search-icon {
+    position: absolute;
+    left: 0.55rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.playlist-select-search {
+    width: 100%;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.38rem 0.5rem 0.38rem 1.8rem;
+    color: var(--primary);
+    font-size: 0.78rem;
+    outline: none;
+}
+
+.playlist-select-search::placeholder {
+    color: var(--muted-foreground, #555);
+}
+
+.playlist-select-search:focus {
+    border-color: var(--highlight, #444);
+}
+
+.playlist-select-sort {
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.38rem 0.55rem;
+    color: var(--secondary-foreground);
+    font-size: 0.72rem;
+    cursor: pointer;
+    outline: none;
+    white-space: nowrap;
+}
+
+.playlist-select-create {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.55rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background var(--transition-fast, 0.15s);
+}
+
+.playlist-select-create:hover {
+    background: var(--secondary);
+}
+
+.playlist-select-create-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    background: var(--secondary);
+    border: 1px dashed var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.playlist-select-create-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.playlist-select-scroll {
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 0.6rem;
+}
+
+.playlist-select-scroll::-webkit-scrollbar {
+    width: 3px;
+}
+
+.playlist-select-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.playlist-select-scroll::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+
+.playlist-select-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.4rem;
+}
+
+.playlist-select-card {
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color var(--transition-fast, 0.15s), background var(--transition-fast, 0.15s);
+    position: relative;
+}
+
+.playlist-select-card:hover {
+    border-color: var(--secondary-foreground);
+    background: var(--card-hover, #222);
+}
+
+.playlist-select-card.already-in {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.playlist-select-card.already-in:hover {
+    border-color: var(--border);
+    background: var(--secondary);
+}
+
+.playlist-select-card-cover {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+}
+
+.playlist-select-card-placeholder {
+    width: 100%;
+    aspect-ratio: 1;
+    background: linear-gradient(135deg, var(--secondary), var(--card));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--border);
+}
+
+.playlist-select-card-placeholder svg {
+    width: 24px;
+    height: 24px;
+    opacity: 0.4;
+}
+
+.playlist-select-card-info {
+    padding: 0.3rem 0.35rem 0.35rem;
+}
+
+.playlist-select-card-name {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.playlist-select-card-count {
+    font-size: 0.62rem;
+    color: var(--muted-foreground, #666);
+    margin-top: 1px;
+}
+
+.playlist-select-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    background: rgba(0, 0, 0, 0.75);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 0.6rem;
+    color: var(--secondary-foreground);
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.playlist-select-footer {
+    padding: 0.5rem 0.9rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.7rem;
+    color: var(--muted-foreground, #555);
+    text-align: center;
+}
