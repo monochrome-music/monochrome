@@ -127,6 +127,8 @@ async function fetchcontributors() {
         const con = document.querySelector('.about-contributors');
         if (!con) return;
 
+        const fragment = document.createDocumentFragment();
+
         data.forEach((user) => {
             const userDIV = document.createElement('div');
             userDIV.innerHTML = `
@@ -136,8 +138,9 @@ async function fetchcontributors() {
             <span class="contrib">Contributions: ${user.contributions}</span>
             </a>
             `;
-            con.appendChild(userDIV);
+            fragment.appendChild(userDIV);
         });
+        con.appendChild(fragment);
     } catch (e) {
         const con = document.querySelector('.about-contributors-failed');
         if (!con) return;
@@ -986,6 +989,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    document.getElementById('mini-player-btn')?.addEventListener('click', () => {
+        if (Player.instance) {
+            Player.instance.toggleMiniPlayer();
+        }
+    });
+
+    // Initialize Remote Control listener (Remote playback over PocketBase)
+    if (typeof syncManager !== 'undefined' && syncManager.pb) {
+        syncManager.pb
+            .collection('playback_commands')
+            .subscribe('*', function (e) {
+                if (!Player.instance) return;
+                // Ensure the command is meant for this device/user
+                if (e.action === 'create' && e.record.user === authManager?.user?.id) {
+                    const command = e.record.command;
+                    switch (command) {
+                        case 'play_pause':
+                            Player.instance.handlePlayPause();
+                            break;
+                        case 'next':
+                            Player.instance.playNext();
+                            break;
+                        case 'prev':
+                            Player.instance.playPrev();
+                            break;
+                        case 'volume_up':
+                            Player.instance.setVolume(Player.instance.userVolume + 0.1);
+                            break;
+                        case 'volume_down':
+                            Player.instance.setVolume(Player.instance.userVolume - 0.1);
+                            break;
+                    }
+                }
+            })
+            .catch((err) => console.warn('Failed to subscribe to remote commands', err));
+    }
+
     // Auto-update lyrics when track changes
     let previousTrackId = null;
     audioPlayer.addEventListener('play', async () => {
@@ -1037,8 +1077,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.addEventListener('click', async (e) => {
-        if (e.target.closest('#play-album-btn')) {
-            const btn = e.target.closest('#play-album-btn');
+        let btn;
+
+        if ((btn = e.target.closest('#play-album-btn'))) {
             if (btn.disabled) return;
 
             const pathParts = window.location.pathname.split('/');
@@ -1074,10 +1115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const { showNotification } = await loadDownloadsModule();
                 showNotification('Failed to play album');
             }
-        }
-
-        if (e.target.closest('#shuffle-album-btn')) {
-            const btn = e.target.closest('#shuffle-album-btn');
+        } else if ((btn = e.target.closest('#shuffle-album-btn'))) {
             if (btn.disabled) return;
 
             const pathParts = window.location.pathname.split('/');
@@ -1109,10 +1147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const { showNotification } = await loadDownloadsModule();
                 showNotification('Failed to shuffle album');
             }
-        }
-
-        if (e.target.closest('#shuffle-artist-btn')) {
-            const btn = e.target.closest('#shuffle-artist-btn');
+        } else if ((btn = e.target.closest('#shuffle-artist-btn'))) {
             if (btn.disabled) return;
             const artistId = window.location.pathname.split('/')[2];
             if (!artistId) return;

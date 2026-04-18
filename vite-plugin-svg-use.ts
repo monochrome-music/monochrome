@@ -89,15 +89,7 @@ function loadSvg<S extends boolean = true, T = S extends true ? string : Promise
         return fs.readFileSync(filePath, 'utf-8') as T;
     }
 
-    return new Promise<string>((resolve, reject) => {
-        fs.readFile(filePath, { encoding: 'utf-8' }, (err, data) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(data);
-            }
-        });
-    }) as T;
+    return fs.promises.readFile(filePath, { encoding: 'utf-8' }) as unknown as T;
 }
 
 /**

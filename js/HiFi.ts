@@ -1922,10 +1922,7 @@ class HiFiClient {
         const trackResults = await Promise.all(
             album_ids.map((aid) => fetchAlbumTracks(aid).catch((): TidalTrack[] => []))
         );
-        const tracks: TidalTrack[] = [];
-        for (const t of trackResults) {
-            if (Array.isArray(t)) tracks.push(...t);
-        }
+    const tracks: TidalTrack[] = trackResults.flat();
 
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, albums: page_data, tracks });
     }
@@ -2261,11 +2258,7 @@ class HiFiClient {
         }
 
         const [albumRaw, ...pages] = await Promise.all([albumTask, ...itemsTasks]);
-        const allItems: Array<{ item: TidalTrack; type: string }> = [];
-        for (const p of pages) {
-            const pageItems = p?.items ?? [];
-            if (Array.isArray(pageItems)) allItems.push(...pageItems);
-        }
+    const allItems: Array<{ item: TidalTrack; type: string }> = pages.flatMap(p => Array.isArray(p?.items) ? p.items : []);
         const albumData: TidalAlbumWithTracks = { ...albumRaw, items: allItems };
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: albumData });
     }

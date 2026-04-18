@@ -469,7 +469,6 @@ export class LosslessAPI {
 
         for (const album of albums) {
             // Key based on title and numberOfTracks (excluding duration and explicit)
-            const key = JSON.stringify([album.title, album.numberOfTracks || 0]);
 
             if (unique.has(key)) {
                 const existing = unique.get(key);
@@ -1125,11 +1124,14 @@ export class LosslessAPI {
         scan(primaryData, visited);
 
         const matchesArtistId = (item) => {
-            const candidateIds = [
-                item.artist?.id,
-                ...(Array.isArray(item.artists) ? item.artists.map((a) => a.id) : []),
-            ].filter((id) => id != null);
-            return candidateIds.some((id) => Number(id) === Number(artistId));
+            if (!item) return false;
+            if (item.artist?.id != null && Number(item.artist.id) === Number(artistId)) return true;
+            if (Array.isArray(item.artists)) {
+                for (let i = 0; i < item.artists.length; i++) {
+                    if (item.artists[i]?.id != null && Number(item.artists[i].id) === Number(artistId)) return true;
+                }
+            }
+            return false;
         };
 
         if (!options.lightweight) {

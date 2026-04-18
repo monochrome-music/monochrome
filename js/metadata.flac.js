@@ -331,10 +331,11 @@ export function createVorbisCommentBlock(comments = []) {
     const vendorBytes = new TextEncoder().encode(vendor);
 
     let totalSize = 4 + vendorBytes.length + 4; // vendor length + vendor + comment count
+    const textEncoder = new TextEncoder();
 
     const encodedComments = comments.map(([key, value]) => {
         const text = `${key}=${value}`;
-        const bytes = new TextEncoder().encode(text);
+        const bytes = textEncoder.encode(text);
         totalSize += 4 + bytes.length;
         return bytes;
     });
@@ -388,9 +389,10 @@ export async function createFlacPictureBlock(coverId, api) {
 
         // Detect MIME type from blob or use default
         const mimeType = imageBlob.type || 'image/jpeg';
-        const mimeBytes = new TextEncoder().encode(mimeType);
+        const textEncoder = new TextEncoder();
+        const mimeBytes = textEncoder.encode(mimeType);
         const description = '';
-        const descBytes = new TextEncoder().encode(description);
+        const descBytes = textEncoder.encode(description);
 
         // Calculate total size
         const totalSize =
