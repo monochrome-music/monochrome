@@ -11,6 +11,7 @@ import { preferDolbyAtmosSettings, trackDateSettings, devModeSettings } from './
 import { APICache } from './cache.js';
 import { DashDownloader } from './dash-downloader.ts';
 import { HlsDownloader } from './hls-downloader.js';
+import { getProxyUrl } from './proxy-utils.js';
 import { loadFfmpeg, FfmpegError, ffmpeg } from './ffmpeg.js';
 import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
 import { isCustomFormat } from './ffmpegFormats.ts';
@@ -117,7 +118,9 @@ export class LosslessAPI {
             for (let attempt = 1; attempt <= maxTotalAttempts; attempt++) {
                 const instance = instances[instanceIndex % instances.length];
                 const baseUrl = typeof instance === 'string' ? instance : instance.url;
-                const url = baseUrl.endsWith('/') ? `${baseUrl}${relativePath.substring(1)}` : `${baseUrl}${relativePath}`;
+                const url = baseUrl.endsWith('/')
+                    ? `${baseUrl}${relativePath.substring(1)}`
+                    : `${baseUrl}${relativePath}`;
 
                 try {
                     const response = await fetch(url, { signal: options.signal });
@@ -134,7 +137,10 @@ export class LosslessAPI {
                     }
 
                     if (response.status === 401) {
-                        const errorData = await response.clone().json().catch(() => null);
+                        const errorData = await response
+                            .clone()
+                            .json()
+                            .catch(() => null);
                         if (errorData?.subStatus === 11002) {
                             console.warn(`Auth failed on ${baseUrl}. Trying next instance...`);
                             instanceIndex++;
@@ -1763,7 +1769,7 @@ export class LosslessAPI {
             if (streamUrl.startsWith('blob:')) {
                 try {
                     const downloader = new DashDownloader();
-                    blob = await downloader.downloadDashStream(streamUrl, {
+                    blob = await downloader.downloadDashStream(getProxyUrl(streamUrl), {
                         signal: options.signal,
                         onProgress,
                         calculateDashBytes: calculateDashBytes ?? true,
@@ -1782,7 +1788,7 @@ export class LosslessAPI {
             } else if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
                 try {
                     const downloader = new HlsDownloader();
-                    blob = await downloader.downloadHlsStream(streamUrl, {
+                    blob = await downloader.downloadHlsStream(getProxyUrl(streamUrl), {
                         signal: options.signal,
                         onProgress,
                     });
@@ -1807,7 +1813,7 @@ export class LosslessAPI {
                     /* ignore HEAD failure; proceed with GET */
                 }
 
-                const response = await fetch(streamUrl, {
+                const response = await fetch(getProxyUrl(streamUrl), {
                     cache: 'no-store',
                     signal: options.signal,
                 });
