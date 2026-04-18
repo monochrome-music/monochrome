@@ -147,6 +147,15 @@ export class Player {
             this.shakaPlayer.addEventListener('adaptation', this.updateAdaptiveQualityBadge.bind(this));
             this.shakaPlayer.addEventListener('variantchanged', this.updateAdaptiveQualityBadge.bind(this));
 
+            this.shakaPlayer.getNetworkingEngine().registerRequestFilter((_type, request) => {
+                request.uris = request.uris.map((uri) => {
+                    if (uri && uri.includes('tidal.com') && !uri.startsWith('/proxy-audio')) {
+                        return `/proxy-audio?url=${encodeURIComponent(uri)}`;
+                    }
+                    return uri;
+                });
+            });
+
             this.shakaInitialized = false;
 
             // Monitor and bridge different codec groups (e.g. AAC to FLAC) since native ABR isolates them

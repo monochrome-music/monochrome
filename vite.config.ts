@@ -80,6 +80,48 @@ export default defineConfig((_options) => {
             },
         },
         plugins: [
+            {
+                name: 'proxy-audio-dev',
+                configureServer(server) {
+                    server.middlewares.use('/proxy-audio', async (req, res) => {
+                        const urlParam = new URL(req.url!, `http://${req.headers.host}`).searchParams.get('url');
+                        if (!urlParam) {
+                            res.writeHead(400);
+                            res.end('Missing url parameter');
+                            return;
+                        }
+                        try {
+                            const upstream = await fetch(urlParam, {
+                                method: req.method ?? 'GET',
+                                headers: {
+                                    'User-Agent':
+                                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                                    ...(req.headers.range ? { range: req.headers.range } : {}),
+                                },
+                                redirect: 'follow',
+                            });
+                            res.writeHead(upstream.status, {
+                                'content-type': upstream.headers.get('content-type') ?? 'application/octet-stream',
+                                'content-length': upstream.headers.get('content-length') ?? '',
+                                'accept-ranges': upstream.headers.get('accept-ranges') ?? 'bytes',
+                                'content-range': upstream.headers.get('content-range') ?? '',
+                                'access-control-allow-origin': '*',
+                            });
+                            const reader = upstream.body!.getReader();
+                            const pump = async () => {
+                                const { done, value } = await reader.read();
+                                if (done) { res.end(); return; }
+                                res.write(value);
+                                await pump();
+                            };
+                            await pump();
+                        } catch (e: any) {
+                            res.writeHead(500);
+                            res.end('Proxy error: ' + e.message);
+                        }
+                    });
+                },
+            },
             purgecss({
                 variables: false, // DO NOT REMOVE UNUSED VARIABLES (breaks web components like am-lyrics)
                 safelist: {

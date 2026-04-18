@@ -24,6 +24,7 @@ export async function onRequest(context) {
             const headers = new Headers(request.headers);
             headers.delete('host');
             headers.delete('referer');
+            headers.delete('origin');
             headers.set(
                 'User-Agent',
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
