@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import authGatePlugin from './vite-plugin-auth-gate.js';
@@ -150,12 +151,15 @@ export default defineConfig((_options) => {
 
                             const nodeStream = Readable.fromWeb(upstream.body as any);
                             req.on('close', () => nodeStream.destroy());
-                            nodeStream.pipe(res);
+                            await pipeline(nodeStream, res);
                         })().catch((e: any) => {
+                            if (res.writableEnded || res.destroyed) return;
                             if (!res.headersSent) {
                                 res.writeHead(500);
+                                res.end('Proxy error: ' + (e instanceof Error ? e.message : String(e)));
+                                return;
                             }
-                            res.end('Proxy error: ' + e.message);
+                            res.destroy(e);
                         });
                     });
                 },

@@ -7,12 +7,24 @@ export async function onRequest(context) {
         return new Response('Missing url parameter', { status: 400 });
     }
 
+    let tidalUrl;
+    try {
+        tidalUrl = new URL(targetUrl);
+    } catch {
+        return new Response('Invalid target URL', { status: 400 });
+    }
+
+    const host = tidalUrl.hostname;
+    if (
+        (tidalUrl.protocol !== 'https:' && tidalUrl.protocol !== 'http:') ||
+        !(host === 'tidal.com' || host.endsWith('.tidal.com'))
+    ) {
+        return new Response('Target host not allowed', { status: 400 });
+    }
+
     try {
         const cacheUrl = new URL(request.url);
-        try {
-            const tidalUrl = new URL(targetUrl);
-            cacheUrl.searchParams.set('cache_key', tidalUrl.pathname);
-        } catch (e) {}
+        cacheUrl.searchParams.set('cache_key', tidalUrl.pathname);
 
         const cacheKey = new Request(cacheUrl.toString(), request);
         const cache = caches.default;
