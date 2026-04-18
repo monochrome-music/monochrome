@@ -121,6 +121,10 @@ export default defineConfig((_options) => {
                         }
 
                         (async () => {
+                            const controller = new AbortController();
+                            const onClose = () => controller.abort();
+                            req.on('close', onClose);
+
                             const upstream = await fetch(urlParam!, {
                                 method: req.method ?? 'GET',
                                 headers: {
@@ -129,6 +133,7 @@ export default defineConfig((_options) => {
                                     ...(req.headers.range ? { range: req.headers.range as string } : {}),
                                 },
                                 redirect: 'follow',
+                                signal: controller.signal,
                             });
 
                             const headers: Record<string, string> = {
@@ -145,13 +150,17 @@ export default defineConfig((_options) => {
                             res.writeHead(upstream.status, headers);
 
                             if (!upstream.body) {
+                                req.off('close', onClose);
                                 res.end();
                                 return;
                             }
 
                             const nodeStream = Readable.fromWeb(upstream.body as any);
-                            req.on('close', () => nodeStream.destroy());
-                            await pipeline(nodeStream, res);
+                            try {
+                                await pipeline(nodeStream, res);
+                            } finally {
+                                req.off('close', onClose);
+                            }
                         })().catch((e: any) => {
                             if (res.writableEnded || res.destroyed) return;
                             if (!res.headersSent) {
