@@ -28,6 +28,21 @@ import { SVG_CLOCK, SVG_ATMOS } from './icons.js';
 import { UIRenderer } from './ui.js';
 import { MediaSession } from '@capgo/capacitor-media-session';
 
+// Route tidal.com audio URLs through the proxy so the audio element
+// (crossorigin="anonymous") gets CORS-clean bytes and Web Audio can tap it.
+// Leaves blob:, data:, and non-tidal URLs untouched.
+function toPlayableSrc(url) {
+    if (typeof url !== 'string' || !url) return url;
+    if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+    try {
+        const parsed = new URL(url, window.location.href);
+        if (parsed.hostname.endsWith('tidal.com')) return getProxyUrl(url);
+    } catch {
+        // Relative or invalid URL — leave alone
+    }
+    return url;
+}
+
 export class Player {
     static #instance = null;
 
@@ -671,7 +686,7 @@ export class Player {
                         const preloader = new Audio();
                         preloader.preload = 'auto';
                         preloader.muted = true;
-                        preloader.src = streamUrl;
+                        preloader.src = toPlayableSrc(streamUrl);
                         streamInfo.preloader = preloader; // Hold reference
                     }
                 }
@@ -1082,7 +1097,7 @@ export class Player {
                 this.currentRgValues = null;
                 this.applyReplayGain();
 
-                activeElement.src = streamUrl;
+                activeElement.src = toPlayableSrc(streamUrl);
                 this.applyAudioEffects();
 
                 const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
@@ -1127,7 +1142,7 @@ export class Player {
                 this.currentRgValues = null;
                 this.applyReplayGain();
 
-                activeElement.src = streamUrl;
+                activeElement.src = toPlayableSrc(streamUrl);
                 this.applyAudioEffects();
 
                 // Wait for audio to be ready before playing (prevents restart issues with blob URLs)
@@ -1146,7 +1161,7 @@ export class Player {
                 this.currentRgValues = null; // No replaygain for local files yet
                 this.applyReplayGain();
 
-                activeElement.src = streamUrl;
+                activeElement.src = toPlayableSrc(streamUrl);
                 this.applyAudioEffects();
 
                 // Wait for audio to be ready before playing
@@ -1201,7 +1216,7 @@ export class Player {
 
                     this.updateAdaptiveQualityBadge();
                 } else {
-                    activeElement.src = streamUrl;
+                    activeElement.src = toPlayableSrc(streamUrl);
                 }
 
                 this.applyAudioEffects();
@@ -1290,7 +1305,7 @@ export class Player {
                         } catch {}
                         this.shakaInitialized = false;
                     }
-                    activeElement.src = streamUrl;
+                    activeElement.src = toPlayableSrc(streamUrl);
                     this.applyAudioEffects();
                     this.updateAdaptiveQualityBadge();
 
