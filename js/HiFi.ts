@@ -100,26 +100,48 @@ export interface TidalArtistProfile {
     id: number;
     /** Artist display name. */
     name: string;
-    /** Roles this artist holds on TIDAL, e.g. `["ARTIST", "CONTRIBUTOR"]`. */
-    artistTypes: string[];
+    /**
+     * Roles this artist holds on TIDAL, e.g. `["ARTIST", "CONTRIBUTOR"]`.
+     * Present in v1 responses; absent from v2.
+     */
+    artistTypes?: string[];
     /** Canonical TIDAL artist URL. */
     url: string;
     /** Picture UUID, or `null` if no image is available. */
     picture: string | null;
-    /** Fallback album cover UUID used when no artist picture exists, or `null`. */
-    selectedAlbumCoverFallback: string | null;
-    /** Popularity score (0-100). */
+    /**
+     * Fallback album cover UUID used when no artist picture exists, or `null`.
+     * Present in v1 responses; absent from v2.
+     */
+    selectedAlbumCoverFallback?: string | null;
+    /** Popularity score (0-100; the raw v2 float (0-1) is multiplied by 100 and rounded). */
     popularity: number;
-    /** List of credited roles for this artist. */
-    artistRoles: TidalArtistRole[];
-    /** Map of mix type → mix ID, e.g. `{ "ARTIST_MIX": "000ff..." }`. */
-    mixes: Record<string, string>;
-    /** TIDAL handle, or `null` if not set. */
-    handle: string | null;
-    /** Associated TIDAL user ID, or `null`. */
-    userId: number | null;
+    /**
+     * List of credited roles for this artist.
+     * Present in v1 responses; absent from v2.
+     */
+    artistRoles?: TidalArtistRole[];
+    /**
+     * Map of mix type → mix ID, e.g. `{ "ARTIST_MIX": "000ff..." }`.
+     * Present in v1 responses; absent from v2.
+     */
+    mixes?: Record<string, string>;
+    /**
+     * TIDAL handle, or `null` if not set.
+     * Present in v1 responses; absent from v2.
+     */
+    handle?: string | null;
+    /**
+     * Associated TIDAL user ID, or `null`.
+     * Present in v1 responses; absent from v2.
+     */
+    userId?: number | null;
     /** Whether the artist is currently spotlighted. */
-    spotlighted: boolean;
+    spotlighted?: boolean;
+    /** Whether artist contributions are enabled (v2 only). */
+    contributionsEnabled?: boolean;
+    /** Owner type, e.g. `"LABEL"` (v2 only). */
+    ownerType?: string;
 }
 
 /**
@@ -576,13 +598,35 @@ export interface ArtistCover {
 
 /**
  * Response returned by the `/artist` route when an `id` query parameter is supplied.
- * Contains the artist's full profile and optional cover image URL.
+ * Contains the artist's full profile, optional cover image URL, and (when using the
+ * v2 OpenAPI endpoint) the artist's albums and tracks inline.
  */
 export interface ArtistByIdResponse extends VersionedResponse {
     /** Full TIDAL artist profile data. */
     artist: TidalArtistProfile;
     /** Cover image URL at 750 px, or `null` if no picture is available. */
     cover: ArtistCover | null;
+    /**
+     * Albums associated with the artist (populated by the v2 endpoint).
+     * Items are partial because the v2 artist endpoint does not return every
+     * field present in a v1 full-album response.
+     * Absent in v1 responses.
+     */
+    albums?: { items: Partial<TidalAlbum>[] };
+    /**
+     * Top tracks for the artist (populated by the v2 endpoint).
+     * Items are partial because the v2 artist endpoint does not return every
+     * field present in a v1 full-track response.
+     * Absent in v1 responses.
+     */
+    tracks?: Partial<TidalTrack>[];
+    /**
+     * Inline biography extracted from the v2 `included` array.
+     * Only `text` and `source` are available from this endpoint;
+     * for the full biography use the `/artist/bio` route.
+     * Absent in v1 responses and when no biography is available.
+     */
+    biography?: { text: string; source?: string } | null;
 }
 
 /**
@@ -1010,12 +1054,14 @@ interface JsonApiIncludeAttributes {
     externalLinks?: Array<{ href: string; meta: { type: string } }>;
     spotlighted?: boolean;
     contributionsEnabled?: boolean;
+    ownerType?: string;
     selectedAlbumCoverFallback?: string | null;
     files?: Array<{ href: string }>;
     title?: string;
     barcodeId?: string;
     numberOfVolumes?: number;
     numberOfItems?: number;
+    /** ISO 8601 duration string, e.g. `"PT3M45S"`. */
     duration?: string;
     explicit?: boolean;
     releaseDate?: string;
@@ -1026,6 +1072,8 @@ interface JsonApiIncludeAttributes {
     albumType?: string;
     createdAt?: string;
     type?: string;
+    text?: string;
+    source?: string;
 }
 
 /** An included resource node from a TIDAL OpenAPI JSON:API response. */
@@ -1033,12 +1081,26 @@ interface JsonApiInclude {
     id: string;
     type: string;
     attributes: JsonApiIncludeAttributes;
-    relationships?: Record<string, { data?: JsonApiRef[] }>;
+    /**
+     * Relationships map. `data` may be a single ref (e.g. `biography`) or an array
+     * (e.g. `profileArt`, `coverArt`, `artists`).
+     */
+    relationships?: Record<string, { data?: JsonApiRef | JsonApiRef[]; links?: Record<string, unknown> }>;
 }
 
-/** A TIDAL OpenAPI JSON:API list response (similar-artists/albums). */
+/** A TIDAL OpenAPI JSON:API list response for relationship endpoints (e.g. similar-artists/albums). */
 interface JsonApiListResponse {
+    /** Top-level data array returned by v2 list/relationship endpoints. */
     data?: JsonApiRef[];
+    /** Top-level included resources returned alongside the data array. */
+    included?: JsonApiInclude[];
+}
+
+/** A TIDAL OpenAPI JSON:API artist detail response (v2 /artists/{id} endpoint). */
+interface JsonApiArtistResponse {
+    /** Single artist resource object. */
+    data?: JsonApiInclude;
+    /** Included side-loaded resources (albums, tracks, artworks, biographies, etc.). */
     included?: JsonApiInclude[];
 }
 
@@ -1085,7 +1147,7 @@ export enum HiFiClientEvents {
 }
 
 class HiFiClient {
-    static readonly API_VERSION = '2.7';
+    static readonly API_VERSION = '2.9';
     static readonly BROWSER_CLIENT_ID = 'txNoH4kkV41MfH25';
     static readonly BROWSER_CLIENT_SECRET = 'dQjy0MinCEvxi1O4UmxvxWnDjt4cgHBPw8ll6nYBk98=';
 
@@ -1432,6 +1494,17 @@ class HiFiClient {
         return parts.length >= 9 ? parts.slice(4, 9).join('-') : null;
     }
 
+    /**
+     * Parses an ISO 8601 duration string (e.g. `"PT3M45S"`) into whole seconds.
+     * Returns `0` for missing or unparseable values.
+     */
+    static #parseDuration(iso?: string | null): number {
+        if (!iso) return 0;
+        const m = iso.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/);
+        if (!m) return 0;
+        return Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Math.round(Number(m[3] ?? 0));
+    }
+
     async #withAlbumTrackSlot<T>(fn: () => Promise<T>) {
         if (this.#albumTracksActive >= this.#albumTracksMax) {
             await new Promise<void>((res) => this.#albumTracksQueue.push(res));
@@ -1600,10 +1673,9 @@ class HiFiClient {
             }
 
             return {
-                ...attr,
                 id: Number(aid),
                 name: attr.name ?? '',
-                picture: pic_id ?? attr.selectedAlbumCoverFallback ?? null,
+                picture: pic_id ?? null,
                 url: `http://www.tidal.com/artist/${aid}`,
                 relationType: 'SIMILAR_ARTIST',
                 popularity: attr.popularity ?? 0,
@@ -1680,13 +1752,27 @@ class HiFiClient {
             }
 
             return {
-                ...attr,
                 id: Number(aid),
                 title: attr.title ?? '',
+                barcodeId: attr.barcodeId ?? '',
+                numberOfVolumes: attr.numberOfVolumes ?? 1,
+                numberOfItems: attr.numberOfItems ?? 0,
+                duration: attr.duration ?? '',
+                explicit: attr.explicit ?? false,
+                releaseDate: attr.releaseDate ?? '',
+                copyright: attr.copyright ?? { text: '' },
+                popularity: attr.popularity ?? 0,
+                accessType: attr.accessType ?? '',
+                availability: attr.availability ?? [],
+                mediaTags: attr.mediaTags ?? [],
+                externalLinks: attr.externalLinks ?? [],
+                type: attr.type ?? '',
+                albumType: attr.albumType ?? '',
+                createdAt: attr.createdAt,
                 cover: cover_id ?? '',
                 artists: artist_list,
                 url: `http://www.tidal.com/album/${aid}`,
-            } as TidalSimilarAlbum;
+            };
         };
 
         return HiFiClient.#jsonResponse({
@@ -1721,52 +1807,62 @@ class HiFiClient {
         if (!id && !f) throw new ResponseError(400, 'Provide id or f query param');
 
         if (id) {
-            const artist_url = `https://openapi.tidal.com/v2/artists/${id}`;
-            const payload = await this.#fetchJson<any>(
-                artist_url,
-                {
-                    countryCode: this.#countryCode,
-                    include: 'albums,albums.coverArt,tracks,tracks.albums,biography,profileArt',
-                    collapseBy: 'FINGERPRINT',
-                },
-                signal
-            );
+            // Fetch the full v1 artist profile (has artistTypes, artistRoles, mixes, integer
+            // popularity, handle, userId, selectedAlbumCoverFallback, etc.) and the v2 artist
+            // resource (for albums, tracks, biography, and profile/cover art) in parallel.
+            const [v1Artist, v2Payload] = await Promise.all([
+                this.#fetchJson<TidalArtistProfile>(
+                    `https://api.tidal.com/v1/artists/${id}`,
+                    { countryCode: this.#countryCode },
+                    signal
+                ),
+                this.#fetchJson<JsonApiArtistResponse>(
+                    `https://openapi.tidal.com/v2/artists/${id}`,
+                    {
+                        countryCode: this.#countryCode,
+                        include: 'albums,albums.coverArt,tracks,tracks.albums,biography,profileArt',
+                        collapseBy: 'FINGERPRINT',
+                    },
+                    signal
+                ).catch((): JsonApiArtistResponse | null => null),
+            ]);
 
-            const includedMap = new Map<string, any>();
-            if (Array.isArray(payload?.included)) {
-                for (const item of payload.included) {
+            const includedMap = new Map<string, JsonApiInclude>();
+            if (Array.isArray(v2Payload?.included)) {
+                for (const item of v2Payload.included) {
                     includedMap.set(`${item.type}:${item.id}`, item);
                 }
             }
 
-            const getPic = (item: any, relName: string) => {
-                if (item?.relationships?.[relName]?.data?.[0]) {
-                    const picRef = item.relationships[relName].data[0];
-                    const pic = includedMap.get(`artworks:${picRef.id}`);
-                    return pic?.attributes?.files?.[0]?.href
-                        ? HiFiClient.#extractUuidFromTidalUrl(pic.attributes.files[0].href)
-                        : null;
-                }
-                return null;
+            const getPic = (item: JsonApiInclude | undefined, relName: string): string | null => {
+                const relData = item?.relationships?.[relName]?.data;
+                const picRef = Array.isArray(relData) ? relData[0] : undefined;
+                if (!picRef) return null;
+                const pic = includedMap.get(`artworks:${picRef.id}`);
+                const href = pic?.attributes?.files?.[0]?.href;
+                return href ? HiFiClient.#extractUuidFromTidalUrl(href) : null;
             };
 
-            const data = payload?.data;
-            let biography: any = null;
-            if (data?.relationships?.biography?.data) {
-                const bioRef = data.relationships.biography.data;
-                const bioItem =
-                    includedMap.get(`biographies:${bioRef.id}`) || includedMap.get(`biography:${bioRef.id}`);
-                if (bioItem) {
-                    biography = { text: bioItem.attributes?.text, source: bioItem.attributes?.source };
-                }
+            const v2Data = v2Payload?.data;
+
+            // Biography: v2 returns a single-ref relationship, not an array
+            const bioRelData = v2Data?.relationships?.biography?.data;
+            const bioRef = Array.isArray(bioRelData) ? bioRelData[0] : bioRelData;
+            const bioItem = bioRef
+                ? (includedMap.get(`${bioRef.type}:${bioRef.id}`) ??
+                  includedMap.get(`biographies:${bioRef.id}`) ??
+                  includedMap.get(`biography:${bioRef.id}`))
+                : undefined;
+
+            // Use the full v1 artist profile as-is. It already carries all fields the UI
+            // needs: name, picture UUID, popularity (0-100 integer), artistTypes, artistRoles,
+            // mixes, handle, userId, selectedAlbumCoverFallback, url, spotlighted, etc.
+            const artist_data: TidalArtistProfile = v1Artist;
+
+            // Fall back to the v2 profileArt UUID when v1 has no picture.
+            if (!artist_data.picture) {
+                artist_data.picture = getPic(v2Data, 'profileArt');
             }
-
-            const artist_data: any = {
-                id: Number(data?.id || id),
-                name: data?.attributes?.name || '',
-                picture: getPic(data, 'profileArt') || data?.attributes?.selectedAlbumCoverFallback || null,
-                biography: biography,
-            };
 
             const picture = artist_data.picture;
             let cover: ArtistCover | null = null;
@@ -1779,53 +1875,72 @@ class HiFiClient {
                 };
             }
 
-            const albums: any[] = [];
-            const tracks: any[] = [];
+            const albums: Partial<TidalAlbum>[] = [];
+            const tracks: Partial<TidalTrack>[] = [];
 
-            if (data?.relationships?.albums?.data) {
-                for (const ref of data.relationships.albums.data) {
+            const artistRef: TidalArtistRef = {
+                id: artist_data.id,
+                name: artist_data.name,
+                type: 'MAIN',
+                picture: artist_data.picture,
+                handle: artist_data.handle ?? null,
+            };
+
+            const albumsRelData = v2Data?.relationships?.albums?.data;
+            if (Array.isArray(albumsRelData)) {
+                for (const ref of albumsRelData) {
                     const al = includedMap.get(`albums:${ref.id}`);
                     if (al) {
                         albums.push({
                             id: Number(al.id),
-                            title: al.attributes?.title,
-                            duration: al.attributes?.duration ? 100 : undefined,
-                            numberOfTracks: al.attributes?.numberOfItems,
-                            releaseDate: al.attributes?.releaseDate,
-                            type: al.attributes?.albumType,
-                            cover: getPic(al, 'coverArt'),
-                            artist: { id: artist_data.id, name: artist_data.name },
+                            title: al.attributes?.title ?? '',
+                            duration: HiFiClient.#parseDuration(al.attributes?.duration),
+                            numberOfTracks: al.attributes?.numberOfItems ?? 0,
+                            releaseDate: al.attributes?.releaseDate ?? '',
+                            type: al.attributes?.albumType ?? '',
+                            cover: getPic(al, 'coverArt') ?? '',
+                            artist: artistRef,
+                            artists: [artistRef],
                         });
                     }
                 }
             }
 
-            if (data?.relationships?.tracks?.data) {
-                for (const ref of data.relationships.tracks.data) {
+            const tracksRelData = v2Data?.relationships?.tracks?.data;
+            if (Array.isArray(tracksRelData)) {
+                for (const ref of tracksRelData) {
                     const tr = includedMap.get(`tracks:${ref.id}`);
                     if (tr) {
-                        let albumInfo = undefined;
-                        if (tr.relationships?.albums?.data?.[0]) {
-                            const aRef = tr.relationships.albums.data[0];
-                            const aItem = includedMap.get(`albums:${aRef.id}`);
-                            if (aItem) {
-                                albumInfo = {
-                                    id: Number(aItem.id),
-                                    title: aItem.attributes?.title,
-                                    cover: getPic(aItem, 'coverArt'),
-                                };
-                            }
-                        }
+                        const albumRelData = tr.relationships?.albums?.data;
+                        const albumRef = Array.isArray(albumRelData) ? albumRelData[0] : undefined;
+                        const aItem = albumRef ? includedMap.get(`albums:${albumRef.id}`) : undefined;
+                        const albumInfo: TidalTrackAlbumRef | undefined = aItem
+                            ? {
+                                  id: Number(aItem.id),
+                                  title: aItem.attributes?.title ?? '',
+                                  cover: getPic(aItem, 'coverArt') ?? '',
+                                  vibrantColor: '',
+                                  videoCover: null,
+                              }
+                            : undefined;
                         tracks.push({
                             id: Number(tr.id),
-                            title: tr.attributes?.title,
-                            duration: tr.attributes?.duration ? 100 : undefined,
+                            title: tr.attributes?.title ?? '',
+                            duration: HiFiClient.#parseDuration(tr.attributes?.duration),
+                            // v2 popularity is a 0-1 float; normalise to 0-100 so the consumer
+                            // can sort tracks the same way it sorts v1 tracks.
+                            popularity: Math.round((tr.attributes?.popularity ?? 0) * 100),
                             album: albumInfo,
-                            artist: { id: artist_data.id, name: artist_data.name },
+                            artist: artistRef,
+                            artists: [artistRef],
                         });
                     }
                 }
             }
+
+            const biography = bioItem
+                ? { text: bioItem.attributes?.text ?? '', source: bioItem.attributes?.source }
+                : null;
 
             return HiFiClient.#jsonResponse({
                 version: HiFiClient.API_VERSION,
@@ -1833,6 +1948,7 @@ class HiFiClient {
                 cover,
                 albums: { items: albums },
                 tracks,
+                biography,
             });
         }
 
