@@ -3,7 +3,7 @@ import { modernSettings } from './ModernSettings.js';
 import { SVG_ATMOS } from './icons.js';
 import { qualityBadgeSettings, coverArtSizeSettings, trackDateSettings } from './storage.js';
 
-export const QUALITY = 'HI_RES_LOSSLESS';
+export const QUALITY = 'LOSSLESS';
 
 export const REPEAT_MODE = {
     OFF: 0,
@@ -339,6 +339,8 @@ export const deriveTrackQuality = (track) => {
     const candidates = [
         deriveQualityFromTags(track.mediaMetadata?.tags),
         deriveQualityFromTags(track.album?.mediaMetadata?.tags),
+        deriveQualityFromTags(track.mediaTags),
+        deriveQualityFromTags(track.album?.mediaTags),
         normalizeQualityToken(track.audioQuality),
     ];
 

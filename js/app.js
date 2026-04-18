@@ -491,7 +491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
+    const currentQuality = localStorage.getItem('playback-quality') || 'LOSSLESS';
     await Player.initialize(audioPlayer, MusicAPI.instance, currentQuality);
 
     // Initialize tracker

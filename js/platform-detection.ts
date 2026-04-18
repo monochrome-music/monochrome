@@ -15,3 +15,6 @@ export const isSafari =
     !lowerCaseOriginalUserAgent.includes('chrome') &&
     !lowerCaseOriginalUserAgent.includes('crios') &&
     !lowerCaseOriginalUserAgent.includes('android');
+
+/** If the browser is Chrome. */
+export const isChrome = lowerCaseOriginalUserAgent.includes('chrome') || lowerCaseOriginalUserAgent.includes('crios');

@@ -41,6 +41,8 @@ import {
     fullscreenCoverVanillaTiltSettings,
     fullscreenCoverTiltDistanceSettings,
     fullscreenCoverTiltSpeedSettings,
+    devModeSettings,
+    serverDisruptionSettings,
 } from './storage.js';
 import { audioContextManager, getPresetsForBandCount } from './audio-context.js';
 import { calculateBiquadResponse, interpolate, getNormalizationOffset, runAutoEqAlgorithm } from './autoeq-engine.js';
@@ -78,6 +80,51 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
     // Initialize account system UI & Settings
     authManager.updateUI(authManager.user);
+
+    // ========================================
+    // Dev Mode
+    // ========================================
+    const devModeToggle = document.getElementById('dev-mode-toggle');
+    const devModeUrlSetting = document.getElementById('dev-mode-url-setting');
+    const devModeUrlInput = document.getElementById('dev-mode-url-input');
+
+    function updateDevModeUI() {
+        if (devModeToggle) devModeToggle.checked = devModeSettings.isEnabled();
+        if (devModeUrlSetting) devModeUrlSetting.style.display = devModeSettings.isEnabled() ? '' : 'none';
+        if (devModeUrlInput) devModeUrlInput.value = devModeSettings.getUrl();
+    }
+
+    updateDevModeUI();
+
+    if (devModeToggle) {
+        devModeToggle.addEventListener('change', (e) => {
+            devModeSettings.setEnabled(e.target.checked);
+            updateDevModeUI();
+        });
+    }
+
+    if (devModeUrlInput) {
+        devModeUrlInput.addEventListener('change', (e) => {
+            devModeSettings.setUrl(e.target.value.trim());
+        });
+    }
+
+    // ========================================
+    // Server Disruption Banner
+    // ========================================
+    const disruptionBanner = document.getElementById('server-disruption-banner');
+    const dismissDisruptionBtn = document.getElementById('dismiss-disruption-btn');
+
+    if (disruptionBanner && !serverDisruptionSettings.isDismissed()) {
+        disruptionBanner.style.display = 'flex';
+    }
+
+    if (dismissDisruptionBtn) {
+        dismissDisruptionBtn.addEventListener('click', () => {
+            serverDisruptionSettings.dismiss();
+            if (disruptionBanner) disruptionBanner.style.display = 'none';
+        });
+    }
 
     // Email Auth UI Logic
     const toggleEmailBtn = document.getElementById('toggle-email-auth-btn');
@@ -809,7 +856,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
         // Apply initially
         if (player.forceQuality) player.forceQuality(streamingQualitySetting.value);
-        const apiQuality = streamingQualitySetting.value === 'auto' ? 'HI_RES_LOSSLESS' : streamingQualitySetting.value;
+        const apiQuality = streamingQualitySetting.value === 'auto' ? 'LOSSLESS' : streamingQualitySetting.value;
         player.setQuality(localStorage.getItem('playback-quality') || apiQuality);
 
         streamingQualitySetting.addEventListener('change', (e) => {
@@ -820,7 +867,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             if (player.forceQuality) player.forceQuality(val);
 
             // Set fallback API quality
-            const newApiQuality = val === 'auto' ? 'HI_RES_LOSSLESS' : val;
+            const newApiQuality = val === 'auto' ? 'LOSSLESS' : val;
             player.setQuality(newApiQuality);
             localStorage.setItem('playback-quality', newApiQuality);
         });

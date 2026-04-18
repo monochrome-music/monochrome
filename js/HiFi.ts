@@ -1340,12 +1340,16 @@ class HiFiClient {
                 force: unauthorized,
             });
 
-            res = await fetch(final, {
-                headers: {
-                    authorization: `Bearer ${token}`,
-                },
-                signal,
-            });
+            try {
+                res = await fetch(final, {
+                    headers: {
+                        authorization: `Bearer ${token}`,
+                    },
+                    signal,
+                });
+            } catch (err: unknown) {
+                throw new ResponseError(0, err instanceof Error ? err.message : String(err));
+            }
 
             if (previousResponse && unauthorized && res.status === 401) {
                 throw new ResponseError(401, 'Unauthorized: Invalid or expired token');
@@ -1710,20 +1714,43 @@ class HiFiClient {
         if (!id && !f) throw new ResponseError(400, 'Provide id or f query param');
 
         if (id) {
-            const artist_url = `https://api.tidal.com/v1/artists/${id}`;
-            const artist_data = await this.#fetchJson<TidalArtistProfile>(
+            const artist_url = `https://openapi.tidal.com/v2/artists/${id}`;
+            const payload = await this.#fetchJson<any>(
                 artist_url,
-                { countryCode: this.#countryCode },
+                {
+                    countryCode: this.#countryCode,
+                    include: 'albums,albums.coverArt,tracks,tracks.albums,biography,profileArt',
+                    collapseBy: 'FINGERPRINT',
+                },
                 signal
             );
 
-            let picture = artist_data.picture;
-            const fallback = artist_data.selectedAlbumCoverFallback;
-            if (!picture && fallback) {
-                artist_data.picture = fallback;
-                picture = fallback;
+            const includedMap = new Map<string, any>();
+            if (Array.isArray(payload?.included)) {
+                for (const item of payload.included) {
+                    includedMap.set(`${item.type}:${item.id}`, item);
+                }
             }
 
+            const getPic = (item: any, relName: string) => {
+                if (item?.relationships?.[relName]?.data?.[0]) {
+                    const picRef = item.relationships[relName].data[0];
+                    const pic = includedMap.get(`artworks:${picRef.id}`);
+                    return pic?.attributes?.files?.[0]?.href
+                        ? HiFiClient.#extractUuidFromTidalUrl(pic.attributes.files[0].href)
+                        : null;
+                }
+                return null;
+            };
+
+            const data = payload?.data;
+            const artist_data: any = {
+                id: Number(data?.id || id),
+                name: data?.attributes?.name || '',
+                picture: getPic(data, 'profileArt') || data?.attributes?.selectedAlbumCoverFallback || null,
+            };
+
+            const picture = artist_data.picture;
             let cover: ArtistCover | null = null;
             if (picture) {
                 const slug = picture.replace(/-/g, '/');
@@ -1734,10 +1761,64 @@ class HiFiClient {
                 };
             }
 
-            return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, artist: artist_data, cover });
+            const albums: any[] = [];
+            const tracks: any[] = [];
+
+            if (data?.relationships?.albums?.data) {
+                for (const ref of data.relationships.albums.data) {
+                    const al = includedMap.get(`albums:${ref.id}`);
+                    if (al) {
+                        albums.push({
+                            id: Number(al.id),
+                            title: al.attributes?.title,
+                            duration: al.attributes?.duration ? 100 : undefined,
+                            numberOfTracks: al.attributes?.numberOfItems,
+                            releaseDate: al.attributes?.releaseDate,
+                            type: al.attributes?.albumType,
+                            cover: getPic(al, 'coverArt'),
+                            artist: { id: artist_data.id, name: artist_data.name },
+                        });
+                    }
+                }
+            }
+
+            if (data?.relationships?.tracks?.data) {
+                for (const ref of data.relationships.tracks.data) {
+                    const tr = includedMap.get(`tracks:${ref.id}`);
+                    if (tr) {
+                        let albumInfo = undefined;
+                        if (tr.relationships?.albums?.data?.[0]) {
+                            const aRef = tr.relationships.albums.data[0];
+                            const aItem = includedMap.get(`albums:${aRef.id}`);
+                            if (aItem) {
+                                albumInfo = {
+                                    id: Number(aItem.id),
+                                    title: aItem.attributes?.title,
+                                    cover: getPic(aItem, 'coverArt'),
+                                };
+                            }
+                        }
+                        tracks.push({
+                            id: Number(tr.id),
+                            title: tr.attributes?.title,
+                            duration: tr.attributes?.duration ? 100 : undefined,
+                            album: albumInfo,
+                            artist: { id: artist_data.id, name: artist_data.name },
+                        });
+                    }
+                }
+            }
+
+            return HiFiClient.#jsonResponse({
+                version: HiFiClient.API_VERSION,
+                artist: artist_data,
+                cover,
+                albums: { items: albums },
+                tracks,
+            });
         }
 
-        // f provided -> gather albums and optionally tracks
+        // fallback to original f logic
         const albums_url = `https://api.tidal.com/v1/artists/${f}/albums`;
         const common_params: Params = { countryCode: this.#countryCode, limit: 50 };
 
@@ -1830,14 +1911,6 @@ class HiFiClient {
 
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, albums: page_data, tracks });
     }
-
-    /**
-     * Fetches the biography text for the given artist ID.
-     *
-     * @param artistId - TIDAL artist ID.
-     * @param signal - Optional {@link AbortSignal} to cancel the request.
-     * @returns A {@link TidalResponse} whose `.json()` resolves to an {@link ArtistBioResponse}.
-     */
     async getArtistBiography(artistId: number, signal?: AbortSignal): Promise<TidalResponse<ArtistBioResponse>> {
         const url = `https://api.tidal.com/v1/artists/${artistId}/bio`;
         const params = {
