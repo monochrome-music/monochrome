@@ -11,10 +11,108 @@ import { execSync } from 'child_process';
 import purgecss from 'vite-plugin-purgecss';
 
 function proxyAudioPlugin() {
+    const REQUEST_HEADER_BLOCKLIST = new Set([
+        'host',
+        'origin',
+        'referer',
+        'cookie',
+        'connection',
+        'upgrade',
+        'te',
+        'trailer',
+        'transfer-encoding',
+    ]);
     return {
         name: 'proxy-audio-dev',
         configureServer(server) {
-            // No longer needed: local proxy-audio middleware replaced by remote proxy
+            server.middlewares.use('/proxy-audio', async (req, res) => {
+                const reqUrl = new URL(req.url || '/', 'http://localhost');
+                const target = reqUrl.searchParams.get('url');
+
+                if (req.method === 'OPTIONS') {
+                    res.writeHead(204, {
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                        'Access-Control-Allow-Headers': '*',
+                        'Access-Control-Max-Age': '86400',
+                    });
+                    res.end();
+                    return;
+                }
+
+                if (!target) {
+                    res.writeHead(400, { 'Content-Type': 'text/plain' });
+                    res.end('Missing url parameter');
+                    return;
+                }
+
+                let parsed;
+                try {
+                    parsed = new URL(target);
+                } catch {
+                    res.writeHead(400, { 'Content-Type': 'text/plain' });
+                    res.end('Invalid url parameter');
+                    return;
+                }
+                if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                    res.writeHead(400, { 'Content-Type': 'text/plain' });
+                    res.end('Only http(s) URLs are allowed');
+                    return;
+                }
+
+                const forwardHeaders: Record<string, string> = {};
+                for (const [key, value] of Object.entries(req.headers)) {
+                    if (REQUEST_HEADER_BLOCKLIST.has(key.toLowerCase())) continue;
+                    if (Array.isArray(value)) forwardHeaders[key] = value.join(', ');
+                    else if (value != null) forwardHeaders[key] = String(value);
+                }
+                forwardHeaders['user-agent'] =
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+                let upstream;
+                try {
+                    upstream = await fetch(target, {
+                        method: req.method,
+                        headers: forwardHeaders,
+                        redirect: 'follow',
+                    });
+                } catch (e: any) {
+                    res.writeHead(502, { 'Content-Type': 'text/plain' });
+                    res.end('Upstream fetch failed: ' + (e?.message || 'unknown'));
+                    return;
+                }
+
+                const outHeaders: Record<string, string> = {};
+                upstream.headers.forEach((value, key) => {
+                    const k = key.toLowerCase();
+                    if (k === 'set-cookie' || k === 'content-security-policy' || k === 'x-frame-options') return;
+                    outHeaders[key] = value;
+                });
+                outHeaders['Access-Control-Allow-Origin'] = '*';
+                outHeaders['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS';
+                outHeaders['Access-Control-Expose-Headers'] = '*';
+
+                res.writeHead(upstream.status, outHeaders);
+
+                if (!upstream.body) {
+                    res.end();
+                    return;
+                }
+                const reader = upstream.body.getReader();
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        if (!res.write(Buffer.from(value))) {
+                            await new Promise((resolve) => res.once('drain', resolve));
+                        }
+                    }
+                } catch {
+                    // client disconnected — ignore
+                } finally {
+                    res.end();
+                }
+            });
         },
     };
 }

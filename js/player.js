@@ -28,17 +28,15 @@ import { SVG_CLOCK, SVG_ATMOS } from './icons.js';
 import { UIRenderer } from './ui.js';
 import { MediaSession } from '@capgo/capacitor-media-session';
 
-// Route tidal.com audio URLs through the proxy so the audio element
-// (crossorigin="anonymous") gets CORS-clean bytes and Web Audio can tap it.
-// Leaves blob:, data:, and non-tidal URLs untouched. Always encodes the
-// URL before handing to getProxyUrl — the upstream helper concatenates
-// without encoding, which breaks Tidal stream URLs that carry ?token=...
+// Route tidal.com audio URLs through the same-origin /proxy-audio endpoint
+// so the audio element (crossorigin="anonymous") gets CORS-clean bytes and
+// Web Audio can tap it. Leaves blob:, data:, and non-tidal URLs untouched.
 function toPlayableSrc(url) {
     if (typeof url !== 'string' || !url) return url;
     if (url.startsWith('blob:') || url.startsWith('data:')) return url;
     try {
         const parsed = new URL(url, window.location.href);
-        if (parsed.hostname.endsWith('tidal.com')) return getProxyUrl(encodeURIComponent(url));
+        if (parsed.hostname.endsWith('tidal.com')) return getProxyUrl(url);
     } catch {
         // Relative or invalid URL — leave alone
     }
