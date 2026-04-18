@@ -2,13 +2,7 @@
 // is rewritten to the working api.monochrome.tf host before it leaves the
 // browser. Ported from the yzycoin/gemini/martin UserScript so users don't
 // need the userscript installed to get working playback/API calls.
-const DEAD_NODES = [
-    'wolf.qqdl.site',
-    'vogel.qqdl.site',
-    'katze.qqdl.site',
-    'hund.qqdl.site',
-    'maus.qqdl.site',
-];
+const DEAD_NODES = ['wolf.qqdl.site', 'vogel.qqdl.site', 'katze.qqdl.site', 'hund.qqdl.site', 'maus.qqdl.site'];
 const WORKING_HOST = 'api.monochrome.tf';
 
 function rerouteUrl(urlStr) {
