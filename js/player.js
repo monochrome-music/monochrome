@@ -94,10 +94,18 @@ export class Player {
         // Apply audio effects when track is ready
         this.audio.addEventListener('canplay', () => {
             this.applyAudioEffects();
+            // Wire up the Web Audio graph on first canplay so EQ, analyser,
+            // binaural DSP, mono merger and the visualizer can tap playback.
+            if (!audioContextManager.isReady()) {
+                audioContextManager.init(this.activeElement);
+            }
         });
         if (this.video) {
             this.video.addEventListener('canplay', () => {
                 this.applyAudioEffects();
+                if (!audioContextManager.isReady()) {
+                    audioContextManager.init(this.activeElement);
+                }
             });
         }
 
@@ -146,6 +154,31 @@ export class Player {
             });
             this.shakaPlayer.addEventListener('adaptation', this.updateAdaptiveQualityBadge.bind(this));
             this.shakaPlayer.addEventListener('variantchanged', this.updateAdaptiveQualityBadge.bind(this));
+
+            // Route every Shaka fetch (manifest + segments) through /proxy-audio for any
+            // tidal.com host so DASH/HLS segments come back with the CORS headers that
+            // createMediaElementSource requires.
+            try {
+                const netEngine = this.shakaPlayer.getNetworkingEngine();
+                netEngine.registerRequestFilter((_type, request) => {
+                    if (!request || !Array.isArray(request.uris)) return;
+                    request.uris = request.uris.map((uri) => {
+                        if (typeof uri !== 'string') return uri;
+                        if (uri.startsWith('/proxy-audio?')) return uri;
+                        try {
+                            const parsed = new URL(uri, window.location.href);
+                            if (parsed.hostname.endsWith('tidal.com')) {
+                                return `/proxy-audio?url=${encodeURIComponent(parsed.toString())}`;
+                            }
+                        } catch {
+                            // Non-URL uri (e.g. blob:) — leave untouched
+                        }
+                        return uri;
+                    });
+                });
+            } catch (e) {
+                console.warn('Failed to register Shaka proxy filter:', e);
+            }
 
             this.shakaInitialized = false;
 
