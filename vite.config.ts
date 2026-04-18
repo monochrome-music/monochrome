@@ -1,58 +1,20 @@
+import path from 'path';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import authGatePlugin from './vite-plugin-auth-gate.js';
-import path from 'path';
-import uploadPlugin from './vite-plugin-upload.js';
 import blobAssetPlugin from './vite-plugin-blob.js';
 import svgUse from './vite-plugin-svg-use.js';
+import uploadPlugin from './vite-plugin-upload.js';
 // import purgecss from 'vite-plugin-purgecss';
-import purgecss from 'vite-plugin-purgecss';
-import { execSync } from 'child_process';
 import { playwright } from '@vitest/browser-playwright';
+import { execSync } from 'child_process';
+import purgecss from 'vite-plugin-purgecss';
 
 function proxyAudioPlugin() {
     return {
         name: 'proxy-audio-dev',
         configureServer(server) {
-            server.middlewares.use('/proxy-audio', async (req, res) => {
-                const url = new URL(req.url, 'http://localhost');
-                const targetUrl = url.searchParams.get('url');
-
-                if (!targetUrl) {
-                    res.writeHead(400);
-                    res.end('Missing url parameter');
-                    return;
-                }
-
-                try {
-                    const headers = new Headers();
-                    headers.set('Origin', 'https://listen.tidal.com');
-                    headers.set(
-                        'User-Agent',
-                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                    );
-
-                    const upstream = await fetch(targetUrl, {
-                        method: req.method,
-                        headers,
-                        redirect: 'follow',
-                    });
-
-                    const body = Buffer.from(await upstream.arrayBuffer());
-
-                    res.writeHead(upstream.status, {
-                        'Access-Control-Allow-Origin': '*',
-                        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-                        'Access-Control-Expose-Headers': '*',
-                        'content-type': upstream.headers.get('content-type') || 'application/octet-stream',
-                        'content-length': body.length,
-                    });
-                    res.end(body);
-                } catch (error) {
-                    res.writeHead(500);
-                    res.end('Proxy Error: ' + error.message);
-                }
-            });
+            // No longer needed: local proxy-audio middleware replaced by remote proxy
         },
     };
 }
