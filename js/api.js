@@ -1167,7 +1167,12 @@ export class LosslessAPI {
         // Enrich tracks with album release dates
         const tracks = options.lightweight ? topTracks : await this.enrichTracksWithAlbumDates(topTracks);
 
-        const result = { ...artist, albums, eps, tracks, videos };
+        // Biography is included inline when the id-path response carries it (from v2 included
+        // resources). When absent (v1-only profile with no v2 call, or no biography available),
+        // getArtistBiography is called lazily when the page renders and artist.biography is falsy.
+        const biography = primaryData.biography || null;
+
+        const result = { ...artist, albums, eps, tracks, videos, biography };
 
         if (!(primaryResponse instanceof TidalResponse)) {
             await this.cache.set('artist', cacheKey, result);
