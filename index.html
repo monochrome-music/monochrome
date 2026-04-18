@@ -1010,14 +1010,35 @@
 
         <div id="playlist-select-modal" class="modal">
             <div class="modal-overlay"></div>
-            <div class="modal-content">
-                <h3>Add to Playlist</h3>
-                <div id="playlist-select-list" class="modal-list">
-                    <!-- Options will be injected here -->
+            <div class="modal-content medium">
+                <div class="playlist-select-header">
+                    <div class="playlist-select-title-row">
+                        <span class="playlist-select-title">Add to playlist</span>
+                        <button id="playlist-select-close" class="playlist-select-close">&times;</button>
+                    </div>
+                    <div class="playlist-select-controls">
+                        <div class="playlist-select-search-wrap">
+                            <span class="playlist-select-search-icon"></span>
+                            <input id="playlist-select-search" class="playlist-select-search" placeholder="Search playlists…" autocomplete="off" />
+                        </div>
+                        <select id="playlist-select-sort" class="playlist-select-sort">
+                            <option value="az">A–Z</option>
+                            <option value="za">Z–A</option>
+                            <option value="date">Date created</option>
+                            <option value="recent">Recently used</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="modal-actions">
-                    <button id="playlist-select-cancel" class="btn-secondary">Cancel</button>
+                <div id="playlist-select-create" class="playlist-select-create">
+                    <div class="playlist-select-create-icon">+</div>
+                    <span class="playlist-select-create-label">Create new playlist</span>
                 </div>
+                <div class="playlist-select-scroll">
+                    <div id="playlist-select-grid" class="playlist-select-grid">
+                        <!-- Cards injected by JS -->
+                    </div>
+                </div>
+                <div id="playlist-select-footer" class="playlist-select-footer"></div>
             </div>
         </div>
 
