@@ -133,7 +133,7 @@ export default defineConfig((_options) => {
                         {
                             urlPattern: ({ request }) =>
                                 request.destination === 'audio' || request.destination === 'video',
-                            handler: 'CacheFirst',
+                            handler: 'NetworkOnly',
                             options: {
                                 cacheName: 'media',
                                 expiration: {
