@@ -117,7 +117,9 @@ export class LosslessAPI {
             for (let attempt = 1; attempt <= maxTotalAttempts; attempt++) {
                 const instance = instances[instanceIndex % instances.length];
                 const baseUrl = typeof instance === 'string' ? instance : instance.url;
-                const url = baseUrl.endsWith('/') ? `${baseUrl}${relativePath.substring(1)}` : `${baseUrl}${relativePath}`;
+                const url = baseUrl.endsWith('/')
+                    ? `${baseUrl}${relativePath.substring(1)}`
+                    : `${baseUrl}${relativePath}`;
 
                 try {
                     const response = await fetch(url, { signal: options.signal });
@@ -134,7 +136,10 @@ export class LosslessAPI {
                     }
 
                     if (response.status === 401) {
-                        const errorData = await response.clone().json().catch(() => null);
+                        const errorData = await response
+                            .clone()
+                            .json()
+                            .catch(() => null);
                         if (errorData?.subStatus === 11002) {
                             console.warn(`Auth failed on ${baseUrl}. Trying next instance...`);
                             instanceIndex++;
