@@ -149,8 +149,13 @@ export class Player {
 
             this.shakaPlayer.getNetworkingEngine().registerRequestFilter((_type, request) => {
                 request.uris = request.uris.map((uri) => {
-                    if (uri && uri.includes('tidal.com') && !uri.startsWith('/proxy-audio')) {
-                        return `/proxy-audio?url=${encodeURIComponent(uri)}`;
+                    try {
+                        const { hostname } = new URL(uri);
+                        if (hostname === 'tidal.com' || hostname.endsWith('.tidal.com')) {
+                            return `/proxy-audio?url=${encodeURIComponent(uri)}`;
+                        }
+                    } catch {
+                        // unparseable URI — leave unchanged
                     }
                     return uri;
                 });

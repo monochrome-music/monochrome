@@ -59,6 +59,8 @@ vi.mock('../ui.js', () => ({
     },
 }));
 
+let shakaRequestFilter = null;
+
 vi.mock('shaka-player', () => ({
     default: {
         polyfill: { installAll: vi.fn() },
@@ -79,6 +81,13 @@ vi.mock('shaka-player', () => ({
         }
         configure() {}
         addEventListener() {}
+        getNetworkingEngine() {
+            return {
+                registerRequestFilter(fn) {
+                    shakaRequestFilter = fn;
+                },
+            };
+        }
         load() {
             return Promise.resolve();
         }
@@ -191,5 +200,40 @@ describe('Player', () => {
 
         player.setPlaybackSpeed(0);
         expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(0.01);
+    });
+
+    test('Shaka request filter rewrites tidal.com URIs through proxy and leaves others unchanged', async () => {
+        shakaRequestFilter = null;
+        player = new Player(audioElement, api);
+        await player.init();
+
+        expect(shakaRequestFilter).toBeTypeOf('function');
+
+        const applyFilter = (uris) => {
+            const req = { uris: [...uris] };
+            shakaRequestFilter(null, req);
+            return req.uris;
+        };
+
+        // TIDAL subdomain → proxied
+        expect(applyFilter(['https://lgf.audio.tidal.com/mediatracks/abc.flac?token=xyz'])).toEqual([
+            '/proxy-audio?url=https%3A%2F%2Flgf.audio.tidal.com%2Fmediatracks%2Fabc.flac%3Ftoken%3Dxyz',
+        ]);
+
+        // tidal.com apex → proxied
+        expect(applyFilter(['https://tidal.com/some/path'])).toEqual([
+            '/proxy-audio?url=https%3A%2F%2Ftidal.com%2Fsome%2Fpath',
+        ]);
+
+        // Lookalike hostname → NOT proxied
+        expect(applyFilter(['https://evil-tidal.com/audio.flac'])).toEqual([
+            'https://evil-tidal.com/audio.flac',
+        ]);
+
+        // Non-TIDAL CDN → NOT proxied
+        expect(applyFilter(['https://example.com/audio.mp4'])).toEqual(['https://example.com/audio.mp4']);
+
+        // Blob URLs (DASH manifests) → NOT proxied
+        expect(applyFilter(['blob:http://localhost/some-uuid'])).toEqual(['blob:http://localhost/some-uuid']);
     });
 });

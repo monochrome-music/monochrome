@@ -1,3 +1,4 @@
+import { Readable } from 'node:stream';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import authGatePlugin from './vite-plugin-auth-gate.js';
@@ -83,42 +84,79 @@ export default defineConfig((_options) => {
             {
                 name: 'proxy-audio-dev',
                 configureServer(server) {
-                    server.middlewares.use('/proxy-audio', async (req, res) => {
-                        const urlParam = new URL(req.url!, `http://${req.headers.host}`).searchParams.get('url');
+                    server.middlewares.use('/proxy-audio', (req, res, _next) => {
+                        let urlParam: string | null;
+                        try {
+                            urlParam = new URL(req.url ?? '', `http://${req.headers.host ?? 'localhost'}`).searchParams.get('url');
+                        } catch {
+                            res.writeHead(400);
+                            res.end('Invalid request URL');
+                            return;
+                        }
+
                         if (!urlParam) {
                             res.writeHead(400);
                             res.end('Missing url parameter');
                             return;
                         }
+
+                        let parsed: URL;
                         try {
-                            const upstream = await fetch(urlParam, {
+                            parsed = new URL(urlParam);
+                        } catch {
+                            res.writeHead(400);
+                            res.end('Invalid target URL');
+                            return;
+                        }
+
+                        const host = parsed.hostname;
+                        if (
+                            (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') ||
+                            !(host === 'tidal.com' || host.endsWith('.tidal.com'))
+                        ) {
+                            res.writeHead(400);
+                            res.end('Target host not allowed');
+                            return;
+                        }
+
+                        (async () => {
+                            const upstream = await fetch(urlParam!, {
                                 method: req.method ?? 'GET',
                                 headers: {
                                     'User-Agent':
                                         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                                    ...(req.headers.range ? { range: req.headers.range } : {}),
+                                    ...(req.headers.range ? { range: req.headers.range as string } : {}),
                                 },
                                 redirect: 'follow',
                             });
-                            res.writeHead(upstream.status, {
+
+                            const headers: Record<string, string> = {
                                 'content-type': upstream.headers.get('content-type') ?? 'application/octet-stream',
-                                'content-length': upstream.headers.get('content-length') ?? '',
-                                'accept-ranges': upstream.headers.get('accept-ranges') ?? 'bytes',
-                                'content-range': upstream.headers.get('content-range') ?? '',
                                 'access-control-allow-origin': '*',
-                            });
-                            const reader = upstream.body!.getReader();
-                            const pump = async () => {
-                                const { done, value } = await reader.read();
-                                if (done) { res.end(); return; }
-                                res.write(value);
-                                await pump();
                             };
-                            await pump();
-                        } catch (e: any) {
-                            res.writeHead(500);
+                            const contentLength = upstream.headers.get('content-length');
+                            const contentRange = upstream.headers.get('content-range');
+                            const acceptRanges = upstream.headers.get('accept-ranges');
+                            if (contentLength) headers['content-length'] = contentLength;
+                            if (contentRange) headers['content-range'] = contentRange;
+                            if (acceptRanges) headers['accept-ranges'] = acceptRanges;
+
+                            res.writeHead(upstream.status, headers);
+
+                            if (!upstream.body) {
+                                res.end();
+                                return;
+                            }
+
+                            const nodeStream = Readable.fromWeb(upstream.body as any);
+                            req.on('close', () => nodeStream.destroy());
+                            nodeStream.pipe(res);
+                        })().catch((e: any) => {
+                            if (!res.headersSent) {
+                                res.writeHead(500);
+                            }
                             res.end('Proxy error: ' + e.message);
-                        }
+                        });
                     });
                 },
             },
