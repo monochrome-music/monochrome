@@ -1340,11 +1340,18 @@ class HiFiClient {
                 force: unauthorized,
             });
 
+            const headers: Record<string, string> = {
+                authorization: `Bearer ${token}`,
+            };
+            if (final.includes('openapi.tidal.com')) {
+                // Prefer JSON:API for OpenAPI endpoints, but do not require it exclusively.
+                // Some endpoints/proxies can still return compatible JSON.
+                headers['Accept'] = 'application/vnd.api+json, application/json;q=0.9, */*;q=0.8';
+            }
+
             try {
                 res = await fetch(final, {
-                    headers: {
-                        authorization: `Bearer ${token}`,
-                    },
+                    headers,
                     signal,
                 });
             } catch (err: unknown) {
@@ -1744,10 +1751,21 @@ class HiFiClient {
             };
 
             const data = payload?.data;
+            let biography: any = null;
+            if (data?.relationships?.biography?.data) {
+                const bioRef = data.relationships.biography.data;
+                const bioItem =
+                    includedMap.get(`biographies:${bioRef.id}`) || includedMap.get(`biography:${bioRef.id}`);
+                if (bioItem) {
+                    biography = { text: bioItem.attributes?.text, source: bioItem.attributes?.source };
+                }
+            }
+
             const artist_data: any = {
                 id: Number(data?.id || id),
                 name: data?.attributes?.name || '',
                 picture: getPic(data, 'profileArt') || data?.attributes?.selectedAlbumCoverFallback || null,
+                biography: biography,
             };
 
             const picture = artist_data.picture;
@@ -2019,6 +2037,110 @@ class HiFiClient {
     ): Promise<TidalResponse<SearchResponse>> {
         const { q, s, a, al, v, p, i, offset = 0, limit = 25 } = options;
 
+        const parseOpenApiSearch = (jsonApi: any): SearchResponse['data'] => {
+            if (!jsonApi || !jsonApi.data) return {};
+
+            const includedMap = new Map<string, any>();
+            if (Array.isArray(jsonApi.included)) {
+                for (const item of jsonApi.included) {
+                    includedMap.set(`${item.type}:${item.id}`, item);
+                }
+            }
+
+            const resolveArtworkId = (item: any, relName: string) => {
+                const ref = item?.relationships?.[relName]?.data?.[0];
+                if (!ref) return null;
+                const artwork = includedMap.get(`artworks:${ref.id}`);
+                const href = artwork?.attributes?.files?.[0]?.href;
+                return href ? HiFiClient.#extractUuidFromTidalUrl(href) : null;
+            };
+
+            const resolveArtists = (item: any) => {
+                const refs = item?.relationships?.artists?.data;
+                if (!Array.isArray(refs)) return [];
+                return refs.map((art: any) => {
+                    const aItem = includedMap.get(`artists:${art.id}`);
+                    return {
+                        id: Number(art.id),
+                        name: aItem?.attributes?.name ?? '',
+                    };
+                });
+            };
+
+            const resolveItem = (ref: { id: string; type: string }) => {
+                const item = includedMap.get(`${ref.type}:${ref.id}`);
+                if (!item) return null;
+
+                const attrs = item.attributes || {};
+                const mapped: any = {
+                    id: Number(item.id) || item.id,
+                    ...attrs,
+                };
+
+                if (item.type === 'artists') {
+                    mapped.type = 'artist';
+                    mapped.name = attrs.name ?? '';
+                    mapped.picture = resolveArtworkId(item, 'profileArt');
+                } else if (item.type === 'albums') {
+                    const artists = resolveArtists(item);
+                    mapped.type = 'album';
+                    mapped.title = attrs.title ?? '';
+                    mapped.cover = resolveArtworkId(item, 'coverArt');
+                    mapped.artists = artists;
+                    if (artists.length > 0) mapped.artist = artists[0];
+                } else if (item.type === 'tracks') {
+                    const artists = resolveArtists(item);
+                    mapped.type = 'track';
+                    mapped.title = attrs.title ?? '';
+                    mapped.artists = artists;
+                    if (artists.length > 0) mapped.artist = artists[0];
+                    const albumRef = item.relationships?.albums?.data?.[0];
+                    if (albumRef) {
+                        const albumItem = includedMap.get(`albums:${albumRef.id}`);
+                        mapped.album = {
+                            id: Number(albumRef.id),
+                            title: albumItem?.attributes?.title ?? '',
+                            cover: albumItem ? resolveArtworkId(albumItem, 'coverArt') : null,
+                        };
+                    }
+                } else if (item.type === 'videos') {
+                    const artists = resolveArtists(item);
+                    mapped.type = 'video';
+                    mapped.title = attrs.title ?? '';
+                    mapped.artists = artists;
+                    if (artists.length > 0) mapped.artist = artists[0];
+                    mapped.imageId = resolveArtworkId(item, 'image');
+                } else if (item.type === 'playlists') {
+                    mapped.type = 'playlist';
+                    mapped.title = attrs.name ?? '';
+                    mapped.image = resolveArtworkId(item, 'coverArt');
+                }
+
+                return mapped;
+            };
+
+            const relationships = jsonApi.data.relationships || {};
+            const mapBucket = (relName: string) => {
+                const relData = relationships[relName]?.data;
+                if (!Array.isArray(relData)) return undefined;
+                const items = relData.map(resolveItem).filter(Boolean);
+                return {
+                    items,
+                    totalNumberOfItems: items.length,
+                    limit,
+                    offset,
+                };
+            };
+
+            return {
+                artists: mapBucket('artists'),
+                albums: mapBucket('albums'),
+                tracks: mapBucket('tracks'),
+                videos: mapBucket('videos'),
+                playlists: mapBucket('playlists'),
+            };
+        };
+
         if (i) {
             // try filtered track search first
             try {
@@ -2037,58 +2159,69 @@ class HiFiClient {
                 if (err instanceof ResponseError && ![400, 404].includes(err.status)) throw err;
                 // fallback to text search
             }
-            const fallback = await this.#fetchJson<SearchResponse['data']>(
-                'https://api.tidal.com/v1/search/tracks',
+            const fallback = await this.#fetchJson<any>(
+                `https://openapi.tidal.com/v2/searchResults/${encodeURIComponent(i)}`,
                 {
-                    query: i,
                     limit,
                     offset,
+                    include: 'tracks,tracks.artists,tracks.albums,tracks.albums.coverArt',
                     countryCode: this.#countryCode,
                 },
                 signal
             );
-            return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: fallback });
+            return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: parseOpenApiSearch(fallback) });
         }
+
+        const includeQ =
+            'albums,albums.coverArt,albums.artists,tracks,tracks.artists,tracks.albums,tracks.albums.coverArt,artists,playlists,videos';
+        const includeS = 'tracks,tracks.artists,tracks.albums,tracks.albums.coverArt';
+        const includeA = 'artists,artists.profileArt,tracks,tracks.artists,tracks.albums,tracks.albums.coverArt';
+        const includeAl = 'albums,albums.artists,albums.coverArt';
+        const includeV = 'videos,videos.artists,videos.image';
+        const includeP = 'playlists,playlists.coverArt';
 
         const mapping: Array<[string | undefined, string, Params]> = [
             [
                 q,
-                'https://api.tidal.com/v1/search',
+                `https://openapi.tidal.com/v2/searchResults/${encodeURIComponent(q || '')}`,
                 {
-                    query: q,
                     limit,
                     offset,
-                    types: 'ARTISTS,ALBUMS,TRACKS,VIDEOS,PLAYLISTS',
+                    include: includeQ,
                     countryCode: this.#countryCode,
                 },
             ],
-            [s, 'https://api.tidal.com/v1/search/tracks', { query: s, limit, offset, countryCode: this.#countryCode }],
+            [
+                s,
+                `https://openapi.tidal.com/v2/searchResults/${encodeURIComponent(s || '')}`,
+                { limit, offset, include: includeS, countryCode: this.#countryCode },
+            ],
             [
                 a,
-                'https://api.tidal.com/v1/search/top-hits',
-                { query: a, limit, offset, types: 'ARTISTS,TRACKS', countryCode: this.#countryCode },
+                `https://openapi.tidal.com/v2/searchResults/${encodeURIComponent(a || '')}`,
+                { limit, offset, include: includeA, countryCode: this.#countryCode },
             ],
             [
                 al,
-                'https://api.tidal.com/v1/search/top-hits',
-                { query: al, limit, offset, types: 'ALBUMS', countryCode: this.#countryCode },
+                `https://openapi.tidal.com/v2/searchResults/${encodeURIComponent(al || '')}`,
+                { limit, offset, include: includeAl, countryCode: this.#countryCode },
             ],
             [
                 v,
-                'https://api.tidal.com/v1/search/top-hits',
-                { query: v, limit, offset, types: 'VIDEOS', countryCode: this.#countryCode },
+                `https://openapi.tidal.com/v2/searchResults/${encodeURIComponent(v || '')}`,
+                { limit, offset, include: includeV, countryCode: this.#countryCode },
             ],
             [
                 p,
-                'https://api.tidal.com/v1/search/top-hits',
-                { query: p, limit, offset, types: 'PLAYLISTS', countryCode: this.#countryCode },
+                `https://openapi.tidal.com/v2/searchResults/${encodeURIComponent(p || '')}`,
+                { limit, offset, include: includeP, countryCode: this.#countryCode },
             ],
         ];
 
         for (const [val, url, params] of mapping) {
             if (val) {
-                const data = await this.#fetchJson<SearchResponse['data']>(url, params, signal);
-                return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
+                const data = await this.#fetchJson<any>(url, params, signal);
+                return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: parseOpenApiSearch(data) });
             }
         }
 
