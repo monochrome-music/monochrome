@@ -147,20 +147,6 @@ export class Player {
             this.shakaPlayer.addEventListener('adaptation', this.updateAdaptiveQualityBadge.bind(this));
             this.shakaPlayer.addEventListener('variantchanged', this.updateAdaptiveQualityBadge.bind(this));
 
-            this.shakaPlayer.getNetworkingEngine().registerRequestFilter((_type, request) => {
-                request.uris = request.uris.map((uri) => {
-                    try {
-                        const { hostname } = new URL(uri);
-                        if (hostname === 'tidal.com' || hostname.endsWith('.tidal.com')) {
-                            return `/proxy-audio?url=${encodeURIComponent(uri)}`;
-                        }
-                    } catch {
-                        // unparseable URI — leave unchanged
-                    }
-                    return uri;
-                });
-            });
-
             this.shakaInitialized = false;
 
             // Monitor and bridge different codec groups (e.g. AAC to FLAC) since native ABR isolates them
@@ -1294,7 +1280,12 @@ export class Player {
                     // which delays the event loop and natively adds gap/latency
                     await this.safePlay(activeElement);
                 } else {
-                    activeElement.src = streamUrl;
+                    const src = await this._resolveAudioSrc(streamUrl);
+                    if (this.playbackSequence !== currentSequence) return;
+                    if (activeElement.src?.startsWith('blob:')) {
+                        URL.revokeObjectURL(activeElement.src);
+                    }
+                    activeElement.src = src;
                     this.applyAudioEffects();
                     this.updateAdaptiveQualityBadge();
 
@@ -2416,6 +2407,23 @@ export class Player {
         }).catch((error) => {
             console.log('Failed to update Media Session position:', error);
         });
+    }
+
+    async _resolveAudioSrc(url) {
+        try {
+            const { hostname } = new URL(url);
+            if (hostname === 'tidal.com' || hostname.endsWith('.tidal.com')) {
+                // window.fetch is patched by fetch-proxy.js to route through /proxy-audio
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Audio fetch failed: ${response.status}`);
+                const blob = await response.blob();
+                return URL.createObjectURL(blob);
+            }
+        } catch (e) {
+            if (!(e instanceof TypeError)) throw e;
+            // URL parse error — not a TIDAL URL, fall through
+        }
+        return url;
     }
 
     async safePlay(element = this.activeElement) {

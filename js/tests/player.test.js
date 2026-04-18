@@ -59,8 +59,6 @@ vi.mock('../ui.js', () => ({
     },
 }));
 
-let shakaRequestFilter = null;
-
 vi.mock('shaka-player', () => ({
     default: {
         polyfill: { installAll: vi.fn() },
@@ -82,11 +80,7 @@ vi.mock('shaka-player', () => ({
         configure() {}
         addEventListener() {}
         getNetworkingEngine() {
-            return {
-                registerRequestFilter(fn) {
-                    shakaRequestFilter = fn;
-                },
-            };
+            return { registerRequestFilter() {} };
         }
         load() {
             return Promise.resolve();
@@ -202,38 +196,55 @@ describe('Player', () => {
         expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(0.01);
     });
 
-    test('Shaka request filter rewrites tidal.com URIs through proxy and leaves others unchanged', async () => {
-        shakaRequestFilter = null;
-        player = new Player(audioElement, api);
-        await player.init();
+    describe('_resolveAudioSrc', () => {
+        beforeEach(() => {
+            player = new Player(audioElement, api);
+        });
 
-        expect(shakaRequestFilter).toBeTypeOf('function');
+        test('returns blob URL for tidal.com subdomain', async () => {
+            const fakeBlob = new Blob(['audio'], { type: 'audio/flac' });
+            const mockResponse = { ok: true, blob: vi.fn(() => Promise.resolve(fakeBlob)) };
+            vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(mockResponse)));
+            vi.stubGlobal('URL', {
+                ...URL,
+                createObjectURL: vi.fn(() => 'blob:http://localhost/fake-uuid'),
+            });
 
-        const applyFilter = (uris) => {
-            const req = { uris: [...uris] };
-            shakaRequestFilter(null, req);
-            return req.uris;
-        };
+            const result = await player._resolveAudioSrc('https://lgf.audio.tidal.com/track.flac?token=x');
+            expect(fetch).toHaveBeenCalledWith('https://lgf.audio.tidal.com/track.flac?token=x');
+            expect(result).toBe('blob:http://localhost/fake-uuid');
+        });
 
-        // TIDAL subdomain → proxied
-        expect(applyFilter(['https://lgf.audio.tidal.com/mediatracks/abc.flac?token=xyz'])).toEqual([
-            '/proxy-audio?url=https%3A%2F%2Flgf.audio.tidal.com%2Fmediatracks%2Fabc.flac%3Ftoken%3Dxyz',
-        ]);
+        test('returns blob URL for tidal.com apex', async () => {
+            const fakeBlob = new Blob(['audio'], { type: 'audio/flac' });
+            const mockResponse = { ok: true, blob: vi.fn(() => Promise.resolve(fakeBlob)) };
+            vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(mockResponse)));
+            vi.stubGlobal('URL', {
+                ...URL,
+                createObjectURL: vi.fn(() => 'blob:http://localhost/fake-uuid-2'),
+            });
 
-        // tidal.com apex → proxied
-        expect(applyFilter(['https://tidal.com/some/path'])).toEqual([
-            '/proxy-audio?url=https%3A%2F%2Ftidal.com%2Fsome%2Fpath',
-        ]);
+            const result = await player._resolveAudioSrc('https://tidal.com/some/audio');
+            expect(result).toBe('blob:http://localhost/fake-uuid-2');
+        });
 
-        // Lookalike hostname → NOT proxied
-        expect(applyFilter(['https://evil-tidal.com/audio.flac'])).toEqual([
-            'https://evil-tidal.com/audio.flac',
-        ]);
+        test('returns url unchanged for non-TIDAL host', async () => {
+            const result = await player._resolveAudioSrc('https://example.com/audio.mp4');
+            expect(result).toBe('https://example.com/audio.mp4');
+        });
 
-        // Non-TIDAL CDN → NOT proxied
-        expect(applyFilter(['https://example.com/audio.mp4'])).toEqual(['https://example.com/audio.mp4']);
+        test('returns url unchanged for lookalike domain', async () => {
+            const result = await player._resolveAudioSrc('https://evil-tidal.com/audio.flac');
+            expect(result).toBe('https://evil-tidal.com/audio.flac');
+        });
 
-        // Blob URLs (DASH manifests) → NOT proxied
-        expect(applyFilter(['blob:http://localhost/some-uuid'])).toEqual(['blob:http://localhost/some-uuid']);
+        test('throws when fetch response not ok', async () => {
+            const mockResponse = { ok: false, status: 403 };
+            vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(mockResponse)));
+
+            await expect(player._resolveAudioSrc('https://lgf.audio.tidal.com/track.flac')).rejects.toThrow(
+                'Audio fetch failed: 403',
+            );
+        });
     });
 });
