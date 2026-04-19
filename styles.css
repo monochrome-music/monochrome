@@ -8418,32 +8418,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     border-color: rgb(var(--highlight-rgb), 0.6);
 }
 
-@media (max-width: 600px) {
-    .eq-spectrum-range {
-        top: 6px;
-        left: 6px;
-        gap: 4px;
-    }
-
-    .eq-spectrum-pill,
-    .eq-spectrum-toggle-in-graph {
-        gap: 3px;
-        padding: 2px 6px 2px 5px;
-        font-size: 0.6rem;
-        letter-spacing: 0.01em;
-    }
-
-    .eq-spectrum-toggle-in-graph svg {
-        width: 10px;
-        height: 10px;
-    }
-
-    #eq-spectrum-hold-icon {
-        width: 8px;
-        height: 8px;
-    }
-}
-
 .eq-howto-panel {
     border: 1px solid var(--border);
     border-radius: var(--radius);
