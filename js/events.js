@@ -2273,6 +2273,32 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 return;
             }
 
+            if (card.dataset.videoId) {
+                if (card.classList.contains('blocked')) return;
+                if (e.target.closest('.like-btn') || e.target.closest('.card-menu-btn')) {
+                    return;
+                }
+
+                e.preventDefault();
+                const clickedVideo = trackDataStore.get(card);
+                if (!clickedVideo) return;
+
+                const parentContainer = card.parentElement || mainContent;
+                const allVideoElements = Array.from(parentContainer.querySelectorAll('.video-card[data-video-id]'));
+                const videoList = allVideoElements.map((el) => trackDataStore.get(el)).filter(Boolean);
+
+                if (videoList.length > 0) {
+                    const startIndex = videoList.findIndex((v) => String(v.id) === String(card.dataset.videoId));
+                    player.setQueue(videoList, startIndex >= 0 ? startIndex : 0);
+                    player.enableAutoplay();
+                    document.getElementById('shuffle-btn').classList.remove('active');
+                    player.playTrackFromQueue();
+                } else {
+                    player.playVideo(clickedVideo);
+                }
+                return;
+            }
+
             const href = card.dataset.href;
             if (href) {
                 // Allow native links inside card to work if any exist

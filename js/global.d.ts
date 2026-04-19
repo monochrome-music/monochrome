@@ -34,4 +34,5 @@ type WithRequiredKeys<T> = {
 
 declare global {
     const __COMMIT_HASH__: string | undefined;
+    const __VITE_PROXY__: string | undefined;
 }
