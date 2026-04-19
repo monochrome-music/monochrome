@@ -11,6 +11,7 @@ import { preferDolbyAtmosSettings, trackDateSettings, devModeSettings } from './
 import { APICache } from './cache.js';
 import { DashDownloader } from './dash-downloader.ts';
 import { HlsDownloader } from './hls-downloader.js';
+import { getProxyUrl } from './proxy-utils.js';
 import { loadFfmpeg, FfmpegError, ffmpeg } from './ffmpeg.js';
 import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
 import { isCustomFormat } from './ffmpegFormats.ts';
@@ -62,6 +63,110 @@ export class LosslessAPI {
 
     async fetchWithRetry(relativePath, options = {}) {
         const type = options.type || 'api';
+        const isSearchRequest = relativePath.startsWith('/search/');
+        const getInstances = async (forceRefresh = false) => {
+            if (forceRefresh && this.settings && typeof this.settings.refreshInstances === 'function') {
+                try {
+                    await this.settings.refreshInstances();
+                } catch (refreshError) {
+                    console.warn('Failed to refresh API instances from uptime workers:', refreshError);
+                }
+            }
+
+            let instances = await this.settings.getInstances(type);
+            if (options.userInstancesOnly) {
+                instances = instances.filter((i) => i.isUser);
+                if (instances.length === 0) {
+                    throw new Error(`No user API instances configured for type: ${type}`);
+                }
+            } else if (instances.length === 0) {
+                throw new Error(`No API instances configured for type: ${type}`);
+            }
+
+            if (options.minVersion) {
+                instances = instances.filter((instance) => {
+                    if (!instance.version) return false;
+                    return parseFloat(instance.version) >= parseFloat(options.minVersion);
+                });
+                if (instances.length === 0) {
+                    throw new Error(
+                        `No API instances configured for type: ${type} with minVersion: ${options.minVersion}`
+                    );
+                }
+            }
+
+            if (options.allowedDomains) {
+                instances = instances.filter((instance) => {
+                    const url = typeof instance === 'string' ? instance : instance.url;
+                    return options.allowedDomains.some((domain) => url.includes(domain));
+                });
+                if (instances.length === 0) {
+                    throw new Error(
+                        `No API instances configured for type: ${type} matching allowedDomains: ${options.allowedDomains.join(', ')}`
+                    );
+                }
+            }
+
+            return instances;
+        };
+
+        const tryInstances = async (instances) => {
+            const maxTotalAttempts = instances.length * 2; // Allow some retries across instances
+            let lastError = null;
+            let instanceIndex = Math.floor(Math.random() * instances.length);
+
+            for (let attempt = 1; attempt <= maxTotalAttempts; attempt++) {
+                const instance = instances[instanceIndex % instances.length];
+                const baseUrl = typeof instance === 'string' ? instance : instance.url;
+                const url = baseUrl.endsWith('/')
+                    ? `${baseUrl}${relativePath.substring(1)}`
+                    : `${baseUrl}${relativePath}`;
+
+                try {
+                    const response = await fetch(url, { signal: options.signal });
+
+                    if (response.status === 429) {
+                        console.warn(`Rate limit hit on ${baseUrl}. Trying next instance...`);
+                        instanceIndex++;
+                        await delay(500);
+                        continue;
+                    }
+
+                    if (response.ok) {
+                        return response;
+                    }
+
+                    if (response.status === 401) {
+                        const errorData = await response
+                            .clone()
+                            .json()
+                            .catch(() => null);
+                        if (errorData?.subStatus === 11002) {
+                            console.warn(`Auth failed on ${baseUrl}. Trying next instance...`);
+                            instanceIndex++;
+                            continue;
+                        }
+                    }
+
+                    if (response.status >= 500) {
+                        console.warn(`Server error ${response.status} on ${baseUrl}. Trying next instance...`);
+                        instanceIndex++;
+                        continue;
+                    }
+
+                    lastError = new Error(`Request failed with status ${response.status}`);
+                    instanceIndex++;
+                } catch (error) {
+                    if (error.name === 'AbortError') throw error;
+                    lastError = error;
+                    console.warn(`Network error on ${baseUrl}: ${error.message}. Trying next instance...`);
+                    instanceIndex++;
+                    await delay(200);
+                }
+            }
+
+            throw lastError || new Error(`All API instances failed for: ${relativePath}`);
+        };
 
         if (devModeSettings.isEnabled()) {
             const devBaseUrl = devModeSettings.getUrl().replace(/\/+$/, '');
@@ -78,101 +183,45 @@ export class LosslessAPI {
             return response;
         }
 
-        if (type !== 'streaming') {
+        const shouldTryNative = type !== 'streaming';
+
+        if (shouldTryNative) {
             try {
                 if (import.meta.env.DEV) {
                     console.log(relativePath);
                 }
 
+                // HiFiClient.query fans out across the native TIDAL endpoints used by the route
+                // implementation, including api.tidal.com and openapi.tidal.com where applicable.
                 return await HiFiClient.instance.query(relativePath);
             } catch (err) {
                 if (options.directOnly) {
                     throw err;
                 }
-                console.warn(
-                    `Direct Tidal API fetch failed for ${relativePath}. Falling back to configured API instances...`,
-                    err
-                );
+
+                if (import.meta.env.DEV && isSearchRequest) {
+                    console.warn(
+                        `[search] native TIDAL query failed for ${relativePath}, trying HiFi worker instances`,
+                        err
+                    );
+                } else {
+                    console.warn(
+                        `Native TIDAL query failed for ${relativePath}. Falling back to configured HiFi API instances...`,
+                        err
+                    );
+                }
             }
         }
 
-        let instances = await this.settings.getInstances(type);
-        if (instances.length === 0) {
-            throw new Error(`No API instances configured for type: ${type}`);
-        }
-
-        if (options.minVersion) {
-            instances = instances.filter((instance) => {
-                if (!instance.version) return false;
-                return parseFloat(instance.version) >= parseFloat(options.minVersion);
-            });
-            if (instances.length === 0) {
-                throw new Error(`No API instances configured for type: ${type} with minVersion: ${options.minVersion}`);
+        try {
+            return await tryInstances(await getInstances(false));
+        } catch (error) {
+            if (type === 'streaming' || options.userInstancesOnly) {
+                throw error;
             }
         }
 
-        if (options.allowedDomains) {
-            instances = instances.filter((instance) => {
-                const url = typeof instance === 'string' ? instance : instance.url;
-                return options.allowedDomains.some((domain) => url.includes(domain));
-            });
-            if (instances.length === 0) {
-                throw new Error(
-                    `No API instances configured for type: ${type} matching allowedDomains: ${options.allowedDomains.join(', ')}`
-                );
-            }
-        }
-
-        const maxTotalAttempts = instances.length * 2; // Allow some retries across instances
-        let lastError = null;
-        let instanceIndex = Math.floor(Math.random() * instances.length);
-
-        for (let attempt = 1; attempt <= maxTotalAttempts; attempt++) {
-            const instance = instances[instanceIndex % instances.length];
-            const baseUrl = typeof instance === 'string' ? instance : instance.url;
-            const url = baseUrl.endsWith('/') ? `${baseUrl}${relativePath.substring(1)}` : `${baseUrl}${relativePath}`;
-
-            try {
-                const response = await fetch(url, { signal: options.signal });
-
-                if (response.status === 429) {
-                    console.warn(`Rate limit hit on ${baseUrl}. Trying next instance...`);
-                    instanceIndex++;
-                    await delay(500); // Small delay before trying next instance
-                    continue;
-                }
-
-                if (response.ok) {
-                    return response;
-                }
-
-                if (response.status === 401) {
-                    let errorData = await response.clone().json();
-                    if (errorData?.subStatus === 11002) {
-                        console.warn(`Auth failed on ${baseUrl}. Trying next instance...`);
-                        instanceIndex++;
-                        continue;
-                    }
-                }
-
-                if (response.status >= 500) {
-                    console.warn(`Server error ${response.status} on ${baseUrl}. Trying next instance...`);
-                    instanceIndex++;
-                    continue;
-                }
-
-                lastError = new Error(`Request failed with status ${response.status}`);
-                instanceIndex++;
-            } catch (error) {
-                if (error.name === 'AbortError') throw error;
-                lastError = error;
-                console.warn(`Network error on ${baseUrl}: ${error.message}. Trying next instance...`);
-                instanceIndex++;
-                await delay(200);
-            }
-        }
-
-        throw lastError || new Error(`All API instances failed for: ${relativePath}`);
+        return await tryInstances(await getInstances(true));
     }
 
     findSearchSection(source, key, visited) {
@@ -454,18 +503,8 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            // Keep direct TIDAL combined search behavior for normal mode.
-            // If direct query fails, fall back to hifi-api-compatible scoped searches (?s, ?a, ?al, ?v, ?p).
-            const response = await this.fetchWithRetry(`/search/?q=${encodeURIComponent(query)}`, {
-                ...options,
-                directOnly: true,
-            });
+            const response = await this.fetchWithRetry(`/search/?q=${encodeURIComponent(query)}`, options);
             const data = await response.json();
-
-            // Check if backend returned an error or if this looks like individual fallback
-            if (data.error) {
-                throw new Error('Fallback to individual searches');
-            }
 
             const extractSection = (key) => this.normalizeSearchResponse(data, key);
 
@@ -503,8 +542,12 @@ export class LosslessAPI {
             await this.cache.set('search_all', query, results);
 
             return results;
-        } catch (_error) {
-            // Fallback to individual searches if the backend proxy doesn't support ?q= or throws
+        } catch (error) {
+            if (import.meta.env.DEV) {
+                console.warn('[search] combined search failed, using HiFi scoped fallback', error);
+            }
+
+            // Final fallback: hifi-api-compatible scoped searches (?s, ?a, ?al, ?v, ?p)
             const [tracks, videos, artists, albums, playlists] = await Promise.all([
                 this.searchTracks(query, options).catch(() => ({ items: [] })),
                 this.searchVideos(query, options).catch(() => ({ items: [] })),
@@ -1126,7 +1169,7 @@ export class LosslessAPI {
 
         const result = { ...artist, albums, eps, tracks, videos };
 
-        if (!(primaryResponse instanceof TidalResponse) && !(contentResponse instanceof TidalResponse)) {
+        if (!(primaryResponse instanceof TidalResponse)) {
             await this.cache.set('artist', cacheKey, result);
         }
         return result;
@@ -1247,7 +1290,7 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const response = await HiFiClient.instance.query(`/artist/bio/?id=${artistId}`);
+            const response = await this.fetchWithRetry(`/artist/bio/?id=${artistId}`, { type: 'api' });
 
             if (response.ok) {
                 const { data } = await response.json();
@@ -1507,11 +1550,6 @@ export class LosslessAPI {
             };
         }
 
-        if (streamUrl && streamUrl.includes('tidal.com')) {
-            const encodedUrl = encodeURIComponent(streamUrl);
-            streamUrl = `/proxy-audio?url=${encodedUrl}`;
-        }
-
         const result = { url: streamUrl, rgInfo: manifestRgInfo };
         this.streamCache.set(cacheKey, result);
 
@@ -1557,11 +1595,6 @@ export class LosslessAPI {
 
         if (!streamUrl) {
             throw new Error(`Could not resolve video stream URL for ID: ${id}`);
-        }
-
-        if (streamUrl && streamUrl.includes('tidal.com')) {
-            const encodedUrl = encodeURIComponent(streamUrl);
-            streamUrl = `/proxy-audio?url=${encodedUrl}`;
         }
 
         if (!(lookup instanceof TidalResponse)) {
@@ -1736,7 +1769,7 @@ export class LosslessAPI {
             if (streamUrl.startsWith('blob:')) {
                 try {
                     const downloader = new DashDownloader();
-                    blob = await downloader.downloadDashStream(streamUrl, {
+                    blob = await downloader.downloadDashStream(getProxyUrl(streamUrl), {
                         signal: options.signal,
                         onProgress,
                         calculateDashBytes: calculateDashBytes ?? true,
@@ -1755,7 +1788,7 @@ export class LosslessAPI {
             } else if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
                 try {
                     const downloader = new HlsDownloader();
-                    blob = await downloader.downloadHlsStream(streamUrl, {
+                    blob = await downloader.downloadHlsStream(getProxyUrl(streamUrl), {
                         signal: options.signal,
                         onProgress,
                     });
@@ -1780,7 +1813,7 @@ export class LosslessAPI {
                     /* ignore HEAD failure; proceed with GET */
                 }
 
-                const response = await fetch(streamUrl, {
+                const response = await fetch(getProxyUrl(streamUrl), {
                     cache: 'no-store',
                     signal: options.signal,
                 });

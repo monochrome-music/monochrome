@@ -22,10 +22,26 @@ import {
 import { audioContextManager } from './audio-context.js';
 import { isIos, isSafari } from './platform-detection.js';
 import { db } from './db.js';
+import { getProxyUrl } from './proxy-utils.js';
 
 import { SVG_CLOCK, SVG_ATMOS } from './icons.js';
 import { UIRenderer } from './ui.js';
 import { MediaSession } from '@capgo/capacitor-media-session';
+
+// Route tidal.com audio URLs through the same-origin /proxy-audio endpoint
+// so the audio element (crossorigin="anonymous") gets CORS-clean bytes and
+// Web Audio can tap it. Leaves blob:, data:, and non-tidal URLs untouched.
+function toPlayableSrc(url) {
+    if (typeof url !== 'string' || !url) return url;
+    if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+    try {
+        const parsed = new URL(url, window.location.href);
+        if (parsed.hostname.endsWith('tidal.com')) return getProxyUrl(url);
+    } catch {
+        // Relative or invalid URL — leave alone
+    }
+    return url;
+}
 
 export class Player {
     static #instance = null;
@@ -141,44 +157,27 @@ export class Player {
                 },
                 abr: {
                     enabled: true,
-                    // Start with a low bandwidth estimate (200kbps) so it plays instantly
-                    // on slow connections and smoothly scales UP to Hi-Fi if the connection allows.
                     defaultBandwidthEstimate: 100000,
-                    switchInterval: 1, // Check more frequently
-                    bandwidthDowngradeTarget: 0.8, // Downgrade more aggressively if bandwidth drops
+                    switchInterval: 1,
+                    bandwidthDowngradeTarget: 0.8,
                     restrictToElementSize: false,
                 },
                 mediaSource: {
                     codecSwitchingStrategy: 'smooth',
                 },
             });
+            this.shakaPlayer.getNetworkingEngine().registerRequestFilter((type, request) => {
+                if (type === shaka.net.NetworkingEngine.RequestType.SEGMENT) {
+                    const uris = request.uris;
+                    for (let i = 0; i < uris.length; i++) {
+                        if (uris[i].includes('tidal.com')) {
+                            uris[i] = getProxyUrl(uris[i]);
+                        }
+                    }
+                }
+            });
             this.shakaPlayer.addEventListener('adaptation', this.updateAdaptiveQualityBadge.bind(this));
             this.shakaPlayer.addEventListener('variantchanged', this.updateAdaptiveQualityBadge.bind(this));
-
-            // Route every Shaka fetch (manifest + segments) through /proxy-audio for any
-            // tidal.com host so DASH/HLS segments come back with the CORS headers that
-            // createMediaElementSource requires.
-            try {
-                const netEngine = this.shakaPlayer.getNetworkingEngine();
-                netEngine.registerRequestFilter((_type, request) => {
-                    if (!request || !Array.isArray(request.uris)) return;
-                    request.uris = request.uris.map((uri) => {
-                        if (typeof uri !== 'string') return uri;
-                        if (uri.startsWith('/proxy-audio?')) return uri;
-                        try {
-                            const parsed = new URL(uri, window.location.href);
-                            if (parsed.hostname.endsWith('tidal.com')) {
-                                return `/proxy-audio?url=${encodeURIComponent(parsed.toString())}`;
-                            }
-                        } catch {
-                            // Non-URL uri (e.g. blob:) — leave untouched
-                        }
-                        return uri;
-                    });
-                });
-            } catch (e) {
-                console.warn('Failed to register Shaka proxy filter:', e);
-            }
 
             this.shakaInitialized = false;
 
@@ -327,21 +326,7 @@ export class Player {
 
         const el = this.activeElement;
 
-        // Apply to audio element and/or Web Audio graph
-        const isApple = isIos || isSafari;
-
-        if (audioContextManager.isReady() && !isApple) {
-            // If Web Audio is active, we apply volume there for better compatibility
-            // Especially on Linux where audio.volume might not affect the Web Audio graph
-            el.volume = 1.0;
-            audioContextManager.setVolume(effectiveVolume);
-        } else {
-            // Safari bypasses WebAudio for HLS, so we MUST set el.volume directly to reflect ReplayGain
-            if (audioContextManager.isReady()) {
-                audioContextManager.setVolume(1.0); // Reset graph gain if it somehow routes
-            }
-            el.volume = Math.max(0, Math.min(1, effectiveVolume));
-        }
+        el.volume = Math.max(0, Math.min(1, effectiveVolume));
     }
 
     applyAudioEffects() {
@@ -701,7 +686,7 @@ export class Player {
                         const preloader = new Audio();
                         preloader.preload = 'auto';
                         preloader.muted = true;
-                        preloader.src = streamUrl;
+                        preloader.src = toPlayableSrc(streamUrl);
                         streamInfo.preloader = preloader; // Hold reference
                     }
                 }
@@ -1112,7 +1097,7 @@ export class Player {
                 this.currentRgValues = null;
                 this.applyReplayGain();
 
-                activeElement.src = streamUrl;
+                activeElement.src = toPlayableSrc(streamUrl);
                 this.applyAudioEffects();
 
                 const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
@@ -1157,7 +1142,7 @@ export class Player {
                 this.currentRgValues = null;
                 this.applyReplayGain();
 
-                activeElement.src = streamUrl;
+                activeElement.src = toPlayableSrc(streamUrl);
                 this.applyAudioEffects();
 
                 // Wait for audio to be ready before playing (prevents restart issues with blob URLs)
@@ -1176,7 +1161,7 @@ export class Player {
                 this.currentRgValues = null; // No replaygain for local files yet
                 this.applyReplayGain();
 
-                activeElement.src = streamUrl;
+                activeElement.src = toPlayableSrc(streamUrl);
                 this.applyAudioEffects();
 
                 // Wait for audio to be ready before playing
@@ -1231,7 +1216,7 @@ export class Player {
 
                     this.updateAdaptiveQualityBadge();
                 } else {
-                    activeElement.src = streamUrl;
+                    activeElement.src = toPlayableSrc(streamUrl);
                 }
 
                 this.applyAudioEffects();
@@ -1313,7 +1298,14 @@ export class Player {
                     // which delays the event loop and natively adds gap/latency
                     await this.safePlay(activeElement);
                 } else {
-                    activeElement.src = streamUrl;
+                    if (this.shakaInitialized) {
+                        try {
+                            this.shakaPlayer.unload();
+                            this.shakaPlayer.detach();
+                        } catch {}
+                        this.shakaInitialized = false;
+                    }
+                    activeElement.src = toPlayableSrc(streamUrl);
                     this.applyAudioEffects();
                     this.updateAdaptiveQualityBadge();
 

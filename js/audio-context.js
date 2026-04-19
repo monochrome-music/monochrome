@@ -496,7 +496,6 @@ class AudioContextManager {
             }
             this.source = this.sources.get(audioElement);
 
-            // Enable multichannel passthrough for Atmos/spatial content
             try {
                 this.audioContext.destination.channelCount = Math.min(this.audioContext.destination.maxChannelCount, 8);
                 this.audioContext.destination.channelCountMode = 'explicit';
@@ -553,15 +552,12 @@ class AudioContextManager {
 
             this.monoMergerNode = this.audioContext.createChannelMerger(2);
 
-            this._connectGraph();
-
             // Auto-recover from unexpected suspensions (e.g. background throttling)
             this.audioContext.addEventListener('statechange', () => {
                 if (this.audioContext.state === 'interrupted' || this.audioContext.state === 'suspended') {
                     console.log(`[AudioContext] State changed to ${this.audioContext.state}, attempting resume`);
-                    // Use a short delay to let the system settle before resuming
                     setTimeout(() => {
-                        if (this.audioContext && this.audioContext.state !== 'running' && this.source) {
+                        if (this.audioContext && this.audioContext.state !== 'running') {
                             this.audioContext.resume().catch((e) => {
                                 console.warn('[AudioContext] Auto-resume failed:', e);
                             });
@@ -571,6 +567,7 @@ class AudioContextManager {
             });
 
             this.isInitialized = true;
+            this._connectGraph();
         } catch (e) {
             console.warn('[AudioContext] Init failed:', e);
         }
