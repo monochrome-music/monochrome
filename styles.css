@@ -11501,11 +11501,11 @@ img.cd {
 .fullscreen-artwork-card.cd {
     position: relative;
     border-radius: 50% !important;
-    border: .125vw solid `#ccc`;
+    border: .125vw solid #ccc;
     animation: spin 200s linear infinite;
 }
 
-`@media` (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) {
     .fullscreen-artwork-card.cd {
         animation: none;
     }
