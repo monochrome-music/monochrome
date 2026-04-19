@@ -170,12 +170,13 @@ export default function authGatePlugin() {
 
                     if (!req.session || !req.session.uid) {
                         const ext = extname(url);
-                        if (ext && ext !== '.html') {
-                            res.statusCode = 401;
-                            res.end('Unauthorized');
-                        } else {
+                        const accept = req.headers.accept || '';
+                        if ((!ext || ext === '.html') && accept.includes('text/html')) {
                             res.writeHead(302, { Location: '/login' });
                             res.end();
+                        } else {
+                            res.statusCode = 401;
+                            res.end('Unauthorized');
                         }
                         return;
                     }
@@ -183,10 +184,13 @@ export default function authGatePlugin() {
                     // Authenticated: serve injected index.html for HTML routes
                     const ext = extname(url);
                     if ((!ext || ext === '.html') && indexHtml) {
-                        res.setHeader('Content-Type', 'text/html');
-                        res.setHeader('Cache-Control', 'no-store');
-                        res.end(indexHtml);
-                        return;
+                        const accept = req.headers.accept || '';
+                        if (accept.includes('text/html')) {
+                            res.setHeader('Content-Type', 'text/html');
+                            res.setHeader('Cache-Control', 'no-store');
+                            res.end(indexHtml);
+                            return;
+                        }
                     }
 
                     next();
@@ -196,7 +200,8 @@ export default function authGatePlugin() {
                 server.middlewares.use((req, res, next) => {
                     const url = req.url.split('?')[0];
                     const ext = extname(url);
-                    if (!ext || ext === '.html') {
+                    const accept = req.headers.accept || '';
+                    if ((!ext || ext === '.html') && accept.includes('text/html')) {
                         res.setHeader('Content-Type', 'text/html');
                         res.end(indexHtml);
                         return;
