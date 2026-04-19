@@ -963,6 +963,7 @@ export const visualizerSettings = {
     PRESET_KEY: 'visualizer-preset',
     BUTTERCHURN_CYCLE_KEY: 'butterchurn-cycle-duration',
     DIM_AMOUNT_KEY: 'visualizer-dim-amount',
+    CD_ALBUM_COVER_KEY: 'cd-album-cover-enabled',
 
     getPreset() {
         try {
@@ -1080,6 +1081,19 @@ export const visualizerSettings = {
 
     setButterchurnRandomizeEnabled(enabled) {
         localStorage.setItem('butterchurn-randomize-enabled', enabled);
+    },
+
+    // Spin album cover and add hole in fullscreen
+    isCdAlbumCoverEnabled() {
+        try {
+            return localStorage.getItem(this.CD_ALBUM_COVER_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setCdAlbumCoverEnabled(enabled) {
+        localStorage.setItem(this.CD_ALBUM_COVER_KEY, enabled ? 'true' : 'false');
     },
 };
 
