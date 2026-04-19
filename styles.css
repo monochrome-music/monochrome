@@ -11495,7 +11495,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 img.cd {
     border-radius: 50% !important;
     box-shadow: none;
-    clip-path: url(#cd-hole-clip);
+    clip-path: url("#cd-hole-clip");
 }
 
 .fullscreen-artwork-card.cd {
