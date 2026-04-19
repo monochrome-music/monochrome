@@ -820,12 +820,12 @@ export class UIRenderer {
         const duration = formatTime(video.duration);
         const artistName = getTrackArtists(video);
 
-        const videoCoverCandidate = video.imageId || video.image || video.cover || null;
+        const videoCoverCandidate = video.imageId || video.image || video.squareImage || video.cover || null;
         const videoCoverUrl =
             videoCoverCandidate && (typeof videoCoverCandidate === 'string' || typeof videoCoverCandidate === 'number')
                 ? this.api.getVideoCoverUrl(videoCoverCandidate)
                 : null;
-        const coverFallback = video.image || video.cover;
+        const coverFallback = video.image || video.squareImage || video.cover;
         const coverPrimitive =
             coverFallback != null && (typeof coverFallback === 'string' || typeof coverFallback === 'number')
                 ? coverFallback
@@ -5513,7 +5513,7 @@ export class UIRenderer {
                         const el = videosContainer.querySelector(`[data-video-id="${video.id}"]`);
                         if (el) {
                             trackDataStore.set(el, video);
-                            await this.updateLikeState(el, 'track', video.id);
+                            await this.updateLikeState(el, 'video', video.id);
                         }
                     }
                 } else {

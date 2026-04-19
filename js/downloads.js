@@ -315,8 +315,19 @@ function removeBulkDownloadTask(notifEl) {
 }
 
 async function downloadTrackBlob(track, quality, api, signal = null, onProgress = null) {
+    const tidalAPI = api.tidalAPI || api;
+    let downloadTrack = track;
+    try {
+        if (typeof tidalAPI.enrichTrack === 'function') {
+            const { enrichedTrack } = await tidalAPI.enrichTrack(track, { downloadQuality: quality });
+            if (enrichedTrack) downloadTrack = enrichedTrack;
+        }
+    } catch (e) {
+        console.warn('Failed to enrich track metadata before bulk download:', e);
+    }
+
     const blob = await api.downloadTrack(track.id, quality, undefined, {
-        track,
+        track: downloadTrack,
         signal,
         onProgress,
         triggerDownload: false,
@@ -326,7 +337,7 @@ async function downloadTrackBlob(track, quality, api, signal = null, onProgress 
     // Detect actual format from blob signature BEFORE adding metadata
     const extension = await getExtensionFromBlob(blob);
 
-    return { blob, extension };
+    return { blob, extension, track: downloadTrack };
 }
 
 async function bulkDownload({
@@ -365,7 +376,7 @@ async function bulkDownload({
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
             try {
-                const { blob, extension } = await downloadTrackBlob(track, quality, api, signal, (p) => {
+                const { blob, extension, track: enrichedTrack } = await downloadTrackBlob(track, quality, api, signal, (p) => {
                     if (p instanceof DownloadProgress && p.totalBytes && p.receivedBytes) {
                         fileFraction = p.receivedBytes / p.totalBytes;
                     } else if (p instanceof SegmentedDownloadProgress && p.currentSegment && p.totalSegments) {
@@ -375,7 +386,8 @@ async function bulkDownload({
                     fileFraction = Math.min(fileFraction, 0.99); // Cap at 99% to avoid showing 100% before finalization
                     updateBulkDownloadProgress(notification, i + fileFraction, tracks.length, trackTitle, p);
                 });
-                const filename = buildTrackFilename(track, quality, extension);
+                const effectiveTrack = enrichedTrack || track;
+                const filename = buildTrackFilename(effectiveTrack, quality, extension);
                 const discNumber = discLayout.resolveDiscNumber(i);
                 const discPath = separateByDisc ? `${getDiscFolderName(discNumber)}/${filename}` : filename;
 
@@ -389,9 +401,9 @@ async function bulkDownload({
 
                 if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                     try {
-                        const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
+                        const lyricsData = await lyricsManager.fetchLyrics(effectiveTrack.id, effectiveTrack);
                         if (lyricsData) {
-                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
+                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, effectiveTrack);
                             if (lrcContent) {
                                 const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
                                 yield {
@@ -1079,7 +1091,7 @@ export async function downloadTrackWithMetadata(
             triggerDownload: false,
         });
 
-        const finalFilename = buildTrackFilename(track, quality, await getExtensionFromBlob(blob))
+        const finalFilename = buildTrackFilename(enrichedTrack, quality, await getExtensionFromBlob(blob))
             .split('/')
             .pop();
 
@@ -1102,13 +1114,13 @@ export async function downloadTrackWithMetadata(
 
         if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
             try {
-                const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
+                const lyricsData = await lyricsManager.fetchLyrics(enrichedTrack.id, enrichedTrack);
                 if (lyricsData) {
                     await folderWriter.write(
                         singleWriterEntry({
                             name: [...entryName.split('.').slice(0, -1), 'lrc'].join('.'),
                             lastModified: new Date(),
-                            input: lyricsManager.getLRC(lyricsData, track),
+                            input: lyricsManager.getLRC(lyricsData, enrichedTrack),
                         })
                     );
                 }
