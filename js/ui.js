@@ -1355,6 +1355,14 @@ export class UIRenderer {
         const lyricsPane = document.getElementById('fullscreen-lyrics-pane');
         const lyricsContent = document.getElementById('fullscreen-lyrics-content');
         const lyricsToggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
+        const coverImage = document.getElementById('fullscreen-cover-image');
+        const coverCard = document.getElementById('fullscreen-artwork-card');
+        const cdRing = document.getElementById('cd-ring');
+        const isCdMode = visualizerSettings.isCdAlbumCoverEnabled();
+
+        coverImage.classList.toggle("cd", isCdMode);
+        coverCard.classList.toggle("cd", isCdMode);
+        cdRing.classList.toggle("cd", isCdMode);
 
         await this.updateFullscreenMetadata(track, nextTrack);
 
@@ -1414,7 +1422,6 @@ export class UIRenderer {
             overlay.classList.remove('fullscreen-cover-no-round');
         }
 
-        const coverImage = document.getElementById('fullscreen-cover-image');
         if (coverImage?.vanillaTilt) {
             coverImage.vanillaTilt.destroy();
         }
