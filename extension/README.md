@@ -12,6 +12,6 @@ It makes your `requestHeaders` appear to come from Tidal, which can result in fe
 
 ![Extension Help - Enabling Dev Mode](/assets/extension-help-1.png)
 
-3. Drag the zip archive file to the extensions window.
+3. Drag the zip file to the extensions window, whereafter you should see something like "drop to install".
 
-![Extension Help - Locating Correct Directory](/assets/extension-help-2.png)
+![Extension Help - example preview](/assets/extension-help-2.png)
