@@ -1158,6 +1158,23 @@ export class LosslessAPI {
 
         if (!options.lightweight) {
             try {
+                // v2 /artist?id can return a partial album relationship set; merge with
+                // the dedicated releases route to avoid dropping albums on artist pages.
+                const releasesResponse = await this.fetchWithRetry(`/artist/?f=${artistId}&skip_tracks=true`);
+                const releasesJson = await releasesResponse.json();
+                const releasesData = releasesJson.data || releasesJson;
+                const releaseItems = releasesData?.albums?.items || [];
+                for (const entry of releaseItems) {
+                    const release = entry?.item || entry;
+                    if (release?.id) {
+                        albumMap.set(release.id, this.prepareAlbum(release));
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to fetch additional artist releases:', e);
+            }
+
+            try {
                 const videoSearch = await this.searchVideos(artist.name);
                 if (videoSearch && videoSearch.items) {
                     for (const item of videoSearch.items) {
@@ -1171,7 +1188,23 @@ export class LosslessAPI {
             }
         }
 
-        const rawReleases = Array.from(albumMap.values()).filter(matchesArtistId);
+        const topTracksPool = Array.from(trackMap.values()).filter(matchesArtistId);
+        for (const track of topTracksPool) {
+            if (!track?.album?.id || albumMap.has(track.album.id)) continue;
+            albumMap.set(
+                track.album.id,
+                this.prepareAlbum({
+                    ...track.album,
+                    artist: track.artist || track.album.artist,
+                    artists: track.artists?.length ? track.artists : track.album.artists,
+                })
+            );
+        }
+
+        const topTrackAlbumIds = new Set(topTracksPool.map((track) => Number(track?.album?.id)).filter(Boolean));
+        const rawReleases = Array.from(albumMap.values()).filter(
+            (album) => matchesArtistId(album) || topTrackAlbumIds.has(Number(album?.id))
+        );
         const allReleases = this.deduplicateAlbums(rawReleases).sort(
             (a, b) => new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0)
         );
@@ -1179,10 +1212,7 @@ export class LosslessAPI {
         const eps = allReleases.filter((a) => a.type === 'EP' || a.type === 'SINGLE');
         const albums = allReleases.filter((a) => !eps.includes(a));
 
-        const topTracks = Array.from(trackMap.values())
-            .filter(matchesArtistId)
-            .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-            .slice(0, 15);
+        const topTracks = topTracksPool.sort((a, b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 15);
 
         const videos = Array.from(videoMap.values()).sort(
             (a, b) => new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0)
