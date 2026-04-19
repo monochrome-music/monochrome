@@ -56,6 +56,9 @@ import {
     SVG_RESET,
 } from './icons.js';
 import { HiFiClient } from './HiFi.js';
+import { patchFetch } from './proxy-utils';
+
+patchFetch();
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
