@@ -376,7 +376,11 @@ async function bulkDownload({
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
             try {
-                const { blob, extension, track: enrichedTrack } = await downloadTrackBlob(track, quality, api, signal, (p) => {
+                const {
+                    blob,
+                    extension,
+                    track: enrichedTrack,
+                } = await downloadTrackBlob(track, quality, api, signal, (p) => {
                     if (p instanceof DownloadProgress && p.totalBytes && p.receivedBytes) {
                         fileFraction = p.receivedBytes / p.totalBytes;
                     } else if (p instanceof SegmentedDownloadProgress && p.currentSegment && p.totalSegments) {

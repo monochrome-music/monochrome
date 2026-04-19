@@ -1644,7 +1644,11 @@ export class LosslessAPI {
             candidate?.album?.numberOfTracks == null;
 
         let track = typeof input === 'object' ? this.prepareTrack(input) : await this.getTrack(id, downloadQuality);
-        if (typeof input === 'object' && !track?.type?.toLowerCase?.().includes('video') && hasMissingDownloadMetadata(track)) {
+        if (
+            typeof input === 'object' &&
+            !track?.type?.toLowerCase?.().includes('video') &&
+            hasMissingDownloadMetadata(track)
+        ) {
             try {
                 const fullTrack = await this.getTrackMetadata(id);
                 track = this.prepareTrack({
@@ -1823,7 +1827,7 @@ export class LosslessAPI {
             if (streamUrl.startsWith('blob:')) {
                 try {
                     const downloader = new DashDownloader();
-                    blob = await downloader.downloadDashStream(getProxyUrl(streamUrl), {
+                    blob = await downloader.downloadDashStream(streamUrl, {
                         signal: options.signal,
                         onProgress,
                         calculateDashBytes: calculateDashBytes ?? true,
