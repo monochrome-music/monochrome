@@ -2650,7 +2650,7 @@ export const fontSettings = {
     FONT_LINK_ID: 'monochrome-dynamic-font',
     FONT_FACE_ID: 'monochrome-dynamic-fontface',
     NOTO_FALLBACK:
-        "'Noto Sans', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', meiryo, 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans HK', 'Noto Sans Hebrew', 'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Thai', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Noto Sans Sinhala', 'Noto Sans Khmer', 'Noto Sans Lao', 'Noto Sans Myanmar', 'Noto Sans Georgian', 'Noto Sans Armenian', 'Noto Sans Ethiopic', system-ui, sans-serif",
+        "'Noto Sans', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans HK', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans Hebrew', 'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Thai', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Noto Sans Sinhala', 'Noto Sans Khmer', 'Noto Sans Lao', 'Noto Sans Myanmar', 'Noto Sans Georgian', 'Noto Sans Armenian', 'Noto Sans Ethiopic', system-ui, sans-serif",
 
     getDefaultConfig() {
         return {
