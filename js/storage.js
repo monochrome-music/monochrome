@@ -1080,6 +1080,19 @@ export const visualizerSettings = {
     setButterchurnRandomizeEnabled(enabled) {
         localStorage.setItem('butterchurn-randomize-enabled', enabled);
     },
+
+    // Spin album cover and add hole in fullscreen
+    isCdAlbumCoverEnabled() {
+        try {
+            return localStorage.getItem('cd-album-cover-enabled') === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setCdAlbumCoverEnabled(enabled) {
+        localStorage.setItem('cd-album-cover-enabled', enabled);
+    },
 };
 
 export const equalizerSettings = {

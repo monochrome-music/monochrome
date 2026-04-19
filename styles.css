@@ -11491,3 +11491,32 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     opacity: 0.8;
     vertical-align: middle;
 }
+
+img.cd {
+    border-radius: 50% !important;
+    box-shadow: none;
+    clip-path: url(#cd-hole-clip);
+}
+
+.fullscreen-artwork-card.cd {
+    position: relative;
+    border-radius: 50% !important;
+    border: .125vw solid #ccc;
+    animation: spin 200s linear infinite;
+}
+
+.cd-ring {
+    display: none;
+}
+
+.cd-ring.cd {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 23.5%;
+    height: 23.5%;
+    border-radius: 50%;
+    border: .125vw solid #ccc;
+}
