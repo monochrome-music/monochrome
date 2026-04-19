@@ -6074,8 +6074,9 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (cdAlbumCoverToggle) {
         cdAlbumCoverToggle.checked = visualizerSettings.isCdAlbumCoverEnabled();
 
-        cdAlbumCoverToggle.addEventListener('change', async (e) => {
+        cdAlbumCoverToggle.addEventListener('change', (e) => {
             visualizerSettings.setCdAlbumCoverEnabled(e.target.checked);
+            window.dispatchEvent(new CustomEvent('fullscreen-cover-settings-changed'));
         });
     }
 
