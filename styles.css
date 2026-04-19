@@ -2,12 +2,12 @@
     color-scheme: light dark;
 
     --font-family:
-        'Inter', 'Noto Sans', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans HK', 'Noto Sans JP', 'Noto Sans KR',
-        'Noto Sans Hebrew', 'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Thai',
-        'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam',
-        'Noto Sans Sinhala', 'Noto Sans Khmer', 'Noto Sans Lao', 'Noto Sans Myanmar', 'Noto Sans Georgian',
-        'Noto Sans Armenian', 'Noto Sans Ethiopic', system-ui, -apple-system, blinkmacsystemfont, 'Segoe UI', roboto,
-        sans-serif;
+        'Inter', 'Noto Sans', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', meiryo, 'Noto Sans JP',
+        'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans HK', 'Noto Sans Hebrew', 'Noto Sans Arabic',
+        'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Thai', 'Noto Sans Tamil', 'Noto Sans Telugu',
+        'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Noto Sans Sinhala', 'Noto Sans Khmer',
+        'Noto Sans Lao', 'Noto Sans Myanmar', 'Noto Sans Georgian', 'Noto Sans Armenian', 'Noto Sans Ethiopic',
+        system-ui, -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, sans-serif;
     --font-size-scale: 100%;
     --text-xs: 0.75rem;
     --text-sm: 0.875rem;
@@ -5698,9 +5698,11 @@ input:checked + .slider::before {
     container-name: sidepanel;
 }
 
-/* Force Japanese font shaping so kanji like 刀 render as Japanese glyphs, not simplified Chinese */
-am-lyrics {
-    font-language-override: 'JA';
+am-lyrics[song-title] {
+    font-family:
+        'SF Pro Display', Inter, 'Noto Sans', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', meiryo,
+        'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans HK', 'Noto Sans Hebrew',
+        'Noto Sans Arabic', system-ui, sans-serif;
 }
 
 @container sidepanel (min-width: 500px) {
@@ -10981,14 +10983,12 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     height: 100%;
     width: 100%;
     font-family:
-        'SF Pro Display', Inter, 'Noto Sans', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans HK', 'Noto Sans JP',
-        'Noto Sans KR', 'Noto Sans Hebrew', 'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali',
-        'Noto Sans Thai', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada',
-        'Noto Sans Malayalam', 'Noto Sans Sinhala', 'Noto Sans Khmer', 'Noto Sans Lao', 'Noto Sans Myanmar',
-        'Noto Sans Georgian', 'Noto Sans Armenian', 'Noto Sans Ethiopic', system-ui, sans-serif;
-
-    /* Force Japanese font shaping so kanji like 刀 render as Japanese, not simplified Chinese */
-    font-language-override: 'JA';
+        'SF Pro Display', Inter, 'Noto Sans', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', meiryo,
+        'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans HK', 'Noto Sans Hebrew',
+        'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Thai', 'Noto Sans Tamil',
+        'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Noto Sans Sinhala',
+        'Noto Sans Khmer', 'Noto Sans Lao', 'Noto Sans Myanmar', 'Noto Sans Georgian', 'Noto Sans Armenian',
+        'Noto Sans Ethiopic', system-ui, sans-serif;
 
     --lyplus-font-size-base: clamp(34px, 3vw, 52px);
     --lyplus-padding-line: 8px;
