@@ -11501,7 +11501,7 @@ img.cd {
 .fullscreen-artwork-card.cd {
     position: relative;
     border-radius: 50% !important;
-    border: .125vw solid #ccc;
+    border: 0.125vw solid #ccc;
     animation: spin 200s linear infinite;
 }
 
@@ -11518,5 +11518,5 @@ img.cd {
     width: 23.5%;
     height: 23.5%;
     border-radius: 50%;
-    border: .125vw solid #ccc;
+    border: 0.125vw solid #ccc;
 }
