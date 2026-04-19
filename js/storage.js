@@ -1082,17 +1082,19 @@ export const visualizerSettings = {
         localStorage.setItem('butterchurn-randomize-enabled', enabled);
     },
 
+    CD_ALBUM_COVER_KEY: 'cd-album-cover-enabled',
+
     // Spin album cover and add hole in fullscreen
     isCdAlbumCoverEnabled() {
         try {
-            return localStorage.getItem('cd-album-cover-enabled') === 'true';
+            return localStorage.getItem(this.CD_ALBUM_COVER_KEY) !== 'false';
         } catch {
             return true;
         }
     },
 
     setCdAlbumCoverEnabled(enabled) {
-        localStorage.setItem('cd-album-cover-enabled', enabled);
+        localStorage.setItem(this.CD_ALBUM_COVER_KEY, enabled ? 'true' : 'false');
     },
 };
 
