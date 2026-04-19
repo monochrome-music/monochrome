@@ -6069,7 +6069,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // Spins album cover and adds hole in fullscreen
-    const cdAlbumCoverToggle = document.getElementById("cd-album-cover-toggle");
+    const cdAlbumCoverToggle = document.getElementById('cd-album-cover-toggle');
 
     if (cdAlbumCoverToggle) {
         cdAlbumCoverToggle.checked = visualizerSettings.isCdAlbumCoverEnabled();

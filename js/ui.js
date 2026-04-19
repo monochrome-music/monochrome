@@ -1360,9 +1360,9 @@ export class UIRenderer {
         const cdRing = document.getElementById('cd-ring');
         const isCdMode = visualizerSettings.isCdAlbumCoverEnabled();
 
-        coverImage.classList.toggle("cd", isCdMode);
-        coverCard.classList.toggle("cd", isCdMode);
-        cdRing.classList.toggle("cd", isCdMode);
+        coverImage.classList.toggle('cd', isCdMode);
+        coverCard.classList.toggle('cd', isCdMode);
+        cdRing.classList.toggle('cd', isCdMode);
 
         await this.updateFullscreenMetadata(track, nextTrack);
 
