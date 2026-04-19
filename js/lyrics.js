@@ -633,6 +633,12 @@ export class LyricsManager {
             attributes: false, // Don't watch attribute changes (highlight, etc)
         });
 
+        // Detect kana in pre-conversion text so Romaji mode doesn't strip the signal
+        if (amLyricsElement.getAttribute('lang') !== 'ja') {
+            const text = (amLyricsElement.shadowRoot || amLyricsElement).textContent || '';
+            if (containsJapaneseKana(text)) amLyricsElement.setAttribute('lang', 'ja');
+        }
+
         // Initial conversion if Romaji mode is enabled - single attempt, no periodic polling
         if (this.isRomajiMode) {
             await this.convertLyricsContent(amLyricsElement);
