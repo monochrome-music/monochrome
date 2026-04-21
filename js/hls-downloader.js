@@ -7,12 +7,12 @@ export class HlsDownloader {
     async downloadHlsStream(masterUrl, options = {}) {
         const { onProgress, signal } = options;
 
-        const response = await fetch(getProxyUrl(masterUrl), { signal });
+        const response = await fetch(masterUrl, { signal });
         const masterText = await response.text();
 
         const variantUrl = this.getBestVariantUrl(masterUrl, masterText);
 
-        const mediaResponse = await fetch(getProxyUrl(variantUrl), { signal });
+        const mediaResponse = await fetch(variantUrl, { signal });
         const mediaText = await mediaResponse.text();
 
         const segments = this.parseMediaPlaylist(variantUrl, mediaText);
@@ -30,7 +30,7 @@ export class HlsDownloader {
             onProgress?.(new SegmentedDownloadProgress(downloadedBytes, undefined, i, totalSegments));
 
             const segmentUrl = segments[i];
-            const segmentResponse = await fetch(getProxyUrl(segmentUrl), { signal });
+            const segmentResponse = await fetch(segmentUrl, { signal });
 
             if (!segmentResponse.ok) {
                 throw new Error(`Failed to fetch segment ${i}: ${segmentResponse.status}`);

@@ -148,7 +148,7 @@ export class Player {
                     const uris = request.uris;
                     for (let i = 0; i < uris.length; i++) {
                         if (uris[i].includes('tidal.com')) {
-                            uris[i] = getProxyUrl(uris[i]);
+                            uris[i] = uris[i];
                         }
                     }
                 }
