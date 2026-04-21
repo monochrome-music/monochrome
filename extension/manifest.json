@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Monochrome Tidal Bypass",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Adds Origin: https://listen.tidal.com to Tidal CDN requests so audio plays without a proxy",
     "browser_specific_settings": {
         "gecko": {
