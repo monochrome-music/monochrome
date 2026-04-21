@@ -9,11 +9,7 @@
             "strict_min_version": "111.0"
         }
     },
-    "permissions": [
-        "declarativeNetRequest", 
-        "scripting", 
-        "declarativeNetRequestWithHostAccess"
-    ],
+    "permissions": ["declarativeNetRequest", "scripting", "declarativeNetRequestWithHostAccess"],
     "host_permissions": [
         "*://*.tidal.com/*",
         "*://monochrome.tf/*",
@@ -32,12 +28,7 @@
     },
     "content_scripts": [
         {
-            "matches": [
-                "*://monochrome.samidy.com/*",
-                "*://monochrome.tf/*",
-                "*://lossless.wtf/*",
-                "*://localhost/*"
-            ],
+            "matches": ["*://monochrome.samidy.com/*", "*://monochrome.tf/*", "*://lossless.wtf/*", "*://localhost/*"],
             "js": ["content.js"],
             "run_at": "document_start",
             "all_frames": true
@@ -51,12 +42,7 @@
     "web_accessible_resources": [
         {
             "resources": ["inject.js"],
-            "matches": [
-                "*://monochrome.samidy.com/*", 
-                "*://monochrome.tf/*", 
-                "*://lossless.wtf/*", 
-                "*://localhost/*"
-            ]
+            "matches": ["*://monochrome.samidy.com/*", "*://monochrome.tf/*", "*://lossless.wtf/*", "*://localhost/*"]
         }
     ]
 }
