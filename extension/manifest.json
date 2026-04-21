@@ -6,7 +6,10 @@
     "browser_specific_settings": {
         "gecko": {
             "id": "monochrome-tidal-bypass@binimum.org",
-            "strict_min_version": "111.0"
+            "strict_min_version": "111.0",
+            "data_collection_permissions": {
+                "required": ["none"]
+            }
         }
     },
     "permissions": ["declarativeNetRequest", "scripting", "declarativeNetRequestWithHostAccess"],
