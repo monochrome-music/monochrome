@@ -105,17 +105,12 @@ export const apiSettings = {
 
             let groupedInstances = { api: [], streaming: [] };
 
-            const isBlockedInstance = (item) => {
-                const url = typeof item === 'string' ? item : item.url;
-                return url && /\.squid\.wtf/i.test(url);
-            };
-
             if (data.api && Array.isArray(data.api)) {
-                groupedInstances.api = data.api.filter((item) => !isBlockedInstance(item));
+                groupedInstances.api = data.api;
             }
 
             if (data.streaming && Array.isArray(data.streaming)) {
-                groupedInstances.streaming = data.streaming.filter((item) => !isBlockedInstance(item));
+                groupedInstances.streaming = data.streaming;
             } else if (groupedInstances.api.length > 0) {
                 groupedInstances.streaming = [...groupedInstances.api];
             }
