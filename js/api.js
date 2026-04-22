@@ -104,7 +104,7 @@ export class LosslessAPI {
 =======
         const maxTotalAttempts = instances.length * 2; // Allow some retries across instances
         let lastError = null;
-        let instanceIndex = Math.floor(Math.random() * instances.length);
+        let instanceIndex = 0;
 
         for (let attempt = 1; attempt <= maxTotalAttempts; attempt++) {
             const baseUrl = instances[instanceIndex % instances.length];
@@ -370,7 +370,7 @@ export class LosslessAPI {
         return artist;
     }
 
-    async enrichTracksWithAlbumDates(tracks, maxRequests = 20) {
+    async enrichTracksWithAlbumDates(tracks) {
         if (!trackDateSettings.useAlbumYear()) return tracks;
 
         const albumIdsToFetch = [];
@@ -382,26 +382,13 @@ export class LosslessAPI {
 
         if (albumIdsToFetch.length === 0) return tracks;
 
-        // Limit the number of albums to fetch to prevent spamming
-        const limitedIds = albumIdsToFetch.slice(0, maxRequests);
-        if (albumIdsToFetch.length > maxRequests) {
-            console.warn(`[Enrich] Too many albums to fetch (${albumIdsToFetch.length}). limiting to ${maxRequests}.`);
-        }
-
         const albumDateMap = new Map();
-        
-        // Chunk requests to avoid spamming
-        const chunkSize = 5;
-        for (let i = 0; i < limitedIds.length; i += chunkSize) {
-            const chunk = limitedIds.slice(i, i + chunkSize);
-            const results = await Promise.allSettled(chunk.map((id) => this.getAlbum(id)));
+        const results = await Promise.allSettled(albumIdsToFetch.map((id) => this.getAlbum(id)));
 
-            for (let j = 0; j < results.length; j++) {
-                const result = results[j];
-                const id = chunk[j];
-                if (result.status === 'fulfilled' && result.value.album?.releaseDate) {
-                    albumDateMap.set(id, result.value.album.releaseDate);
-                }
+        for (let i = 0; i < results.length; i++) {
+            const result = results[i];
+            if (result.status === 'fulfilled' && result.value.album?.releaseDate) {
+                albumDateMap.set(albumIdsToFetch[i], result.value.album.releaseDate);
             }
         }
 
@@ -629,11 +616,10 @@ export class LosslessAPI {
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'tracks');
             const preparedTracks = normalized.items.map((t) => this.prepareTrack(t));
-            // Skip enrichment for search to be fast and lightweight
-            // const enrichedTracks = await this.enrichTracksWithAlbumDates(preparedTracks);
+            const enrichedTracks = await this.enrichTracksWithAlbumDates(preparedTracks);
             const result = {
                 ...normalized,
-                items: preparedTracks,
+                items: enrichedTracks,
             };
 
             if (!(response instanceof TidalResponse)) {
@@ -1011,8 +997,7 @@ export class LosslessAPI {
         }
 
         // Enrich tracks with album release dates
-        // Removed to reduce API load. Playlists can be very large.
-        // tracks = await this.enrichTracksWithAlbumDates(tracks);
+        tracks = await this.enrichTracksWithAlbumDates(tracks);
 
         tracks = tracks.map((t) => {
             if (t.album) {
@@ -1047,8 +1032,7 @@ export class LosslessAPI {
         let tracks = items.map((i) => this.prepareTrack(i.item || i));
 
         // Enrich tracks with album release dates
-        // Limited to reduce API load
-        tracks = await this.enrichTracksWithAlbumDates(tracks, 10);
+        tracks = await this.enrichTracksWithAlbumDates(tracks);
 
         tracks = tracks.map((t) => {
             if (t.album) {
@@ -1074,6 +1058,7 @@ export class LosslessAPI {
         return result;
     }
 
+<<<<<<< HEAD
     async getArtistSocials(artistName) {
         const cacheKey = `artist_socials_${artistName}`;
         const cached = await this.cache.get('artist', cacheKey);
@@ -1129,6 +1114,16 @@ export class LosslessAPI {
             const cached = await this.cache.get('artist', cacheKey);
             if (cached) return cached;
         }
+=======
+    async getArtist(artistId) {
+        const cached = await this.cache.get('artist', artistId);
+        if (cached) return cached;
+
+        const [primaryResponse, contentResponse] = await Promise.all([
+            this.fetchWithRetry(`/artist/?id=${artistId}`),
+            this.fetchWithRetry(`/artist/?f=${artistId}&skip_tracks=true`),
+        ]);
+>>>>>>> parent of 133f484 (Urgently fix API spam issues)
 
         const primaryResponse = await this.fetchWithRetry(`/artist/?id=${artistId}`);
         const primaryJsonData = await primaryResponse.json();
@@ -1178,6 +1173,7 @@ export class LosslessAPI {
         entries.forEach((entry) => scan(entry, visited));
         scan(primaryData, visited);
 
+<<<<<<< HEAD
         if (!options.lightweight) {
             try {
                 const videoSearch = await this.searchVideos(artist.name);
@@ -1196,7 +1192,27 @@ export class LosslessAPI {
                 }
             } catch (e) {
                 console.warn('Failed to fetch additional videos via search:', e);
+=======
+        // Attempt to find more albums/EPs via search since the direct feed might be limited
+        try {
+            const searchResults = await this.searchAlbums(artist.name);
+            if (searchResults && searchResults.items) {
+                const numericArtistId = Number(artistId);
+
+                for (const item of searchResults.items) {
+                    const itemArtistId = item.artist?.id;
+                    const matchesArtist =
+                        itemArtistId === numericArtistId ||
+                        (Array.isArray(item.artists) && item.artists.some((a) => a.id === numericArtistId));
+
+                    if (matchesArtist && !albumMap.has(item.id)) {
+                        albumMap.set(item.id, item);
+                    }
+                }
+>>>>>>> parent of 133f484 (Urgently fix API spam issues)
             }
+        } catch (e) {
+            console.warn('Failed to fetch additional albums via search:', e);
         }
 
         const rawReleases = Array.from(albumMap.values());
@@ -1216,13 +1232,17 @@ export class LosslessAPI {
         );
 
         // Enrich tracks with album release dates
-        const tracks = options.lightweight ? topTracks : await this.enrichTracksWithAlbumDates(topTracks);
+        const tracks = await this.enrichTracksWithAlbumDates(topTracks);
 
         const result = { ...artist, albums, eps, tracks, videos };
 
+<<<<<<< HEAD
         if (!(primaryResponse instanceof TidalResponse)) {
             await this.cache.set('artist', cacheKey, result);
         }
+=======
+        await this.cache.set('artist', artistId, result);
+>>>>>>> parent of 133f484 (Urgently fix API spam issues)
         return result;
     }
 
@@ -1440,12 +1460,18 @@ export class LosslessAPI {
         const shuffledArtists = [...artists].sort(() => Math.random() - 0.5);
         const artistsToProcess = shuffledArtists.slice(0, Math.min(15, shuffledArtists.length));
 
-        const artistPromises = artistsToProcess.map(async (artist) => {
+        for (const artist of artistsToProcess) {
             try {
+<<<<<<< HEAD
                 const artistData = await this.getArtist(artist.id, { lightweight: true, skipCache: options.refresh });
+=======
+                console.log(`Fetching tracks for artist: ${artist.name} (ID: ${artist.id})`);
+                const artistData = await this.getArtist(artist.id);
+>>>>>>> parent of 133f484 (Urgently fix API spam issues)
                 if (artistData && artistData.tracks && artistData.tracks.length > 0) {
                     const availableTracks = artistData.tracks.filter((track) => !seenTrackIds.has(track.id));
 
+<<<<<<< HEAD
                     const newTracks = options.knownTrackIds
                         ? availableTracks.filter((t) => !options.knownTrackIds.has(t.id))
                         : availableTracks;
@@ -1458,14 +1484,18 @@ export class LosslessAPI {
 
                     const combined = [...shuffledNew, ...shuffledKnown];
                     return combined.slice(0, 2);
+=======
+                    console.log(`Found ${newTracks.length} new tracks from ${artist.name}`);
+                    recommendedTracks.push(...newTracks);
+                    seenTrackIds.add(...newTracks.map((t) => t.id));
+>>>>>>> parent of 133f484 (Urgently fix API spam issues)
                 } else {
                     console.warn(`No tracks found for artist ${artist.name}`);
-                    return [];
                 }
             } catch (e) {
                 console.warn(`Failed to get tracks for artist ${artist.name}:`, e);
-                return [];
             }
+<<<<<<< HEAD
         });
 
         const results = await Promise.all(artistPromises);
@@ -1477,6 +1507,9 @@ export class LosslessAPI {
                 }
             }
         });
+=======
+        }
+>>>>>>> parent of 133f484 (Urgently fix API spam issues)
 
         const shuffled = recommendedTracks.sort(() => 0.5 - Math.random());
         return shuffled.slice(0, limit);

@@ -5,6 +5,8 @@ import { SVG_RIGHT_ARROW } from './icons';
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances-v8',
     INSTANCES_URL: 'instances.json',
+    SPEED_TEST_CACHE_KEY: 'monochrome-instance-speeds',
+    SPEED_TEST_CACHE_DURATION: 1000 * 60 * 60,
     defaultInstances: { api: [], streaming: [] },
     userInstances: null,
     instancesLoaded: false,
@@ -218,8 +220,103 @@ export const apiSettings = {
     },
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     async getInstances(type = 'api', _sortBySpeed = false) {
 =======
+=======
+    async speedTestInstance(url, type = 'api') {
+        let testUrl;
+        // API instances might not support /track/ endpoint (which checks for streamability)
+        // So we test API instances with a lightweight metadata endpoint
+        if (type === 'streaming') {
+            testUrl = url.endsWith('/')
+                ? `${url}track/?id=204567804&quality=HIGH`
+                : `${url}/track/?id=204567804&quality=HIGH`;
+        } else {
+            testUrl = url.endsWith('/')
+                ? `${url}artist/?id=3532302` // Daft Punk
+                : `${url}/artist/?id=3532302`;
+        }
+
+        const startTime = performance.now();
+
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
+
+            const response = await fetch(testUrl, {
+                signal: controller.signal,
+                cache: 'no-store',
+            });
+
+            clearTimeout(timeout);
+
+            if (!response.ok) {
+                return { url, type, speed: Infinity, error: `HTTP ${response.status}` };
+            }
+
+            const endTime = performance.now();
+            const speed = endTime - startTime;
+
+            return { url, type, speed, error: null };
+        } catch (error) {
+            return { url, type, speed: Infinity, error: error.message };
+        }
+    },
+
+    getCachedSpeedTests() {
+        try {
+            const cached = localStorage.getItem(this.SPEED_TEST_CACHE_KEY);
+            if (!cached) return { speeds: {}, timestamp: Date.now() };
+
+            const data = JSON.parse(cached);
+
+            if (Date.now() - data.timestamp > this.SPEED_TEST_CACHE_DURATION) {
+                return { speeds: {}, timestamp: Date.now() };
+            }
+
+            return data;
+        } catch {
+            return { speeds: {}, timestamp: Date.now() };
+        }
+    },
+
+    updateSpeedCache(newResults) {
+        const currentCache = this.getCachedSpeedTests();
+
+        newResults.forEach((r) => {
+            // Use distinct keys for streaming tests to avoid overwriting API tests for same URL
+            // API tests use raw URL as key (for backward compatibility with UI)
+            const key = r.type === 'streaming' ? `${r.url}#streaming` : r.url;
+            currentCache.speeds[key] = { speed: r.speed, error: r.error };
+        });
+
+        currentCache.timestamp = Date.now();
+
+        try {
+            localStorage.setItem(this.SPEED_TEST_CACHE_KEY, JSON.stringify(currentCache));
+        } catch {
+            console.warn('[SpeedTest] Failed to cache results');
+        }
+
+        return currentCache;
+    },
+
+    async testSpecificUrls(urls, type) {
+        if (!urls || urls.length === 0) return [];
+        console.log(`[SpeedTest] Testing ${urls.length} instances for ${type}...`);
+
+        const results = await Promise.all(urls.map((url) => this.speedTestInstance(url, type)));
+
+        const validResults = results.filter((r) => r.speed !== Infinity);
+        console.log(
+            `[SpeedTest] ${type} Results:`,
+            validResults.map((r) => `${r.url}: ${r.speed.toFixed(0)}ms`)
+        );
+
+        return results;
+    },
+>>>>>>> parent of 133f484 (Urgently fix API spam issues)
 
     async getInstances(type = 'api', sortBySpeed = false) {
 >>>>>>> parent of f79e078 (style: auto-fix linting issues)
@@ -267,6 +364,7 @@ export const apiSettings = {
         const defaultUrls = instancesObj[type] || instancesObj.api || [];
         const userUrls = userInst[type] || [];
 
+<<<<<<< HEAD
         const combined = [
             ...userUrls.map((u) => (typeof u === 'string' ? { url: u, isUser: true } : { ...u, isUser: true })),
             ...defaultUrls,
@@ -338,12 +436,62 @@ export const apiSettings = {
         
         if (instances.streaming && instances.streaming.length) {
             instances.streaming = prioritySort([...instances.streaming]);
+=======
+        const speedCache = this.getCachedSpeedTests();
+        // Construct cache key based on type
+        const getCacheKey = (u) => (type === 'streaming' ? `${u}#streaming` : u);
+
+        const urlsToTest = targetUrls.filter((url) => !speedCache.speeds[getCacheKey(url)]);
+
+        if (urlsToTest.length > 0) {
+            const results = await this.testSpecificUrls(urlsToTest, type);
+            this.updateSpeedCache(results);
+            Object.assign(speedCache, this.getCachedSpeedTests());
         }
 
-        this.saveInstances(instances);
+        // Default: return instances in their stored/manual order (respects manual reordering)
+        // Only sort by speed when explicitly requested (e.g., refresh speed test)
+        if (!sortBySpeed) {
+            return targetUrls;
+        }
+
+        const sortList = (list) => {
+            return [...list].sort((a, b) => {
+                const speedA = speedCache.speeds[getCacheKey(a)]?.speed ?? Infinity;
+                const speedB = speedCache.speeds[getCacheKey(b)]?.speed ?? Infinity;
+                return speedA - speedB;
+            });
+        };
+
+        const sortedList = sortList(targetUrls);
+
+        // Persist the sorted order
+        instancesObj[type] = sortedList;
+        this.saveInstances(instancesObj);
+
+        return sortedList;
+    },
+
+    async refreshSpeedTests() {
+        const instances = await this.loadInstancesFromGitHub();
+        const promises = [];
+
+        if (instances.api && instances.api.length) {
+            promises.push(this.testSpecificUrls(instances.api, 'api'));
+>>>>>>> parent of 133f484 (Urgently fix API spam issues)
+        }
+
+        if (instances.streaming && instances.streaming.length) {
+            promises.push(this.testSpecificUrls(instances.streaming, 'streaming'));
+        }
+
+        const resultsArray = await Promise.all(promises);
+        const allResults = resultsArray.flat();
+
+        this.updateSpeedCache(allResults);
 
         // Return API instances for the UI to render (default view)
-        return this.getInstances('api');
+        return this.getInstances('api', true);
     },
     saveInstances(instances, type) {
         if (type) {

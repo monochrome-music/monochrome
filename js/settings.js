@@ -5342,7 +5342,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         btn.disabled = true;
 
         try {
-            await api.settings.refreshInstances();
+            await api.settings.refreshSpeedTests();
             ui.renderApiSettings();
             btn.textContent = 'Done!';
             setTimeout(() => {

@@ -5566,12 +5566,21 @@ export class UIRenderer {
 
     renderApiSettings() {
         const container = document.getElementById('api-instance-list');
+<<<<<<< HEAD
         Promise.all([this.api.settings.getInstances('api'), this.api.settings.getInstances('streaming')])
             .then(([apiInstances, streamingInstances]) => {
+=======
+        Promise.all([this.api.settings.getInstances('api'), this.api.settings.getInstances('streaming')]).then(
+            ([apiInstances, streamingInstances]) => {
+                const cachedData = this.api.settings.getCachedSpeedTests();
+                const speeds = cachedData?.speeds || {};
+
+>>>>>>> parent of 133f484 (Urgently fix API spam issues)
                 const renderGroup = (instances, type) => {
                     if (!instances || instances.length === 0) return '';
 
                     const listHtml = instances
+<<<<<<< HEAD
                         .map((instance, index) => {
                             const isObject = instance && typeof instance === 'object';
                             const instanceUrl = isObject ? instance.url || '' : String(instance || '');
@@ -5583,13 +5592,28 @@ export class UIRenderer {
                             const safeName = escapeHtml(instanceName || 'Unknown instance');
                             const safeUrl = escapeHtml(instanceUrl || '');
                             const safeVersion = escapeHtml(instanceVersion);
+=======
+                        .map((url, index) => {
+                            const cacheKey = type === 'streaming' ? `${url}#streaming` : url;
+                            const speedInfo = speeds[cacheKey];
+                            const speedText = speedInfo
+                                ? speedInfo.speed === Infinity || typeof speedInfo.speed !== 'number'
+                                    ? `<span style="color: var(--muted-foreground); font-size: 0.8rem;">Failed</span>`
+                                    : `<span style="color: var(--muted-foreground); font-size: 0.8rem;">${speedInfo.speed.toFixed(0)}ms</span>`
+                                : '';
+>>>>>>> parent of 133f484 (Urgently fix API spam issues)
 
                             return `
                         <li data-index="${index}" data-type="${type}" data-url="${safeUrl}">
                             <div style="flex: 1; min-width: 0;">
+<<<<<<< HEAD
                                 <div class="instance-url">${safeName} ${isUser ? '<span style="font-size: 0.6rem; opacity: 0.7; background: var(--muted); padding: 1px 4px; border-radius: 3px; margin-left: 4px; vertical-align: middle;">U</span>' : ''}</div>
                                 ${safeUrl && safeUrl !== safeName ? `<div style="font-size: 0.8rem; color: var(--muted-foreground); margin-top: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeUrl}</div>` : ''}
                                 ${safeVersion ? `<div style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.1rem;">v${safeVersion}</div>` : ''}
+=======
+                                <div class="instance-url">${url}</div>
+                                ${speedText}
+>>>>>>> parent of 133f484 (Urgently fix API spam issues)
                             </div>
                             <div class="controls">
                                 ${
