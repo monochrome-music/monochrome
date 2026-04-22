@@ -1590,10 +1590,10 @@ class HiFiClient {
             const attr = inc.attributes ?? ({} as JsonApiIncludeAttributes);
 
             let pic_id: string | null = null;
-            const art_refs_artist = (() => {
-                const d = inc.relationships?.profileArt?.data;
-                return Array.isArray(d) ? d : d ? [d as JsonApiRef] : [];
-            })();
+            const art_data = inc.relationships?.profileArt?.data;
+            if (Array.isArray(art_data) && art_data.length > 0) {
+                const artwork = artworks_map[art_data[0].id];
+            const art_refs_artist = (() => { const d = inc.relationships?.profileArt?.data; return Array.isArray(d) ? d : d ? [d as JsonApiRef] : []; })();
             if (art_refs_artist.length > 0) {
                 const artwork = artworks_map[art_refs_artist[0].id];
                 const files = artwork?.attributes?.files;
@@ -1653,21 +1653,15 @@ class HiFiClient {
             if (i.type === 'artists') artists_map[i.id] = i;
         }
 
-        const toArray = (data: unknown): JsonApiRef[] => {
-            if (Array.isArray(data)) return data as JsonApiRef[];
-            if (data && typeof data === 'object') return [data as JsonApiRef];
-            return [];
-        };
-
         const resolveAlbum = (entry: JsonApiRef): TidalSimilarAlbum => {
             const aid = entry.id;
             const inc = albums_map[aid] ?? ({} as JsonApiInclude);
             const attr = inc.attributes ?? ({} as JsonApiIncludeAttributes);
 
             let cover_id: string | null = null;
-            const art_refs = toArray(inc.relationships?.coverArt?.data);
-            if (art_refs.length > 0) {
-                const artwork = artworks_map[art_refs[0].id];
+            const art_data = inc.relationships?.coverArt?.data;
+            if (Array.isArray(art_data) && art_data.length > 0) {
+                const artwork = artworks_map[art_data[0].id];
                 const files = artwork?.attributes?.files;
                 if (Array.isArray(files) && files[0]?.href) {
                     cover_id = HiFiClient.#extractUuidFromTidalUrl(files[0].href);
@@ -1675,14 +1669,16 @@ class HiFiClient {
             }
 
             const artist_list: Array<{ id: number; name: string }> = [];
-            const artist_refs = toArray(inc.relationships?.artists?.data);
-            for (const a_entry of artist_refs) {
-                const a_obj = artists_map[a_entry.id];
-                if (a_obj) {
-                    artist_list.push({
-                        id: Number(a_obj.id),
-                        name: a_obj.attributes?.name ?? '',
-                    });
+            const artists_data = inc.relationships?.artists?.data;
+            if (Array.isArray(artists_data)) {
+                for (const a_entry of artists_data) {
+                    const a_obj = artists_map[a_entry.id];
+                    if (a_obj) {
+                        artist_list.push({
+                            id: Number(a_obj.id),
+                            name: a_obj.attributes?.name ?? '',
+                        });
+                    }
                 }
             }
 
@@ -1729,27 +1725,15 @@ class HiFiClient {
 
         if (id) {
             const artist_url = `https://openapi.tidal.com/v2/artists/${id}`;
-
-            // Fetch v2 artist metadata and v1 top tracks in parallel.
-            // The v2 endpoint gives us profile art and biography but does NOT include
-            // track details or album cover art in its `included` array even when requested,
-            // so we use the v1 toptracks endpoint for complete track/cover data.
-            const [payload, topTracksPayload] = await Promise.all([
-                this.#fetchJson<any>(
-                    artist_url,
-                    {
-                        countryCode: this.#countryCode,
-                        include: 'biography,profileArt',
-                        collapseBy: 'FINGERPRINT',
-                    },
-                    signal
-                ),
-                this.#fetchJson<TidalListResponse<TidalTrack>>(
-                    `https://api.tidal.com/v1/artists/${id}/toptracks`,
-                    { countryCode: this.#countryCode, limit: '15' },
-                    signal
-                ).catch(() => ({ items: [] as TidalTrack[] })),
-            ]);
+            const payload = await this.#fetchJson<any>(
+                artist_url,
+                {
+                    countryCode: this.#countryCode,
+                    include: 'albums,albums.coverArt,tracks,tracks.albums,biography,profileArt',
+                    collapseBy: 'FINGERPRINT',
+                },
+                signal
+            );
 
             const includedMap = new Map<string, any>();
             if (Array.isArray(payload?.included)) {
@@ -1759,13 +1743,14 @@ class HiFiClient {
             }
 
             const getPic = (item: any, relName: string) => {
-                const relData = item?.relationships?.[relName]?.data;
-                const picRef = Array.isArray(relData) ? relData[0] : relData;
-                if (!picRef) return null;
-                const pic = includedMap.get(`artworks:${picRef.id}`);
-                return pic?.attributes?.files?.[0]?.href
-                    ? HiFiClient.#extractUuidFromTidalUrl(pic.attributes.files[0].href)
-                    : null;
+                if (item?.relationships?.[relName]?.data?.[0]) {
+                    const picRef = item.relationships[relName].data[0];
+                    const pic = includedMap.get(`artworks:${picRef.id}`);
+                    return pic?.attributes?.files?.[0]?.href
+                        ? HiFiClient.#extractUuidFromTidalUrl(pic.attributes.files[0].href)
+                        : null;
+                }
+                return null;
             };
 
             const data = payload?.data;
@@ -1773,9 +1758,7 @@ class HiFiClient {
             if (data?.relationships?.biography?.data) {
                 const bioRef = data.relationships.biography.data;
                 const bioItem =
-                    includedMap.get(`biographies:${bioRef.id}`) ||
-                    includedMap.get(`biography:${bioRef.id}`) ||
-                    includedMap.get(`artistBiographies:${bioRef.id}`);
+                    includedMap.get(`biographies:${bioRef.id}`) || includedMap.get(`biography:${bioRef.id}`);
                 if (bioItem) {
                     biography = { text: bioItem.attributes?.text, source: bioItem.attributes?.source };
                 }
@@ -1799,15 +1782,59 @@ class HiFiClient {
                 };
             }
 
-            // v1 toptracks have complete TidalTrack objects with album.cover UUIDs,
-            // proper artist/artists arrays, and real duration values.
-            const tracks: TidalTrack[] = topTracksPayload?.items ?? [];
+            const albums: any[] = [];
+            const tracks: any[] = [];
+
+            if (data?.relationships?.albums?.data) {
+                for (const ref of data.relationships.albums.data) {
+                    const al = includedMap.get(`albums:${ref.id}`);
+                    if (al) {
+                        albums.push({
+                            id: Number(al.id),
+                            title: al.attributes?.title,
+                            duration: al.attributes?.duration ? 100 : undefined,
+                            numberOfTracks: al.attributes?.numberOfItems,
+                            releaseDate: al.attributes?.releaseDate,
+                            type: al.attributes?.albumType,
+                            cover: getPic(al, 'coverArt'),
+                            artist: { id: artist_data.id, name: artist_data.name },
+                        });
+                    }
+                }
+            }
+
+            if (data?.relationships?.tracks?.data) {
+                for (const ref of data.relationships.tracks.data) {
+                    const tr = includedMap.get(`tracks:${ref.id}`);
+                    if (tr) {
+                        let albumInfo = undefined;
+                        if (tr.relationships?.albums?.data?.[0]) {
+                            const aRef = tr.relationships.albums.data[0];
+                            const aItem = includedMap.get(`albums:${aRef.id}`);
+                            if (aItem) {
+                                albumInfo = {
+                                    id: Number(aItem.id),
+                                    title: aItem.attributes?.title,
+                                    cover: getPic(aItem, 'coverArt'),
+                                };
+                            }
+                        }
+                        tracks.push({
+                            id: Number(tr.id),
+                            title: tr.attributes?.title,
+                            duration: tr.attributes?.duration ? 100 : undefined,
+                            album: albumInfo,
+                            artist: { id: artist_data.id, name: artist_data.name },
+                        });
+                    }
+                }
+            }
 
             return HiFiClient.#jsonResponse({
                 version: HiFiClient.API_VERSION,
                 artist: artist_data,
                 cover,
-                albums: { items: [] },
+                albums: { items: albums },
                 tracks,
             });
         }
