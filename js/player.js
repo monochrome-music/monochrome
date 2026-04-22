@@ -54,8 +54,6 @@ export class Player {
         this.shuffleActive = false;
         this.repeatMode = REPEAT_MODE.OFF;
         this.preloadCache = new Map();
-        this._pendingPreload = false;
-        setInterval(this.checkPreloadConditions.bind(this), 2000);
         this.preloadAbortController = null;
         this.currentTrack = null;
         this.currentRgValues = null;
@@ -510,6 +508,7 @@ export class Player {
         this.quality = quality;
     }
 
+<<<<<<< HEAD
     preloadNextTracks() {
         this._pendingPreload = true;
     }
@@ -531,6 +530,9 @@ export class Player {
     }
 
     async _executePreloadNextTracks() {
+=======
+    async preloadNextTracks() {
+>>>>>>> parent of 8a377d5 (chore(player): log preload load errors)
         if (this.preloadAbortController) {
             this.preloadAbortController.abort();
         }
@@ -539,8 +541,7 @@ export class Player {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         const tracksToPreload = [];
 
-        // Only preload the next 1 song to prevent data waste
-        for (let i = 1; i <= 1; i++) {
+        for (let i = 1; i <= 2; i++) {
             const nextIndex = this.currentQueueIndex + i;
             if (nextIndex < currentQueue.length) {
                 tracksToPreload.push({ track: currentQueue[nextIndex], index: nextIndex });
@@ -560,6 +561,7 @@ export class Player {
 
                 if (this.preloadAbortController.signal.aborted) break;
 
+<<<<<<< HEAD
                 // Also preload ReplayGain legacy metadata if the fast manifest endpoint failed to provide it
                 if (track.type !== 'video' && !streamInfo.rgInfo) {
                     try {
@@ -642,6 +644,15 @@ export class Player {
                         preloader.src = streamUrl;
                         streamInfo.preloader = preloader; // Hold reference
                     }
+=======
+                this.preloadCache.set(track.id, streamInfo);
+                // Warm connection/cache
+                // For Blob URLs (DASH), this head request is not needed and can cause errors.
+                if (!streamInfo.url.startsWith('blob:')) {
+                    fetch(streamInfo.url, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(
+                        () => {}
+                    );
+>>>>>>> parent of 8a377d5 (chore(player): log preload load errors)
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {
@@ -910,13 +921,14 @@ export class Player {
             this.hls.destroy();
             this.hls = null;
         }
+<<<<<<< HEAD
 
         // Retain the initialized Shaka player if we are remaining on the same HTMLMediaElement
+=======
+>>>>>>> parent of 8a377d5 (chore(player): log preload load errors)
         if (this.shakaInitialized && this.shakaPlayer) {
-            if (this.shakaPlayer.getMediaElement() !== activeElement) {
-                this.shakaPlayer.unload();
-                this.shakaInitialized = false;
-            }
+            this.shakaPlayer.unload();
+            this.shakaInitialized = false;
         }
 
         if (inactiveElement) {
@@ -930,13 +942,9 @@ export class Player {
         }
 
         if (activeElement) {
-            // Let Shaka overwrite the activeElement's decoder pipeline gracefully if we're carrying it over.
-            // It manages its own buffering teardown implicitly when `load()` is executed.
-            if (!this.shakaInitialized) {
-                activeElement.pause();
-                activeElement.src = '';
-                activeElement.removeAttribute('src');
-            }
+            activeElement.pause();
+            activeElement.src = '';
+            activeElement.removeAttribute('src');
         }
 
         audioContextManager.changeSource(activeElement);
@@ -1153,6 +1161,7 @@ export class Player {
                     await this.setupHlsVideo(activeElement, streamUrl, null);
                 } else if (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) {
                     await this.shakaPlayer.attach(activeElement);
+<<<<<<< HEAD
 
                     const loadTarget =
                         track.type == 'video' && this.preloadCache.has(track.id)
@@ -1167,6 +1176,9 @@ export class Player {
                         else throw e;
                     }
 
+=======
+                    await this.shakaPlayer.load(streamUrl);
+>>>>>>> parent of 8a377d5 (chore(player): log preload load errors)
                     this.shakaInitialized = true;
 
                     const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
@@ -1178,6 +1190,9 @@ export class Player {
                 }
 
                 this.applyAudioEffects();
+
+                const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
+                if (!canPlay || this.playbackSequence !== currentSequence) return;
 
                 if (startTime > 0) {
                     activeElement.currentTime = startTime;
@@ -1198,9 +1213,6 @@ export class Player {
 
                 if (resolvedStreamInfo.rgInfo) {
                     this.currentRgValues = resolvedStreamInfo.rgInfo;
-                    this.applyReplayGain();
-                } else if (resolvedStreamInfo.rgInfoFallback) {
-                    this.currentRgValues = resolvedStreamInfo.rgInfoFallback;
                     this.applyReplayGain();
                 } else {
                     // Fallback to legacy metadata if manifest lacked normalization data
@@ -1225,10 +1237,13 @@ export class Player {
                 // Handle playback
                 if (streamUrl && (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) && !track.isLocal) {
                     // It's likely a DASH manifest URL
-                    if (this.shakaPlayer.getMediaElement() !== activeElement) {
-                        await this.shakaPlayer.attach(activeElement);
-                        this.shakaInitialized = true;
+                    await this.shakaPlayer.attach(activeElement);
+                    if (startTime > 0) {
+                        await this.shakaPlayer.load(streamUrl, startTime);
+                    } else {
+                        await this.shakaPlayer.load(streamUrl);
                     }
+<<<<<<< HEAD
 
                     const loadTarget = resolvedStreamInfo.preloadManager || streamUrl;
 
@@ -1244,6 +1259,8 @@ export class Player {
                         else throw e;
                     }
 
+=======
+>>>>>>> parent of 8a377d5 (chore(player): log preload load errors)
                     this.shakaInitialized = true;
                     this.applyAudioEffects();
 
@@ -1252,8 +1269,13 @@ export class Player {
 
                     this.updateAdaptiveQualityBadge();
 
+<<<<<<< HEAD
                     // Instantly trigger playback rather than explicitly waiting for 'canplay'
                     // which delays the event loop and natively adds gap/latency
+=======
+                    const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
+                    if (!canPlay || this.playbackSequence !== currentSequence) return;
+>>>>>>> parent of 8a377d5 (chore(player): log preload load errors)
                     await this.safePlay(activeElement);
                 } else {
                     if (this.shakaInitialized) {
@@ -1266,6 +1288,10 @@ export class Player {
                     activeElement.src = streamUrl;
                     this.applyAudioEffects();
                     this.updateAdaptiveQualityBadge();
+
+                    // Wait for audio to be ready before playing
+                    const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
+                    if (!canPlay || this.playbackSequence !== currentSequence) return;
 
                     if (startTime > 0) {
                         activeElement.currentTime = startTime;
@@ -1303,6 +1329,10 @@ export class Player {
             }
 
             console.error(`Could not play track: ${trackTitle}`, error);
+            // Skip to next track on unexpected error
+            if (recursiveCount < currentQueue.length) {
+                setTimeout(() => this.playNext(recursiveCount + 1), 1000);
+            }
         }
     }
 
