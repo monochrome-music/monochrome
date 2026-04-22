@@ -412,6 +412,13 @@ async function uploadCoverImage(file) {
 document.addEventListener('DOMContentLoaded', async () => {
     await modernSettings.waitPending();
 
+    // Request persistent storage to reduce risk of browser wiping data on updates or cleanup
+    if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().catch(() => {
+            // Ignore errors; persistence is a best-effort request
+        });
+    }
+
     if (import.meta.env.DEV) {
         window.monochrome = {
             HiFiClient,
@@ -467,31 +474,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const audioPlayer = document.getElementById('audio-player');
 
     // i love ios and macos!!!! webkit fucking SUCKS BULLSHIT sorry ios/macos heads yall getting lossless only playback
-    // Use isIos from platform-detection (set before UA spoof in index.html) so detection works on real iOS.
-    if (isIos || isSafari) {
-        const qualitySelect = document.getElementById('streaming-quality-setting');
-        const downloadQualitySelect = document.getElementById('download-quality-setting');
-
-        const removeHiRes = (select) => {
-            if (!select) return;
-            const option = select.querySelector('option[value="HI_RES_LOSSLESS"]');
-            if (option) option.remove();
-        };
-
-        removeHiRes(qualitySelect);
-        removeHiRes(downloadQualitySelect);
-
-        if (isIos) {
-            document.querySelector('#hi-res-download-warning').style.display = '';
-        }
-
-        const currentQualitySetting = localStorage.getItem('playback-quality');
-        if (!currentQualitySetting || currentQualitySetting === 'HI_RES_LOSSLESS') {
-            localStorage.setItem('playback-quality', 'LOSSLESS');
-        }
-    }
-
-    const currentQuality = localStorage.getItem('playback-quality') || 'LOSSLESS';
+    const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
     await Player.initialize(audioPlayer, MusicAPI.instance, currentQuality);
 
     // Initialize tracker

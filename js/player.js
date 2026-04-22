@@ -22,6 +22,7 @@ import {
 import { audioContextManager } from './audio-context.js';
 import { isIos, isSafari } from './platform-detection.js';
 import { db } from './db.js';
+import { getProxyUrl } from './proxy-utils.js';
 
 import { SVG_CLOCK, SVG_ATMOS } from './icons.js';
 import { UIRenderer } from './ui.js';
@@ -133,16 +134,24 @@ export class Player {
                 },
                 abr: {
                     enabled: true,
-                    // Start with a low bandwidth estimate (200kbps) so it plays instantly
-                    // on slow connections and smoothly scales UP to Hi-Fi if the connection allows.
                     defaultBandwidthEstimate: 100000,
-                    switchInterval: 1, // Check more frequently
-                    bandwidthDowngradeTarget: 0.8, // Downgrade more aggressively if bandwidth drops
+                    switchInterval: 1,
+                    bandwidthDowngradeTarget: 0.8,
                     restrictToElementSize: false,
                 },
                 mediaSource: {
                     codecSwitchingStrategy: 'smooth',
                 },
+            });
+            this.shakaPlayer.getNetworkingEngine().registerRequestFilter((type, request) => {
+                if (type === shaka.net.NetworkingEngine.RequestType.SEGMENT) {
+                    const uris = request.uris;
+                    for (let i = 0; i < uris.length; i++) {
+                        if (uris[i].includes('tidal.com')) {
+                            uris[i] = getProxyUrl(uris[i]);
+                        }
+                    }
+                }
             });
             this.shakaPlayer.addEventListener('adaptation', this.updateAdaptiveQualityBadge.bind(this));
             this.shakaPlayer.addEventListener('variantchanged', this.updateAdaptiveQualityBadge.bind(this));
@@ -1266,6 +1275,13 @@ export class Player {
                     // which delays the event loop and natively adds gap/latency
                     await this.safePlay(activeElement);
                 } else {
+                    if (this.shakaInitialized) {
+                        try {
+                            this.shakaPlayer.unload();
+                            this.shakaPlayer.detach();
+                        } catch {}
+                        this.shakaInitialized = false;
+                    }
                     activeElement.src = streamUrl;
                     this.applyAudioEffects();
                     this.updateAdaptiveQualityBadge();

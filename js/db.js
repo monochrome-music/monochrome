@@ -85,8 +85,15 @@ export class MusicDatabase {
             const store = transaction.objectStore(storeName);
             const request = callback(store);
 
+            let result;
+            if (request) {
+                request.onsuccess = () => {
+                    result = request.result;
+                };
+            }
+
             transaction.oncomplete = () => {
-                resolve(request?.result);
+                resolve(result);
             };
             transaction.onerror = (event) => {
                 reject(event.target.error);
@@ -448,6 +455,25 @@ export class MusicDatabase {
     async importData(data, clear = false) {
         const db = await this.open();
 
+        // Safety check: if clear=true but all data is empty, skip to avoid wiping existing data
+        if (clear) {
+            const allEmpty = [
+                data.favorites_tracks,
+                data.favorites_albums,
+                data.favorites_artists,
+                data.favorites_playlists,
+                data.favorites_mixes,
+                data.history_tracks,
+                data.user_playlists,
+                data.user_folders,
+            ].every((arr) => !arr || (Array.isArray(arr) ? arr.length === 0 : Object.keys(arr).length === 0));
+
+            if (allEmpty) {
+                console.warn('[importData] Aborting: clear=true but all import data is empty. Existing data preserved.');
+                return false;
+            }
+        }
+
         const importStore = async (storeName, items) => {
             if (items === undefined) return false;
 
@@ -481,9 +507,10 @@ export class MusicDatabase {
                 const transaction = db.transaction(storeName, 'readwrite');
                 const store = transaction.objectStore(storeName);
 
-                // force clear on first sync
-                console.log(`Clearing ${storeName} to Make Sure Everythings Good`);
-                store.clear();
+                if (clear) {
+                    console.log(`[importData] Clearing ${storeName} before import`);
+                    store.clear();
+                }
 
                 itemsArray.forEach((item) => {
                     if (item.id && typeof item.id === 'string' && !isNaN(item.id)) {
