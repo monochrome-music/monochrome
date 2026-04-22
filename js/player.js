@@ -1275,7 +1275,7 @@ export class Player {
                 }
             }
 
-            this.preloadNextTracks();
+            void this.preloadNextTracks().catch(console.error);
         } catch (error) {
             if (this.playbackSequence !== currentSequence) return;
             if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
@@ -1776,7 +1776,7 @@ export class Player {
         }
 
         this.preloadCache.clear();
-        this.preloadNextTracks();
+        void this.preloadNextTracks().catch(console.error);
         await this.saveQueueState();
     }
 
@@ -1892,7 +1892,7 @@ export class Player {
         }
 
         await this.saveQueueState();
-        this.preloadNextTracks(); // Update preload since next track changed
+        void this.preloadNextTracks().catch(console.error); // Update preload since next track changed
     }
 
     async removeFromQueue(index) {
@@ -1920,7 +1920,7 @@ export class Player {
         }
 
         await this.saveQueueState();
-        this.preloadNextTracks();
+        void this.preloadNextTracks().catch(console.error);
     }
 
     async clearQueue() {
