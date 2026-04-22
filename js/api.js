@@ -195,6 +195,7 @@ export class LosslessAPI {
                 // implementation, including api.tidal.com and openapi.tidal.com where applicable.
                 return await HiFiClient.instance.query(relativePath);
             } catch (err) {
+<<<<<<< HEAD
                 if (options.directOnly) {
                     throw err;
                 }
@@ -210,6 +211,12 @@ export class LosslessAPI {
                         err
                     );
                 }
+=======
+                console.warn(
+                    `Direct fetch failed for ${relativePath}. Falling back to configured API instances...`,
+                    err
+                );
+>>>>>>> parent of cf08290 (Merge pull request #560 from monochrome-music/copilot/update-hifi-api-search-params)
             }
         }
 
