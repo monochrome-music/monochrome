@@ -52,7 +52,6 @@
         "typescript": "^5.9.3",
         "vite": "^7.3.1",
         "vite-bundle-visualizer": "^1.2.1",
-        "vite-plugin-purgecss": "^0.2.13",
         "vite-plugin-pwa": "^1.2.0"
     },
     "overrides": {

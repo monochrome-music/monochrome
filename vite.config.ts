@@ -5,10 +5,13 @@ import authGatePlugin from './vite-plugin-auth-gate.js';
 import blobAssetPlugin from './vite-plugin-blob.js';
 import svgUse from './vite-plugin-svg-use.js';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import uploadPlugin from './vite-plugin-upload.js';
 // import purgecss from 'vite-plugin-purgecss';
 =======
 import purgecss from 'vite-plugin-purgecss';
+=======
+>>>>>>> parent of 995906f (refactor: optimize image loading and enhance performance)
 import { execSync } from 'child_process';
 >>>>>>> parent of bc004d3 (fix: refine image size logic and update build configuration for better performance)
 import { playwright } from '@vitest/browser-playwright';
@@ -82,15 +85,15 @@ export default defineConfig((_options) => {
             outDir: 'dist',
             emptyOutDir: true,
             sourcemap: true,
-            rollupOptions: {
-                treeshake: true,
-            },
         },
         plugins: [
+<<<<<<< HEAD
             proxyAudioPlugin(),
             purgecss({
                 variables: true,
             }),
+=======
+>>>>>>> parent of 995906f (refactor: optimize image loading and enhance performance)
             authGatePlugin(),
             uploadPlugin(),
             blobAssetPlugin(),

@@ -10,23 +10,7 @@ import {
     SVG_GLOBE,
 } from './icons.js';
 import { sidePanelManager } from './side-panel.js';
-
-const loadAmLyrics = () => {
-    const images = Array.from(document.images).filter(img => !img.complete);
-    if (images.length === 0) {
-        import('@uimaxbai/am-lyrics/am-lyrics.js').catch(console.error);
-    } else {
-        Promise.all(images.map(img => new Promise(res => {
-            img.onload = img.onerror = res;
-        }))).then(() => import('@uimaxbai/am-lyrics/am-lyrics.js').catch(console.error));
-    }
-};
-
-if (document.readyState === 'complete') {
-    loadAmLyrics();
-} else {
-    window.addEventListener('load', loadAmLyrics);
-}
+import('@uimaxbai/am-lyrics/am-lyrics.js').catch(console.error);
 
 // Check if text contains Japanese, Chinese, or Korean characters
 function containsAsianText(text) {
