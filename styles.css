@@ -10098,6 +10098,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 .member-item:hover {
     transform: scale(1.02);
 }
+<<<<<<< HEAD
 
 /* FUCK FLEX FUCK CSS FUCKKKKK */
 .about-contributors {
@@ -10676,3 +10677,5 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 =======
 >>>>>>> parent of 10b7afc (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
+=======
+>>>>>>> parent of d7cbaa4 (Merge branch 'main' of https://github.com/monochrome-music/monochrome)

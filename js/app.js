@@ -126,6 +126,7 @@ async function loadDownloadsModule() {
     return downloadsModule;
 }
 
+<<<<<<< HEAD
 async function fetchcontributors() {
     try {
         const response = await fetch('https://api.samidy.com/api/contributors');
@@ -159,6 +160,8 @@ async function fetchcontributors() {
     } catch (e) {}
 }
 
+=======
+>>>>>>> parent of d7cbaa4 (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
 async function loadMetadataModule() {
     if (!metadataModule) {
         metadataModule = await import('./metadata.js');
@@ -479,8 +482,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize tracker
     initTracker().catch(console.error);
+<<<<<<< HEAD
 
     await fetchcontributors();
+=======
+>>>>>>> parent of d7cbaa4 (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
 
