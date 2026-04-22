@@ -2719,6 +2719,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         showKeyboardShortcuts();
     });
 
+<<<<<<< HEAD
     document.getElementById('customize-shortcuts-btn')?.addEventListener('click', () => {
         showCustomizeShortcutsModal();
     });
@@ -2737,6 +2738,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+=======
+>>>>>>> parent of da74e77 (Merge https://github.com/binimum/monochrome)
     // Listener for Pocketbase Sync updates
     window.addEventListener('library-changed', () => {
         const path = window.location.pathname;

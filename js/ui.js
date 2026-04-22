@@ -53,6 +53,7 @@ import {
     createProjectCardHTML,
     createTrackFromSong,
 } from './tracker.js';
+<<<<<<< HEAD
 import { trackSearch, trackChangeSort } from './analytics.js';
 
 let _isBlockedCopyright = (_c) => false;
@@ -99,6 +100,8 @@ import {
     SVG_CLOCK,
     SVG_CHECKBOX,
 } from './icons.js';
+=======
+>>>>>>> parent of da74e77 (Merge https://github.com/binimum/monochrome)
 
 function sortTracks(tracks, sortType) {
     if (sortType === 'custom') return [...tracks];
