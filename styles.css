@@ -153,6 +153,7 @@
     --ring: #f5f5f5;
     --highlight: #f5f5f5;
     --highlight-rgb: 245, 245, 245;
+    --highlight-foreground: #0a0a0a;
     --active-highlight: var(--highlight);
     --explicit-badge: #f5f5f5;
 }
@@ -175,6 +176,7 @@
     --ring: #3b82f6;
     --highlight: #3b82f6;
     --highlight-rgb: 59, 130, 246;
+    --highlight-foreground: #ffffff;
     --active-highlight: #3b82f6;
     --explicit-badge: #750a0a;
 }
@@ -197,6 +199,7 @@
     --ring: #06b6d4;
     --highlight: #06b6d4;
     --highlight-rgb: 6, 182, 212;
+    --highlight-foreground: #0c1821;
     --active-highlight: #06b6d4;
     --explicit-badge: #f43f5e;
 }
@@ -219,6 +222,7 @@
     --ring: #a855f7;
     --highlight: #a855f7;
     --highlight-rgb: 168, 85, 247;
+    --highlight-foreground: #ffffff;
     --active-highlight: #a855f7;
     --explicit-badge: #ec4899;
 }
@@ -241,6 +245,7 @@
     --ring: #22c55e;
     --highlight: #22c55e;
     --highlight-rgb: 34, 197, 94;
+    --highlight-foreground: #0a1409;
     --active-highlight: #22c55e;
     --explicit-badge: #f59e0b;
 }
@@ -263,6 +268,7 @@
     --ring: #89b4fa;
     --highlight: #89b4fa;
     --highlight-rgb: 180, 190, 254;
+    --highlight-foreground: #1e1e2e;
     --active-highlight: #b4befe;
     --explicit-badge: #f9e2af;
 }
@@ -285,6 +291,7 @@
     --ring: #8aadf4;
     --highlight: #8aadf4;
     --highlight-rgb: 183, 189, 248;
+    --highlight-foreground: #24273a;
     --active-highlight: #b7bdf8;
     --explicit-badge: #eed49f;
 }
@@ -307,6 +314,7 @@
     --ring: #8caaee;
     --highlight: #8caaee;
     --highlight-rgb: 186, 187, 241;
+    --highlight-foreground: #303446;
     --active-highlight: #babbf1;
     --explicit-badge: #e5c890;
 }
@@ -329,6 +337,7 @@
     --ring: #fdfdfd;
     --highlight: #1e66f5;
     --highlight-rgb: 114, 135, 253;
+    --highlight-foreground: #eff1f5;
     --active-highlight: #7287fd;
     --explicit-badge: #df8e1d;
 }
@@ -351,6 +360,7 @@
     --ring: #1a1a1a;
     --highlight: #1a1a1a;
     --highlight-rgb: 26, 26, 26;
+    --highlight-foreground: #f5f5f5;
     --active-highlight: var(--highlight);
     --explicit-badge: #1a1a1a;
     --cover-filter: blur(50px) brightness(1.6) opacity(0.35);
@@ -8328,6 +8338,98 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     background: var(--highlight);
 }
 
+.eq-spectrum-controls {
+    grid-row: 1;
+    grid-column: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    z-index: 2;
+}
+
+.eq-spectrum-range {
+    grid-row: 1;
+    grid-column: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    z-index: 2;
+}
+
+.eq-spectrum-knob {
+    cursor: ns-resize;
+    touch-action: none;
+}
+
+.eq-spectrum-pill,
+.eq-spectrum-toggle-in-graph {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px 4px 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    border: 1px solid rgb(255 255 255 / 18%);
+    border-radius: 999px;
+    background: rgb(0 0 0 / 45%);
+    color: rgb(255 255 255 / 70%);
+    cursor: pointer;
+    user-select: none;
+    backdrop-filter: blur(4px);
+    transition:
+        color var(--transition-fast),
+        background var(--transition-fast),
+        border-color var(--transition-fast);
+}
+
+.eq-spectrum-pill .pill-label {
+    opacity: 0.55;
+    font-weight: 500;
+}
+
+.eq-spectrum-pill .pill-value {
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+
+/* stylelint-disable-next-line no-descending-specificity */
+.eq-spectrum-toggle-in-graph svg {
+    flex-shrink: 0;
+}
+
+.eq-spectrum-pill:hover,
+.eq-spectrum-toggle-in-graph:hover {
+    color: #fff;
+    border-color: rgb(255 255 255 / 35%);
+    background: rgb(0 0 0 / 60%);
+}
+
+.eq-spectrum-toggle-in-graph.active,
+.eq-spectrum-pill.active {
+    color: var(--highlight-foreground, var(--primary-foreground));
+    background: var(--highlight);
+    border-color: var(--highlight);
+    box-shadow: 0 0 0 1px rgb(var(--highlight-rgb), 0.3);
+}
+
+.eq-spectrum-pill.active .pill-value,
+.eq-spectrum-pill.active .pill-label {
+    color: inherit;
+    opacity: 1;
+}
+
+.eq-spectrum-knob.dragging {
+    color: var(--primary-foreground);
+    background: rgb(var(--highlight-rgb), 0.35);
+    border-color: rgb(var(--highlight-rgb), 0.6);
+}
+
 .eq-howto-panel {
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -8484,6 +8586,11 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     position: relative;
     width: 100%;
     height: 300px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto 1fr;
+    column-gap: 8px;
+    align-items: start;
     background: color-mix(in srgb, var(--background) 25%, #111);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -8492,8 +8599,11 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
 .autoeq-response-canvas {
     display: block;
+    grid-row: 2;
+    grid-column: 1 / -1;
     width: 100%;
     height: 100%;
+    min-height: 0;
     cursor: crosshair;
 }
 
@@ -9596,9 +9706,51 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     }
 }
 
+@media (max-width: 600px) {
+    .autoeq-graph-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        min-height: 260px;
+        overflow: visible;
+    }
+
+    .autoeq-graph-wrapper .autoeq-response-canvas {
+        order: 3;
+        flex: 1 1 auto;
+        width: 100%;
+        height: auto;
+        min-height: 180px;
+    }
+
+    .eq-spectrum-range {
+        order: 1;
+        padding: 6px 8px 0;
+        align-self: flex-start;
+    }
+
+    .eq-spectrum-controls {
+        order: 2;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        padding: 4px 8px 6px;
+        width: 100%;
+    }
+
+    .eq-spectrum-pill,
+    .eq-spectrum-toggle-in-graph {
+        padding: 4px 8px;
+        font-size: 0.68rem;
+    }
+}
+
 @media (max-width: 480px) {
     .autoeq-graph-wrapper {
-        height: 180px;
+        min-height: 240px;
+    }
+
+    .autoeq-graph-wrapper .autoeq-response-canvas {
+        min-height: 160px;
     }
 
     .autoeq-graph-header {
