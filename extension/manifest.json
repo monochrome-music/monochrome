@@ -1,15 +1,24 @@
 {
     "manifest_version": 3,
-    "name": "Monochrome Tidal Origin",
-    "version": "1.0.0",
+    "name": "Monochrome Tidal Bypass",
+    "version": "1.0.2",
     "description": "Adds Origin: https://listen.tidal.com to Tidal CDN requests so audio plays without a proxy",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "monochrome-tidal-bypass@binimum.org",
+            "strict_min_version": "111.0",
+            "data_collection_permissions": {
+                "required": ["none"]
+            }
+        }
+    },
     "permissions": ["declarativeNetRequest", "scripting", "declarativeNetRequestWithHostAccess"],
     "host_permissions": [
         "*://*.tidal.com/*",
         "*://monochrome.tf/*",
         "*://monochrome.samidy.com/*",
         "*://lossless.wtf/*",
-        "*://localhost:*/*"
+        "*://localhost/*"
     ],
     "declarative_net_request": {
         "rule_resources": [
@@ -22,12 +31,7 @@
     },
     "content_scripts": [
         {
-            "matches": [
-                "*://monochrome.samidy.com/*",
-                "*://monochrome.tf/*",
-                "*://lossless.wtf/*",
-                "*://localhost:*/*"
-            ],
+            "matches": ["*://monochrome.samidy.com/*", "*://monochrome.tf/*", "*://lossless.wtf/*", "*://localhost/*"],
             "js": ["content.js"],
             "run_at": "document_start",
             "all_frames": true
@@ -41,7 +45,7 @@
     "web_accessible_resources": [
         {
             "resources": ["inject.js"],
-            "matches": ["*://monochrome.samidy.com/*", "*://monochrome.tf/*", "*://lossless.wtf/*", "*://localhost:*/*"]
+            "matches": ["*://monochrome.samidy.com/*", "*://monochrome.tf/*", "*://lossless.wtf/*", "*://localhost/*"]
         }
     ]
 }
