@@ -1590,7 +1590,10 @@ class HiFiClient {
             const attr = inc.attributes ?? ({} as JsonApiIncludeAttributes);
 
             let pic_id: string | null = null;
-            const art_refs_artist = (() => { const d = inc.relationships?.profileArt?.data; return Array.isArray(d) ? d : d ? [d as JsonApiRef] : []; })();
+            const art_refs_artist = (() => {
+                const d = inc.relationships?.profileArt?.data;
+                return Array.isArray(d) ? d : d ? [d as JsonApiRef] : [];
+            })();
             if (art_refs_artist.length > 0) {
                 const artwork = artworks_map[art_refs_artist[0].id];
                 const files = artwork?.attributes?.files;
