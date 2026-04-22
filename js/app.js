@@ -412,6 +412,13 @@ async function uploadCoverImage(file) {
 document.addEventListener('DOMContentLoaded', async () => {
     await modernSettings.waitPending();
 
+    // Request persistent storage to reduce risk of browser wiping data on updates or cleanup
+    if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().catch(() => {
+            // Ignore errors; persistence is a best-effort request
+        });
+    }
+
     if (import.meta.env.DEV) {
         window.monochrome = {
             HiFiClient,

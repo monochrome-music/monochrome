@@ -6573,7 +6573,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         reader.onload = async (event) => {
             try {
                 const data = JSON.parse(event.target.result);
-                await db.importData(data);
+                await db.importData(data, true);
                 alert('Library imported successfully!');
                 window.location.reload(); // Simple way to refresh all state
             } catch (err) {
