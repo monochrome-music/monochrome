@@ -49,17 +49,17 @@ class ServerAPI {
     constructor() {
         this.INSTANCES_URLS = [
             'https://tidal-uptime.jiffy-puffs-1j.workers.dev/',
-            'https://tidal-uptime.props-76styles.workers.dev/',
+            'https://tidal-uptime.props-76styles.workers.dev/'
         ];
         this.apiInstances = null;
     }
 
     async getInstances() {
         if (this.apiInstances) return this.apiInstances;
-
+        
         let data = null;
         const urls = [...this.INSTANCES_URLS].sort(() => Math.random() - 0.5);
-
+        
         for (const url of urls) {
             try {
                 const response = await fetch(url);
@@ -73,13 +73,19 @@ class ServerAPI {
 
         if (data) {
             this.apiInstances = (data.api || [])
+<<<<<<< HEAD
                 .map((item) => item.url || item)
                 .filter((url) => !/\.squid\.wtf/i.test(url));
+=======
+                .map(item => item.url || item)
+                .filter(url => !url.includes('spotisaver.net'));
+>>>>>>> parent of 1188a2d (style: auto-fix linting issues)
             return this.apiInstances;
         }
 
         console.error('Failed to load instances from all uptime APIs');
         return [
+<<<<<<< HEAD
             'https://hifi.geeked.wtf',
             'https://eu-central.monochrome.tf',
             'https://us-west.monochrome.tf',
@@ -92,6 +98,20 @@ class ServerAPI {
             'https://hund.qqdl.site',
             'https://tidal.kinoplus.online',
             'https://wolf.qqdl.site',
+=======
+            "https://eu-central.monochrome.tf",
+            "https://us-west.monochrome.tf",
+            "https://arran.monochrome.tf",
+            "https://triton.squid.wtf",
+            "https://api.monochrome.tf",
+            "https://monochrome-api.samidy.com",
+            "https://maus.qqdl.site",
+            "https://vogel.qqdl.site",
+            "https://katze.qqdl.site",
+            "https://hund.qqdl.site",
+            "https://tidal.kinoplus.online",
+            "https://wolf.qqdl.site"
+>>>>>>> parent of 1188a2d (style: auto-fix linting issues)
         ];
     }
 
