@@ -677,7 +677,35 @@ const syncManager = {
                         user_folders: Object.values(userFolders).filter((f) => f && typeof f === 'object'),
                     };
 
-                    await database.importData(convertedData);
+                    // Safety check: if we had local data but merged result is completely empty, something went wrong.
+                    // Do NOT call importData as it would wipe the user's local stores.
+                    const hadLocalData =
+                        localData.tracks.length > 0 ||
+                        localData.albums.length > 0 ||
+                        localData.artists.length > 0 ||
+                        localData.playlists.length > 0 ||
+                        localData.mixes.length > 0 ||
+                        localData.history.length > 0 ||
+                        localData.userPlaylists.length > 0 ||
+                        localData.userFolders.length > 0;
+
+                    const isConvertedEmpty =
+                        convertedData.favorites_tracks.length === 0 &&
+                        convertedData.favorites_albums.length === 0 &&
+                        convertedData.favorites_artists.length === 0 &&
+                        convertedData.favorites_playlists.length === 0 &&
+                        convertedData.favorites_mixes.length === 0 &&
+                        convertedData.history_tracks.length === 0 &&
+                        convertedData.user_playlists.length === 0 &&
+                        convertedData.user_folders.length === 0;
+
+                    if (hadLocalData && isConvertedEmpty) {
+                        console.warn(
+                            '[PocketBase] Sync aborted: local data exists but merged result is empty. Preserving local data to prevent accidental wipe.'
+                        );
+                    } else {
+                        await database.importData(convertedData, true);
+                    }
                     await new Promise((resolve) => setTimeout(resolve, 300));
 
                     window.dispatchEvent(new CustomEvent('library-changed'));

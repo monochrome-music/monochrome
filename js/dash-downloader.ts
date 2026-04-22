@@ -30,7 +30,7 @@ export class DashDownloader {
 
             await Promise.all(
                 urls.map(async (url) => {
-                    const result = await fetch(url, { method: 'HEAD', signal });
+                    const result = await fetch(getProxyUrl(url), { method: 'HEAD', signal });
 
                     if (result.ok) {
                         const contentLength = result.headers.get('Content-Length');
@@ -75,7 +75,7 @@ export class DashDownloader {
 
             onProgress?.(new SegmentedDownloadProgress(downloadedBytes, totalSize ?? undefined, i, totalSegments));
 
-            const url = urls[i];
+            const url = getProxyUrl(urls[i]);
             const segmentResponse = await fetch(url, { signal });
 
             if (!segmentResponse.ok) {

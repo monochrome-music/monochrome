@@ -1,0 +1,55 @@
+[
+    {
+        "id": 1,
+        "priority": 1,
+        "action": {
+            "type": "modifyHeaders",
+            "responseHeaders": [
+                {
+                    "header": "Access-Control-Allow-Origin",
+                    "operation": "set",
+                    "value": "*"
+                },
+                {
+                    "header": "Access-Control-Allow-Methods",
+                    "operation": "set",
+                    "value": "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+                },
+                {
+                    "header": "Access-Control-Allow-Headers",
+                    "operation": "set",
+                    "value": "*"
+                }
+            ]
+        },
+        "condition": {
+            "urlFilter": "||tidal.com*",
+            "initiatorDomains": ["monochrome.tf", "monochrome.samidy.com"],
+            "resourceTypes": ["xmlhttprequest", "media"]
+        }
+    },
+    {
+        "id": 2,
+        "priority": 1,
+        "action": {
+            "type": "modifyHeaders",
+            "requestHeaders": [
+                {
+                    "header": "Origin",
+                    "operation": "set",
+                    "value": "https://listen.tidal.com"
+                },
+                {
+                    "header": "Referer",
+                    "operation": "set",
+                    "value": "https://listen.tidal.com/"
+                }
+            ]
+        },
+        "condition": {
+            "urlFilter": "||tidal.com*",
+            "initiatorDomains": ["monochrome.tf", "monochrome.samidy.com"],
+            "resourceTypes": ["xmlhttprequest", "media"]
+        }
+    }
+]

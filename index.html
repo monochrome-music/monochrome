@@ -117,6 +117,12 @@
     <body>
         <audio id="audio-player" style="display: none"></audio>
         <video id="video-player" style="display: none"></video>
+        <script>
+            if (window.__tidalOriginExtension) {
+                document.getElementById('audio-player').crossOrigin = 'anonymous';
+                document.getElementById('video-player').crossOrigin = 'anonymous';
+            }
+        </script>
         <div id="context-menu">
             <ul>
                 <li data-action="shuffle-play-card" data-type-filter="album,playlist,mix,user-playlist">
@@ -1732,8 +1738,11 @@
                             <div id="server-disruption-banner" class="server-disruption-sidebar" style="display: none">
                                 <span class="disruption-icon">&#9888;</span>
                                 <span
-                                    >Services are currently unstable. <br /><br />For Hi-Res streaming, use Chrome or
-                                    Safari.</span
+                                    >Services are currently unstable. <br /><br />Use the extension
+                                    <a href="https://github.com/monochrome-music/monochrome/tree/main/extension"
+                                        >here</a
+                                    >
+                                    for the best experience.</span
                                 >
                                 <button id="dismiss-disruption-btn" class="disruption-dismiss" title="Dismiss">
                                     &times;
@@ -4063,6 +4072,7 @@
                                     </div>
                                     <select id="streaming-quality-setting">
                                         <option value="auto">Auto (Adaptive)</option>
+                                        <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
                                         <option value="LOSSLESS">Lossless (16-bit)</option>
                                         <option value="HIGH">AAC 320kbps</option>
                                         <option value="LOW">AAC 96kbps</option>

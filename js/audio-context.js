@@ -483,6 +483,25 @@ class AudioContextManager {
                 this.audioContext = new AudioContext();
             }
 
+            if (window.__tidalOriginExtension) {
+                if (!this.sources.has(audioElement)) {
+                    const src = this.audioContext.createMediaElementSource(audioElement);
+                    this.sources.set(audioElement, src);
+                }
+                this.source = this.sources.get(audioElement);
+
+                try {
+                    this.audioContext.destination.channelCount = Math.min(this.audioContext.destination.maxChannelCount, 8);
+                    this.audioContext.destination.channelCountMode = 'explicit';
+                    this.audioContext.destination.channelInterpretation = 'discrete';
+                } catch {
+                    // Some browsers may not support changing destination channel count
+                }
+
+                this.binauralDsp = new BinauralDSP(this.audioContext);
+                void this._loadBinauralSettings();
+            }
+
             this.analyser = this.audioContext.createAnalyser();
             this.analyser.fftSize = 1024;
             this.analyser.smoothingTimeConstant = 0.7;
@@ -502,12 +521,16 @@ class AudioContextManager {
 
             this.monoMergerNode = this.audioContext.createChannelMerger(2);
 
+            if (window.__tidalOriginExtension) {
+                this._connectGraph();
+            }
+
             // Auto-recover from unexpected suspensions (e.g. background throttling)
             this.audioContext.addEventListener('statechange', () => {
                 if (this.audioContext.state === 'interrupted' || this.audioContext.state === 'suspended') {
                     console.log(`[AudioContext] State changed to ${this.audioContext.state}, attempting resume`);
                     setTimeout(() => {
-                        if (this.audioContext && this.audioContext.state !== 'running') {
+                        if (this.audioContext && this.audioContext.state !== 'running' && (window.__tidalOriginExtension ? this.source : true)) {
                             this.audioContext.resume().catch((e) => {
                                 console.warn('[AudioContext] Auto-resume failed:', e);
                             });
@@ -529,7 +552,32 @@ class AudioContextManager {
         }
         if (this.audio === audioElement) return;
 
-        this.audio = audioElement;
+        if (window.__tidalOriginExtension) {
+            try {
+                if (this.source) {
+                    try {
+                        this.source.disconnect();
+                    } catch {
+                        // node may already be disconnected
+                    }
+                }
+
+                this.audio = audioElement;
+
+                if (!this.sources.has(audioElement)) {
+                    this.sources.set(audioElement, this.audioContext.createMediaElementSource(audioElement));
+                }
+                this.source = this.sources.get(audioElement);
+
+                if (this.isInitialized) {
+                    this._connectGraph();
+                }
+            } catch (e) {
+                console.warn('changeSource failed:', e);
+            }
+        } else {
+            this.audio = audioElement;
+        }
     }
 
     /**
