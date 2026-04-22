@@ -597,6 +597,7 @@ export class Player {
                                     if (stats && stats.estimatedBandwidth) {
                                         preloadConfig.abr.defaultBandwidthEstimate = stats.estimatedBandwidth;
                                     }
+<<<<<<< HEAD
 
                                     // Lock the preload to the exact current audio codec to prevent ABR mismatch,
                                     // which forces the player to discard and re-fetch chunks on slow connections.
@@ -611,6 +612,8 @@ export class Player {
                                             preloadConfig.preferredAudioCodecs = [activeVariant.audioCodec];
                                         }
                                     } catch (_e) {}
+=======
+>>>>>>> parent of 6651136 (fix: lock preload audio codec and disable PreloadManager ABR)
                                 }
                                 const preloadManager = await this.shakaPlayer.preload(
                                     streamUrl,
