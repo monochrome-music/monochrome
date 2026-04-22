@@ -28,6 +28,7 @@ import {
     trackSkipTrack,
     trackToggleShuffle,
     trackToggleRepeat,
+    trackSeek,
     trackAddToQueue,
     trackPlayNext,
     trackLikeTrack,
@@ -613,9 +614,98 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
         trackSkipTrack(player.currentTrack, 'next');
         player.playNext();
     });
+<<<<<<< HEAD
     prevBtn.addEventListener('click', async () => {
         await hapticMedium();
 =======
+=======
+
+    audioPlayer.addEventListener('timeupdate', async () => {
+        const { currentTime, duration } = audioPlayer;
+        if (duration) {
+            const progressFill = document.getElementById('progress-fill');
+            const currentTimeEl = document.getElementById('current-time');
+            progressFill.style.width = `${(currentTime / duration) * 100}%`;
+            currentTimeEl.textContent = formatTime(currentTime);
+
+            // Track seek milestones
+            trackSeek(currentTime, duration);
+
+            // Log to history after 10 seconds of playback
+            if (currentTime >= 10 && player.currentTrack && player.currentTrack.id !== historyLoggedTrackId) {
+                historyLoggedTrackId = player.currentTrack.id;
+                const historyEntry = await db.addToHistory(player.currentTrack);
+                syncManager.syncHistoryItem(historyEntry);
+
+                if (window.location.hash === '#recent') {
+                    ui.renderRecentPage();
+                }
+            }
+        }
+    });
+
+    audioPlayer.addEventListener('loadedmetadata', () => {
+        const totalDurationEl = document.getElementById('total-duration');
+        totalDurationEl.textContent = formatTime(audioPlayer.duration);
+        player.updateMediaSessionPositionState();
+    });
+
+    audioPlayer.addEventListener('error', async (e) => {
+        console.error('Audio playback error:', e);
+        playPauseBtn.innerHTML = SVG_PLAY;
+
+        const currentQuality = player.quality;
+
+        // Check if we can fallback to a lower quality
+        if (
+            player.currentTrack &&
+            currentQuality === 'HI_RES_LOSSLESS' &&
+            !player.currentTrack.isLocal &&
+            !player.currentTrack.isTracker &&
+            !player.isFallbackRetry
+        ) {
+            console.warn('Playback failed, attempting fallback to LOSSLESS quality...');
+            player.isFallbackRetry = true; // Set flag to prevent infinite loops
+
+            try {
+                // Force getTrack to fetch new URL for LOSSLESS
+                const trackId = player.currentTrack.id;
+
+                // Fetch new stream URL
+                const newStreamUrl = await player.api.getStreamUrl(trackId, 'LOSSLESS');
+
+                if (newStreamUrl) {
+                    // Reset player state for standard playback (non-DASH if possible)
+                    if (player.dashInitialized) {
+                        player.dashPlayer.reset();
+                        player.dashInitialized = false;
+                    }
+
+                    audioPlayer.src = newStreamUrl;
+                    audioPlayer.load();
+                    await audioPlayer.play();
+
+                    // Reset flag after successful start
+                    setTimeout(() => {
+                        player.isFallbackRetry = false;
+                    }, 5000);
+                    return; // Successfully handled
+                }
+            } catch (fallbackError) {
+                console.error('Fallback failed:', fallbackError);
+            }
+        }
+
+        player.isFallbackRetry = false;
+
+        // Skip to next track on error to prevent queue stalling
+        if (player.currentTrack) {
+            console.warn('Skipping to next track due to playback error');
+            setTimeout(() => player.playNext(), 1000); // Small delay to avoid rapid skipping
+        }
+    });
+
+>>>>>>> parent of 01309a9 (Change instances.json in favour of Workers which have live API uptime)
     playPauseBtn.addEventListener('click', () => player.handlePlayPause());
     nextBtn.addEventListener('click', () => {
         trackSkipTrack(player.currentTrack, 'next');
@@ -2279,6 +2369,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                         document.getElementById('shuffle-btn').classList.remove('active');
                         player.playTrackFromQueue();
 
+<<<<<<< HEAD
                         const { autoplaySettings } = await import('./storage.js');
                         const fetchRecs = autoplaySettings.isSmartRecsEnabled()
                             ? (async () => {
@@ -2299,6 +2390,14 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                             }
                         });
                     }
+=======
+                    api.getTrackRecommendations(clickedTrack.id).then((recs) => {
+                        if (recs && recs.length > 0) {
+                            player.addToQueue(recs);
+                            showNotification(`Added ${recs.length} recommendations to queue`);
+                        }
+                    });
+>>>>>>> parent of 01309a9 (Change instances.json in favour of Workers which have live API uptime)
                 }
             } else {
                 const parentList = trackItem.closest('.track-list');

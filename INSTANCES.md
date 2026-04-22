@@ -22,12 +22,16 @@ PLEASE do not use any rehost of monochrome and complain to us about features not
 
 ## API Instances
 
+<<<<<<< HEAD
 Monochrome uses the Hi-Fi API under the hood. Live, up-to-date status trackers (which return JSON) can be found below:
 
 - [https://tidal-uptime.jiffy-puffs-1j.workers.dev](https://tidal-uptime.jiffy-puffs-1j.workers.dev/)
 - [https://tidal-uptime.props-76styles.workers.dev](https://tidal-uptime.props-76styles.workers.dev/)
 
 These are available API endpoints that can be used with Monochrome or other Hi-Fi based applications:
+=======
+Monochrome uses the Hi-Fi API under the hood. These are available API endpoints that can be used with Monochrome or other Hi-Fi based applications:
+>>>>>>> parent of 01309a9 (Change instances.json in favour of Workers which have live API uptime)
 
 ### Official & Community APIs
 

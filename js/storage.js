@@ -3,15 +3,11 @@
 import { SVG_RIGHT_ARROW } from './icons';
 
 export const apiSettings = {
-    STORAGE_KEY: 'monochrome-api-instances-v9',
-    INSTANCES_URLS: [
-        'https://tidal-uptime.jiffy-puffs-1j.workers.dev/',
-        'https://tidal-uptime.props-76styles.workers.dev/'
-    ],
+    STORAGE_KEY: 'monochrome-api-instances-v8',
+    INSTANCES_URL: 'instances.json',
     defaultInstances: { api: [], streaming: [] },
     userInstances: null,
     instancesLoaded: false,
-    _loadPromise: null,
 
     _loadUserInstances() {
         if (this.userInstances) return this.userInstances;
@@ -33,10 +29,11 @@ export const apiSettings = {
             return this.defaultInstances;
         }
 
-        if (this._loadPromise) {
-            return this._loadPromise;
-        }
+        try {
+            const response = await fetch(this.INSTANCES_URL);
+            if (!response.ok) throw new Error('Failed to fetch instances');
 
+<<<<<<< HEAD
         this._loadPromise = (async () => {
             const cachedData = localStorage.getItem(this.STORAGE_KEY);
             if (cachedData) {
@@ -153,32 +150,114 @@ export const apiSettings = {
 >>>>>>> parent of 1188a2d (style: auto-fix linting issues)
             } else if (groupedInstances.api.length > 0) {
                 groupedInstances.streaming = [...groupedInstances.api];
+=======
+            const data = await response.json();
+
+            let groupedInstances = { api: [], streaming: [] };
+
+            if (Array.isArray(data)) {
+                // Legacy array format
+                groupedInstances.api = [...data];
+                groupedInstances.streaming = [...data];
+            } else {
+                // New object format or legacy object format
+                if (data.api && Array.isArray(data.api)) {
+                    const isSimpleArray = data.api.length > 0 && typeof data.api[0] === 'string';
+                    if (isSimpleArray) {
+                        groupedInstances.api = [...data.api];
+                    } else {
+                        for (const [, config] of Object.entries(data.api)) {
+                            if (config.cors === false && Array.isArray(config.urls)) {
+                                groupedInstances.api.push(...config.urls);
+                            }
+                        }
+                    }
+                }
+
+                if (data.streaming && Array.isArray(data.streaming)) {
+                    groupedInstances.streaming = [...data.streaming];
+                } else if (groupedInstances.api.length > 0) {
+                    groupedInstances.streaming = [...groupedInstances.api];
+                }
+>>>>>>> parent of 01309a9 (Change instances.json in favour of Workers which have live API uptime)
             }
 
             this.defaultInstances = groupedInstances;
             this.instancesLoaded = true;
 
-            try {
-                localStorage.setItem(this.STORAGE_KEY, JSON.stringify({
-                    timestamp: Date.now(),
-                    data: groupedInstances
-                }));
-            } catch (e) {
-                console.warn('Failed to cache instances:', e);
-            }
-
-            this._loadPromise = null;
             return groupedInstances;
-        })();
-
-        return this._loadPromise;
+        } catch (error) {
+            console.error('Failed to load instances from GitHub:', error);
+            this.defaultInstances = {
+                api: [
+                    'https://eu-central.monochrome.tf',
+                    'https://us-west.monochrome.tf',
+                    'https://arran.monochrome.tf',
+                    'https://api.monochrome.tf',
+                    'https://triton.squid.wtf',
+                    'https://wolf.qqdl.site',
+                    'https://monochrome-api.samidy.com',
+                    'https://maus.qqdl.site',
+                    'https://tidal.kinoplus.online',
+                    'https://hund.qqdl.site',
+                    'https://vogel.qqdl.site',
+                ],
+                streaming: [
+                    'https://arran.monochrome.tf',
+                    'https://triton.squid.wtf',
+                    'https://wolf.qqdl.site',
+                    'https://maus.qqdl.site',
+                    'https://vogel.qqdl.site',
+                    'https://katze.qqdl.site',
+                    'https://hund.qqdl.site',
+                ],
+            };
+            this.instancesLoaded = true;
+            return this.defaultInstances;
+        }
     },
 
     async getInstances(type = 'api', _sortBySpeed = false) {
         let instancesObj;
 
+<<<<<<< HEAD
         instancesObj = await this.loadInstancesFromGitHub();
         const userInst = this._loadUserInstances();
+=======
+        const stored = localStorage.getItem(this.STORAGE_KEY);
+        if (stored) {
+            instancesObj = JSON.parse(stored);
+
+            // love it when local storage doesnt update
+            if (instancesObj?.api?.length === 2) {
+                const hasBinimum = instancesObj.api.some((url) => {
+                    try {
+                        const urlObj = new URL(url);
+                        return urlObj.hostname === 'tidal-api.binimum.org';
+                    } catch {
+                        return false;
+                    }
+                });
+                const hasSamidy = instancesObj.api.some((url) => {
+                    try {
+                        const urlObj = new URL(url);
+                        return urlObj.hostname === 'monochrome-api.samidy.com';
+                    } catch {
+                        return false;
+                    }
+                });
+
+                if (hasBinimum && hasSamidy) {
+                    localStorage.removeItem(this.STORAGE_KEY);
+                    instancesObj = null;
+                }
+            }
+        }
+
+        if (!instancesObj) {
+            instancesObj = await this.loadInstancesFromGitHub();
+        }
+>>>>>>> parent of 01309a9 (Change instances.json in favour of Workers which have live API uptime)
 
         const defaultUrls = instancesObj[type] || instancesObj.api || [];
         const userUrls = userInst[type] || [];

@@ -67,6 +67,7 @@ export class LosslessAPI {
     async fetchWithRetry(relativePath, options = {}) {
         const type = options.type || 'api';
 <<<<<<< HEAD
+<<<<<<< HEAD
         const isSearchRequest = relativePath.startsWith('/search/');
         const getInstances = async (forceRefresh = false) => {
             if (forceRefresh && this.settings && typeof this.settings.refreshInstances === 'function') {
@@ -77,10 +78,14 @@ export class LosslessAPI {
                 }
 =======
         let instances = await this.settings.getInstances(type);
+=======
+        const instances = await this.settings.getInstances(type);
+>>>>>>> parent of 01309a9 (Change instances.json in favour of Workers which have live API uptime)
         if (instances.length === 0) {
             throw new Error(`No API instances configured for type: ${type}`);
         }
 
+<<<<<<< HEAD
         if (options.minVersion) {
             instances = instances.filter(instance => {
                 if (!instance.version) return false;
@@ -96,6 +101,24 @@ export class LosslessAPI {
                 instances = instances.filter((i) => i.isUser);
                 if (instances.length === 0) {
                     throw new Error(`No user API instances configured for type: ${type}`);
+=======
+        const maxTotalAttempts = instances.length * 2; // Allow some retries across instances
+        let lastError = null;
+        let instanceIndex = Math.floor(Math.random() * instances.length);
+
+        for (let attempt = 1; attempt <= maxTotalAttempts; attempt++) {
+            const baseUrl = instances[instanceIndex % instances.length];
+            const url = baseUrl.endsWith('/') ? `${baseUrl}${relativePath.substring(1)}` : `${baseUrl}${relativePath}`;
+
+            try {
+                const response = await fetch(url, { signal: options.signal });
+
+                if (response.status === 429) {
+                    console.warn(`Rate limit hit on ${baseUrl}. Trying next instance...`);
+                    instanceIndex++;
+                    await delay(500); // Small delay before trying next instance
+                    continue;
+>>>>>>> parent of 01309a9 (Change instances.json in favour of Workers which have live API uptime)
                 }
             } else if (instances.length === 0) {
                 throw new Error(`No API instances configured for type: ${type}`);
@@ -1011,7 +1034,7 @@ export class LosslessAPI {
         const cached = await this.cache.get('mix', id);
         if (cached) return cached;
 
-        const response = await this.fetchWithRetry(`/mix/?id=${id}`, { type: 'api', minVersion: '2.3' });
+        const response = await this.fetchWithRetry(`/mix/?id=${id}`, { type: 'api' });
         const data = await response.json();
 
         const mixData = data.mix;
@@ -1291,7 +1314,7 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/artist/similar/?id=${artistId}`, { type: 'api', minVersion: '2.3' });
+            const response = await this.fetchWithRetry(`/artist/similar/?id=${artistId}`, { type: 'api' });
             const data = await response.json();
 
             // Handle various response structures
@@ -1341,7 +1364,7 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/album/similar/?id=${albumId}`, { type: 'api', minVersion: '2.3' });
+            const response = await this.fetchWithRetry(`/album/similar/?id=${albumId}`, { type: 'api' });
             const data = await response.json();
 
             const items = data.items || data.albums || data.data || (Array.isArray(data) ? data : []);
@@ -1506,7 +1529,7 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/recommendations/?id=${id}`, { type: 'api', minVersion: '2.4' });
+            const response = await this.fetchWithRetry(`/recommendations/?id=${id}`, { type: 'api' });
             const json = await response.json();
             const data = json.data || json;
 

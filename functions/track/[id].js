@@ -69,15 +69,13 @@ class TidalAPI {
 
 class ServerAPI {
     constructor() {
-        this.INSTANCES_URLS = [
-            'https://tidal-uptime.jiffy-puffs-1j.workers.dev/',
-            'https://tidal-uptime.props-76styles.workers.dev/'
-        ];
+        this.INSTANCES_URL = 'https://raw.githubusercontent.com/Monochrome-music/monochrome/main/public/instances.json';
         this.apiInstances = null;
     }
 
     async getInstances() {
         if (this.apiInstances) return this.apiInstances;
+<<<<<<< HEAD
         
         let data = null;
         const urls = [...this.INSTANCES_URLS].sort(() => Math.random() - 0.5);
@@ -101,24 +99,23 @@ class ServerAPI {
                 .map(item => item.url || item)
                 .filter(url => !url.includes('spotisaver.net'));
 >>>>>>> parent of 1188a2d (style: auto-fix linting issues)
+=======
+        try {
+            const response = await fetch(this.INSTANCES_URL);
+            if (!response.ok) throw new Error('Failed to fetch instances');
+            const data = await response.json();
+            this.apiInstances = data.api || [];
+>>>>>>> parent of 01309a9 (Change instances.json in favour of Workers which have live API uptime)
             return this.apiInstances;
+        } catch (error) {
+            console.error('Failed to load instances from GitHub:', error);
+            return [
+                'https://triton.squid.wtf',
+                'https://wolf.qqdl.site',
+                'https://tidal-api.binimum.org',
+                'https://monochrome-api.samidy.com',
+            ];
         }
-
-        console.error('Failed to load instances from all uptime APIs');
-        return [
-            "https://eu-central.monochrome.tf",
-            "https://us-west.monochrome.tf",
-            "https://arran.monochrome.tf",
-            "https://triton.squid.wtf",
-            "https://api.monochrome.tf",
-            "https://monochrome-api.samidy.com",
-            "https://maus.qqdl.site",
-            "https://vogel.qqdl.site",
-            "https://katze.qqdl.site",
-            "https://hund.qqdl.site",
-            "https://tidal.kinoplus.online",
-            "https://wolf.qqdl.site"
-        ];
     }
 
     async fetchWithRetry(relativePath) {
