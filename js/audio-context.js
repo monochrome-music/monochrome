@@ -483,6 +483,7 @@ class AudioContextManager {
                 this.audioContext = new AudioContext();
             }
 
+<<<<<<< HEAD
             if (window.__tidalOriginExtension) {
                 if (!this.sources.has(audioElement)) {
                     const src = this.audioContext.createMediaElementSource(audioElement);
@@ -502,6 +503,8 @@ class AudioContextManager {
                 void this._loadBinauralSettings();
             }
 
+=======
+>>>>>>> parent of 2f1944e (Merge pull request #607 from monochrome-music/claude/trusting-engelbart-c48380)
             this.analyser = this.audioContext.createAnalyser();
             this.analyser.fftSize = 1024;
             this.analyser.smoothingTimeConstant = 0.7;
@@ -521,10 +524,13 @@ class AudioContextManager {
 
             this.monoMergerNode = this.audioContext.createChannelMerger(2);
 
+<<<<<<< HEAD
             if (window.__tidalOriginExtension) {
                 this._connectGraph();
             }
 
+=======
+>>>>>>> parent of 2f1944e (Merge pull request #607 from monochrome-music/claude/trusting-engelbart-c48380)
             // Auto-recover from unexpected suspensions (e.g. background throttling)
             this.audioContext.addEventListener('statechange', () => {
                 if (this.audioContext.state === 'interrupted' || this.audioContext.state === 'suspended') {
@@ -552,6 +558,7 @@ class AudioContextManager {
         }
         if (this.audio === audioElement) return;
 
+<<<<<<< HEAD
         if (window.__tidalOriginExtension) {
             try {
                 if (this.source) {
@@ -578,6 +585,9 @@ class AudioContextManager {
         } else {
             this.audio = audioElement;
         }
+=======
+        this.audio = audioElement;
+>>>>>>> parent of 2f1944e (Merge pull request #607 from monochrome-music/claude/trusting-engelbart-c48380)
     }
 
     /**
