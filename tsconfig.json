@@ -7,17 +7,17 @@
         "types": ["vite/client", "node", "@types/wicg-file-system-access"],
         "baseUrl": ".",
         "paths": {
-            "!/*": ["node_modules/*"]
+            "!/*": ["node_modules/*"],
         },
         "allowJs": true,
         "checkJs": false,
         "resolveJsonModule": true,
         "isolatedModules": true,
         "verbatimModuleSyntax": true,
-        "ignoreDeprecations": "6.0",
+        "ignoreDeprecations": "5.0",
         "skipLibCheck": true,
-        "noEmit": true
+        "noEmit": true,
     },
     "include": ["**/*.ts", "*.ts", "**/*.js", "*.js"],
-    "exclude": ["**/node_modules/*"]
+    "exclude": ["**/node_modules/*"],
 }
