@@ -5554,6 +5554,7 @@ input:checked + .slider::before {
     background-color: var(--brand);
 }
 
+
 .side-panel.active {
     transform: translateX(0);
     box-shadow: var(--shadow-xl);
