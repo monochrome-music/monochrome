@@ -223,13 +223,6 @@ export class MusicAPI {
         return this.tidalAPI.getCoverUrl(this.stripProviderPrefix(id), size);
     }
 
-    getCoverSrcset(id) {
-        if (typeof id === 'string' && id.startsWith('blob:')) {
-            return '';
-        }
-        return this.tidalAPI.getCoverSrcset(this.stripProviderPrefix(id));
-    }
-
     getVideoCoverUrl(imageId, size = '1280') {
         if (!imageId) {
             return null;
@@ -281,6 +274,7 @@ export class MusicAPI {
         return this.tidalAPI.getArtistPictureUrl(this.stripProviderPrefix(id), size);
     }
 
+<<<<<<< HEAD
     getArtistPictureSrcset(id) {
         return this.tidalAPI.getArtistPictureSrcset(this.stripProviderPrefix(id));
     }
@@ -326,6 +320,8 @@ export class MusicAPI {
         }
     }
 
+=======
+>>>>>>> parent of 3ed9d8b (refactor: streamline image processing and cover URL handling)
     extractStreamUrlFromManifest(manifest) {
         return this.tidalAPI.extractStreamUrlFromManifest(manifest);
     }

@@ -344,10 +344,8 @@ export class Player {
 
                 if (coverEl) {
                     const videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
-                    const coverId = track.image || track.cover || track.album?.cover;
                     const coverUrl =
-                        videoCoverUrl || this.api.getCoverUrl(coverId);
-                    const coverSrcset = videoCoverUrl ? null : this.api.getCoverSrcset(coverId);
+                        videoCoverUrl || this.api.getCoverUrl(track.image || track.cover || track.album?.cover);
 
                     if (videoCoverUrl) {
                         if (coverEl.tagName === 'IMG') {
@@ -365,24 +363,14 @@ export class Player {
                             coverEl.src = videoCoverUrl;
                         }
                     } else {
-                        const setImgSrcset = (img) => {
-                            if (img.getAttribute('src') !== coverUrl) img.src = coverUrl;
-                            if (coverSrcset) {
-                                img.setAttribute('srcset', coverSrcset);
-                                img.setAttribute('sizes', '(max-width: 640px) 160px, (max-width: 1024px) 320px, 640px');
-                            } else {
-                                img.removeAttribute('srcset');
-                                img.removeAttribute('sizes');
-                            }
-                        };
                         if (coverEl.tagName === 'VIDEO') {
                             const img = document.createElement('img');
+                            img.src = coverUrl;
                             img.className = coverEl.className;
                             img.id = coverEl.id;
-                            setImgSrcset(img);
                             coverEl.replaceWith(img);
                         } else {
-                            setImgSrcset(coverEl);
+                            coverEl.src = coverUrl;
                         }
                     }
                 }
@@ -969,6 +957,7 @@ export class Player {
         } else {
             if (coverEl) {
                 coverEl.style.display = 'block';
+<<<<<<< HEAD
                 const videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
                 const coverId = track.image || track.cover || track.album?.cover;
                 const coverUrl = videoCoverUrl || this.api.getCoverUrl(coverId);
@@ -996,6 +985,10 @@ export class Player {
                         }
                     }
                 }
+=======
+                const coverUrl = this.api.getCoverUrl(track.image || track.cover || track.album?.cover);
+                if (coverEl.src !== coverUrl) coverEl.src = coverUrl;
+>>>>>>> parent of 3ed9d8b (refactor: streamline image processing and cover URL handling)
             }
             if (this.audio) {
                 const isInFullscreen = document.getElementById('fullscreen-cover-overlay')?.style.display === 'flex';
