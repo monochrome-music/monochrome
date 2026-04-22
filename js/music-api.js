@@ -77,6 +77,7 @@ export class MusicAPI {
     }
 
     // Search methods
+<<<<<<< HEAD
     async search(query, options = {}) {
         const api = this.getAPI();
         if (typeof api.search === 'function') {
@@ -101,6 +102,8 @@ export class MusicAPI {
         };
     }
 
+=======
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
     async searchTracks(query, options = {}) {
         return this.getAPI().searchTracks(query, options);
     }

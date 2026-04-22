@@ -1,0 +1,1 @@
+export { MediaPlayer } from 'dashjs';

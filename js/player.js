@@ -1,3 +1,4 @@
+//js/player.js
 import {
     REPEAT_MODE,
     formatTime,
@@ -7,7 +8,6 @@ import {
     getTrackYearDisplay,
     createQualityBadgeHTML,
     escapeHtml,
-    deriveTrackQuality,
 } from './utils.js';
 import {
     queueManager,
@@ -23,11 +23,12 @@ import {
 >>>>>>> parent of d876eeb (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
-import { isIos, isSafari } from './platform-detection.js';
+import { isIos } from './platform-detection.js';
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
 
-import { SVG_CLOCK, SVG_ATMOS } from './icons.js';
+import('./dash-media-player.js');
+import { SVG_CLOCK } from './icons.js';
 import { UIRenderer } from './ui.js';
 import { MediaSession } from '@capgo/capacitor-media-session';
 
@@ -103,18 +104,15 @@ export class Player {
             });
         }
 
-        // Initialize Shaka player
-        const shaka = await import('shaka-player');
-        shaka.polyfill.installAll();
-        if (shaka.Player.isBrowserSupported()) {
-            this.shakaPlayer = new shaka.Player();
-            this.shakaPlayer.configure({
-                streaming: {
-                    bufferingGoal: 30,
-                    rebufferingGoal: 2,
-                    bufferBehind: 30,
-                    jumpLargeGaps: true
+        // Initialize dash.js player
+        const { MediaPlayer } = await import('./dash-media-player.js');
+        this.dashPlayer = MediaPlayer().create();
+        this.dashPlayer.updateSettings({
+            streaming: {
+                buffer: {
+                    fastSwitchEnabled: true,
                 },
+<<<<<<< HEAD
                 abr: {
                     enabled: true,
                     defaultBandwidthEstimate: 100000,
@@ -152,6 +150,11 @@ export class Player {
         } else {
             console.error('Browser not supported for Shaka Player');
         }
+=======
+            },
+        });
+        this.dashInitialized = false;
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
 
         this.loadQueueState();
         await this.setupMediaSession();
@@ -288,15 +291,33 @@ export class Player {
 
         const el = this.activeElement;
 
+<<<<<<< HEAD
         el.volume = Math.max(0, Math.min(1, effectiveVolume));
+=======
+        // Apply to audio element and/or Web Audio graph
+        if (audioContextManager.isReady()) {
+            // If Web Audio is active, we apply volume there for better compatibility
+            // Especially on Linux where audio.volume might not affect the Web Audio graph
+            el.volume = 1.0;
+            audioContextManager.setVolume(effectiveVolume);
+        } else {
+            el.volume = Math.max(0, Math.min(1, effectiveVolume));
+        }
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
     }
 
     applyAudioEffects() {
         const speed = audioEffectsSettings.getSpeed();
         const el = this.activeElement;
 
-        if (el.playbackRate !== speed) {
-            el.playbackRate = speed;
+        if (this.dashInitialized && this.dashPlayer) {
+            if (this.dashPlayer.getPlaybackRate() !== speed) {
+                this.dashPlayer.setPlaybackRate(speed);
+            }
+        } else {
+            if (el.playbackRate !== speed) {
+                el.playbackRate = speed;
+            }
         }
 
         const preservePitch = audioEffectsSettings.isPreservePitchEnabled();
@@ -560,6 +581,7 @@ export class Player {
             const isPodcast = track.isPodcast || (track.id && String(track.id).startsWith('podcast_'));
             if (track.isLocal || isTracker || isPodcast || (track.audioUrl && !track.isLocal)) continue;
             try {
+<<<<<<< HEAD
                 const streamInfo =
                     track.type == 'video'
                         ? await this.api.getVideoStreamUrl(track.id)
@@ -663,6 +685,17 @@ export class Player {
 =======
                     fetch(streamInfo.url, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => {});
 >>>>>>> parent of d987859 (style: auto-fix linting issues)
+=======
+                const streamUrl = await this.api.getStreamUrl(track.id, this.quality);
+
+                if (this.preloadAbortController.signal.aborted) break;
+
+                this.preloadCache.set(track.id, streamUrl);
+                // Warm connection/cache
+                // For Blob URLs (DASH), this head request is not needed and can cause errors.
+                if (!streamUrl.startsWith('blob:')) {
+                    fetch(streamUrl, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => {});
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {
@@ -932,6 +965,7 @@ export class Player {
             this.hls = null;
         }
 <<<<<<< HEAD
+<<<<<<< HEAD
 
         // Retain the initialized Shaka player if we are remaining on the same HTMLMediaElement
 =======
@@ -939,6 +973,11 @@ export class Player {
         if (this.shakaInitialized && this.shakaPlayer) {
             this.shakaPlayer.unload();
             this.shakaInitialized = false;
+=======
+        if (this.dashInitialized) {
+            this.dashPlayer.reset();
+            this.dashInitialized = false;
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
         }
 
         if (inactiveElement) {
@@ -1170,6 +1209,7 @@ export class Player {
                 if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
                     await this.setupHlsVideo(activeElement, streamUrl, null);
                 } else if (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) {
+<<<<<<< HEAD
                     await this.shakaPlayer.attach(activeElement);
 <<<<<<< HEAD
 
@@ -1195,6 +1235,10 @@ export class Player {
                     this.forceQuality(savedAdaptiveQuality);
                     
                     this.updateAdaptiveQualityBadge();
+=======
+                    this.dashPlayer.initialize(activeElement, streamUrl, false);
+                    this.dashInitialized = true;
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
                 } else {
                     activeElement.src = streamUrl;
                 }
@@ -1224,6 +1268,7 @@ export class Player {
                 if (resolvedStreamInfo.rgInfo) {
                     this.currentRgValues = resolvedStreamInfo.rgInfo;
                     this.applyReplayGain();
+<<<<<<< HEAD
                 } else {
                     // Fallback to legacy metadata if manifest lacked normalization data
                     const trackData = await this.api.getTrack(track.id, this.quality).catch(() => null);
@@ -1247,6 +1292,39 @@ export class Player {
 >>>>>>> parent of d987859 (style: auto-fix linting issues)
                     } else {
                         this.currentRgValues = null;
+=======
+
+                    if (this.preloadCache.has(track.id)) {
+                        streamUrl = this.preloadCache.get(track.id);
+                    } else {
+                        streamUrl = await this.api.getStreamUrl(track.id, this.quality);
+                    }
+                } else {
+                    // Tidal: Get track data for ReplayGain (should be cached by API)
+                    const trackData = await this.api.getTrack(track.id, this.quality);
+                    if (this.playbackSequence !== currentSequence) return;
+
+                    if (trackData && trackData.info) {
+                        this.currentRgValues = {
+                            trackReplayGain: trackData.info.trackReplayGain,
+                            trackPeakAmplitude: trackData.info.trackPeakAmplitude,
+                            albumReplayGain: trackData.info.albumReplayGain,
+                            albumPeakAmplitude: trackData.info.albumPeakAmplitude,
+                        };
+                    } else {
+                        this.currentRgValues = null;
+                    }
+                    this.applyReplayGain();
+
+                    if (this.preloadCache.has(track.id)) {
+                        streamUrl = this.preloadCache.get(track.id);
+                    } else if (trackData.originalTrackUrl) {
+                        streamUrl = trackData.originalTrackUrl;
+                    } else if (trackData.info?.manifest) {
+                        streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
+                    } else {
+                        streamUrl = await this.api.getStreamUrl(track.id, this.quality);
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
                     }
                     this.applyReplayGain();
                 }
@@ -1254,6 +1332,7 @@ export class Player {
                 if (this.playbackSequence !== currentSequence) return;
 
                 // Handle playback
+<<<<<<< HEAD
                 if (streamUrl && (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) && !track.isLocal) {
                     // It's likely a DASH manifest URL
                     await this.shakaPlayer.attach(activeElement);
@@ -1281,12 +1360,17 @@ export class Player {
 =======
 >>>>>>> parent of 8a377d5 (chore(player): log preload load errors)
                     this.shakaInitialized = true;
+=======
+                if (streamUrl && streamUrl.startsWith('blob:') && !track.isLocal) {
+                    // It's likely a DASH manifest blob URL
+                    this.dashPlayer.initialize(activeElement, streamUrl, false);
+                    this.dashInitialized = true;
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
                     this.applyAudioEffects();
-                    
-                    const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
-                    this.forceQuality(savedAdaptiveQuality);
-                    
-                    this.updateAdaptiveQualityBadge();
+
+                    if (startTime > 0) {
+                        this.dashPlayer.seek(startTime);
+                    }
 
 <<<<<<< HEAD
                     // Instantly trigger playback rather than explicitly waiting for 'canplay'
@@ -1306,7 +1390,6 @@ export class Player {
                     }
                     activeElement.src = streamUrl;
                     this.applyAudioEffects();
-                    this.updateAdaptiveQualityBadge();
 
                     // Wait for audio to be ready before playing
                     const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
@@ -1756,9 +1839,7 @@ export class Player {
 
     async handlePlayPause() {
         const el = this.activeElement;
-        const hasSource = el.src || el.currentSrc || el.srcObject || this.shakaInitialized;
-        
-        if (!hasSource || el.error) {
+        if (!el.src || el.error) {
             if (this.currentTrack) {
                 await this.playTrackFromQueue(0, 0);
             }
@@ -2078,6 +2159,7 @@ export class Player {
         });
     }
 
+<<<<<<< HEAD
     updateAdaptiveQualityBadge() {
         if (!this.currentTrack) return;
         
@@ -2312,6 +2394,8 @@ export class Player {
         }
     }
 
+=======
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
     updateMediaSession(track) {
         const coverId = track.album?.cover;
         const trackTitle = getTrackTitle(track);

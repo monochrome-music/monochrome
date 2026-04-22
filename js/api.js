@@ -19,6 +19,7 @@ import { DownloadProgress } from './progressEvents.js';
 import { resolveDownloadTotalBytes } from './downloadProgressUtils.js';
 import { readableStreamIterator } from './readableStreamIterator.js';
 import { HiFiClient, TidalResponse } from './HiFi.ts';
+<<<<<<< HEAD
 import { isIos, isSafari, isChrome } from './platform-detection.js';
 import {
     TrackAlbum,
@@ -31,6 +32,8 @@ import {
     PreparedVideo,
     PreparedTrack,
 } from './container-classes.js';
+=======
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 export { resolveDownloadTotalBytes };
@@ -505,6 +508,7 @@ export class LosslessAPI {
         return Array.from(unique.values());
     }
 
+<<<<<<< HEAD
     async search(query, options = {}) {
         const cached = await this.cache.get('search_all', query);
         if (cached) return cached;
@@ -576,6 +580,8 @@ export class LosslessAPI {
         }
     }
 
+=======
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
     async searchTracks(query, options = {}) {
         const cached = await this.cache.get('search_tracks', query);
         if (cached) return cached;
@@ -1477,7 +1483,9 @@ export class LosslessAPI {
 
         if (found) {
             track = this.prepareTrack(found.item || found);
-            await this.cache.set('track', cacheKey, track);
+            if (!(response instanceof TidalResponse)) {
+                await this.cache.set('track', cacheKey, track);
+            }
             return track;
         }
 
@@ -1524,14 +1532,22 @@ export class LosslessAPI {
         return result;
     }
 
+<<<<<<< HEAD
     async getStreamUrl(id, quality = 'LOSSLESS', download = false) {
         const cacheKey = `stream_info_${id}_${quality}`;
+=======
+    async getStreamUrl(id, quality = 'HI_RES_LOSSLESS') {
+        const cacheKey = `stream_${id}_${quality}`;
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
 
         if (this.streamCache.has(cacheKey)) {
             return this.streamCache.get(cacheKey);
         }
 
+        const lookup = await this.getTrack(id, quality);
+
         let streamUrl;
+<<<<<<< HEAD
         let manifestRgInfo = null;
 
 <<<<<<< HEAD
@@ -1643,14 +1659,22 @@ export class LosslessAPI {
                     albumReplayGain: lookup.info.albumReplayGain,
                     albumPeakAmplitude: lookup.info.albumPeakAmplitude
                 };
+=======
+        if (lookup.originalTrackUrl) {
+            streamUrl = lookup.originalTrackUrl;
+        } else {
+            streamUrl = this.extractStreamUrlFromManifest(lookup.info.manifest);
+            if (!streamUrl) {
+                throw new Error('Could not resolve stream URL');
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
             }
 >>>>>>> parent of d987859 (style: auto-fix linting issues)
         }
 
-        const result = { url: streamUrl, rgInfo: manifestRgInfo };
-        this.streamCache.set(cacheKey, result);
-        
-        return result;
+        if (!(lookup instanceof TidalResponse)) {
+            this.streamCache.set(cacheKey, streamUrl);
+        }
+        return streamUrl;
     }
 
     async getVideoStreamUrl(id) {

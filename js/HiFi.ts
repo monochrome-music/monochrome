@@ -819,7 +819,6 @@ class HiFiClient {
 
     async search(
         options: {
-            q?: string;
             s?: string;
             a?: string;
             al?: string;
@@ -831,7 +830,7 @@ class HiFiClient {
         },
         signal?: AbortSignal
     ) {
-        const { q, s, a, al, v, p, i, offset = 0, limit = 25 } = options;
+        const { s, a, al, v, p, i, offset = 0, limit = 25 } = options;
 
         const parseOpenApiSearch = (jsonApi: any): SearchResponse['data'] => {
             if (!jsonApi || !jsonApi.data) return {};
@@ -981,6 +980,7 @@ class HiFiClient {
         const includeP = 'playlists,playlists.coverArt';
 
         const mapping: Array<[string | undefined, string, Params]> = [
+<<<<<<< HEAD
             [
                 q,
 <<<<<<< HEAD
@@ -1001,6 +1001,9 @@ class HiFiClient {
                 `https://openapi.tidal.com/v2/searchResults/${encodeURIComponent(s || '')}`,
                 { limit, offset, include: includeS, countryCode: this.#countryCode },
             ],
+=======
+            [s, 'https://api.tidal.com/v1/search/tracks', { query: s, limit, offset, countryCode: this.countryCode }],
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
             [
                 a,
                 `https://openapi.tidal.com/v2/searchResults/${encodeURIComponent(a || '')}`,
@@ -1210,6 +1213,7 @@ class HiFiClient {
                         await this.getCover(qp.id ? Number(qp.id) : undefined, qp.q ?? undefined, signal)
                     );
                 case '/search':
+<<<<<<< HEAD
                     return new TidalResponse(
                         await this.search({
                             q: qp.q,
@@ -1223,6 +1227,18 @@ class HiFiClient {
                             limit: qp.limit ? Number(qp.limit) : undefined,
                         })
                     );
+=======
+                    return await this.search({
+                        s: qp.s,
+                        a: qp.a,
+                        al: qp.al,
+                        v: qp.v,
+                        p: qp.p,
+                        i: qp.i,
+                        offset: qp.offset ? Number(qp.offset) : undefined,
+                        limit: qp.limit ? Number(qp.limit) : undefined,
+                    });
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
                 case '/album':
                     return new TidalResponse(
                         await this.getAlbum(

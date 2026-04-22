@@ -838,6 +838,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // Streaming Quality setting
     const streamingQualitySetting = document.getElementById('streaming-quality-setting');
     if (streamingQualitySetting) {
+<<<<<<< HEAD
         const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
         
         // Map the stored auto state to the dropdown, or if it doesn't match an option, use the playback-quality value
@@ -860,6 +861,16 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const newApiQuality = val === 'auto' ? 'LOSSLESS' : val;
             player.setQuality(newApiQuality);
             localStorage.setItem('playback-quality', newApiQuality);
+=======
+        const savedQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
+        streamingQualitySetting.value = savedQuality;
+        player.setQuality(savedQuality);
+
+        streamingQualitySetting.addEventListener('change', (e) => {
+            const newQuality = e.target.value;
+            player.setQuality(newQuality);
+            localStorage.setItem('playback-quality', newQuality);
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
         });
     }
 

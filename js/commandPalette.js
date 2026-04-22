@@ -531,14 +531,6 @@ class CommandPalette {
             },
 
             {
-                id: 'quality-auto',
-                group: 'Audio',
-                icon: 'sliders',
-                label: 'Quality: Auto (Adaptive)',
-                keywords: ['quality', 'auto', 'adaptive', 'streaming', 'bitrate'],
-                action: () => this.setQuality('auto'),
-            },
-            {
                 id: 'quality-low',
                 group: 'Audio',
                 icon: 'sliders',
@@ -847,10 +839,11 @@ class CommandPalette {
         this.showMusicLoading();
 
         try {
-            const results = await api.search(query, { limit: 4 });
-            const tracks = results.tracks || { items: [] };
-            const albums = results.albums || { items: [] };
-            const artists = results.artists || { items: [] };
+            const [tracks, albums, artists] = await Promise.all([
+                api.searchTracks(query, { limit: 4 }),
+                api.searchAlbums(query, { limit: 3 }),
+                api.searchArtists(query, { limit: 3 }),
+            ]);
 
             if (controller.signal.aborted || !this.isOpen) return;
 
@@ -1196,9 +1189,10 @@ class CommandPalette {
     }
 
     async setQuality(quality) {
-        const qualityNames = { auto: 'Auto', LOW: 'Low', HIGH: 'High', LOSSLESS: 'Lossless', HI_RES_LOSSLESS: 'Hi-Res' };
+        const qualityNames = { LOW: 'Low', HIGH: 'High', LOSSLESS: 'Lossless', HI_RES_LOSSLESS: 'Hi-Res' };
 
         if (Player.instance) {
+<<<<<<< HEAD
             // Set fallback API quality (Auto maps back to Hi-Res)
             const apiQuality = quality === 'auto' ? 'LOSSLESS' : quality;
             Player.instance.setQuality(apiQuality);
@@ -1208,16 +1202,24 @@ class CommandPalette {
             localStorage.setItem('adaptive-playback-quality', quality);
             if (Player.instance.forceQuality) Player.instance.forceQuality(quality);
             
+=======
+            Player.instance.setQuality(quality);
+            localStorage.setItem('playback-quality', quality);
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
             const streamingSelect = document.getElementById('streaming-quality-setting');
             if (streamingSelect) streamingSelect.value = quality;
         }
 
         const { downloadQualitySettings } = await import('./storage.js');
+<<<<<<< HEAD
         // Do not pass auto to download quality, resolve it to original fallback
         const dlQuality = quality === 'auto' ? 'LOSSLESS' : quality;
         downloadQualitySettings.setQuality(dlQuality);
+=======
+        downloadQualitySettings.setQuality(quality);
+>>>>>>> parent of d783642 (feat: add Atmos support, use new API endpoint, streamline API caching)
         const downloadSelect = document.getElementById('download-quality-setting');
-        if (downloadSelect) downloadSelect.value = dlQuality;
+        if (downloadSelect) downloadSelect.value = quality;
 
         await this.notify(`Quality set to ${qualityNames[quality] || quality}`);
     }
