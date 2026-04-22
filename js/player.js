@@ -663,7 +663,7 @@ export class Player {
                         const preloader = new Audio();
                         preloader.preload = 'auto';
                         preloader.muted = true;
-                        preloader.src = getProxyUrl(streamUrl);
+                        preloader.src = streamUrl;
                         streamInfo.preloader = preloader; // Hold reference
                     }
                 }
@@ -1282,7 +1282,7 @@ export class Player {
                         } catch {}
                         this.shakaInitialized = false;
                     }
-                    activeElement.src = getProxyUrl(streamUrl);
+                    activeElement.src = streamUrl;
                     this.applyAudioEffects();
                     this.updateAdaptiveQualityBadge();
 

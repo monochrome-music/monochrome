@@ -284,10 +284,6 @@ export class LosslessAPI {
             normalized = { ...normalized, artist: track.artists[0] };
         }
 
-        if (normalized.artist && (!Array.isArray(normalized.artists) || normalized.artists.length === 0)) {
-            normalized = { ...normalized, artists: [normalized.artist] };
-        }
-
         const derivedQuality = deriveTrackQuality(normalized);
         if (derivedQuality && normalized.audioQuality !== derivedQuality) {
             normalized = { ...normalized, audioQuality: derivedQuality };
