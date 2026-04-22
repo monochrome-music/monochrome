@@ -1,5 +1,0 @@
-name = "monochrome"
-pages_build_output_dir = "./dist"
-
-[observability]
-enabled = false
