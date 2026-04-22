@@ -80,10 +80,14 @@
         "@types/wicg-file-system-access": "^2023.10.7",
         "@typescript-eslint/eslint-plugin": "^8.57.2",
 <<<<<<< HEAD
+<<<<<<< HEAD
         "@uimaxbai/am-lyrics": "^1.2.9",
 =======
         "@uimaxbai/am-lyrics": "^1.1.4",
 >>>>>>> parent of 2827184 (bump am-lyrics and add robust isrc input)
+=======
+        "@uimaxbai/am-lyrics": "^1.1.4",
+>>>>>>> parent of fdfe1a5 (deps: update @uimaxbai/am-lyrics to version 1.1.5)
         "@vitest/web-worker": "^4.1.2",
         "appwrite": "^23.0.0",
         "butterchurn": "^2.6.7",
