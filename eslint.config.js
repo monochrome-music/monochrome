@@ -14,9 +14,9 @@ export default defineConfig(
     tseslint.configs.recommendedTypeChecked,
     {
         languageOptions: {
-            parser: tsParser,
+            parser: tsParser, // 👈 REQUIRED
             parserOptions: {
-                project: './tsconfig-eslint.json',
+                project: './tsconfig-eslint.json', // 👈 REQUIRED
             },
             ecmaVersion: 2022,
             sourceType: 'module',

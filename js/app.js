@@ -156,14 +156,7 @@ async function fetchcontributors() {
             `;
             con.appendChild(userDIV);
         });
-    } catch (e) {
-        const con = document.querySelector('.about-contributors-failed');
-        const userDIV = document.createElement('div');
-        userDIV.innerHTML = `
-        <h4 style="text-align: center; color: var(--muted-foreground);">Failed to Fetch Contributor List</h4>
-        `;
-        con.appendChild(userDIV);
-    }
+    } catch (e) {}
 }
 
 async function loadMetadataModule() {
