@@ -15,7 +15,7 @@ import {
     escapeHtml,
     getShareUrl,
 } from './utils.js';
-import { openLyricsPanel, renderLyricsInFullscreen, clearFullscreenLyricsSync } from './lyrics.js';
+import { openLyricsPanel } from './lyrics.js';
 import {
     recentActivityManager,
     backgroundSettings,
@@ -27,7 +27,13 @@ import {
     contentBlockingSettings,
     settingsUiState,
     fullscreenCoverNoRoundSettings,
+<<<<<<< HEAD
     artistBannerSettings,
+=======
+    fullscreenCoverVanillaTiltSettings,
+    fullscreenCoverTiltDistanceSettings,
+    fullscreenCoverTiltSpeedSettings,
+>>>>>>> parent of 10b7afc (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
 } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
@@ -66,8 +72,6 @@ import {
     SVG_HEART,
     SVG_VOLUME,
     SVG_MUTE,
-    SVG_EYE,
-    SVG_EYE_OFF,
     SVG_HEART_FILLED,
     SVG_CLOSE,
     SVG_SORT,
@@ -95,11 +99,6 @@ import {
     SVG_CLOCK,
     SVG_CHECKBOX,
 } from './icons.js';
-
-const setFullscreenUIToggleIcon = (button, visualizerOnlyMode) => {
-    if (!button) return;
-    button.innerHTML = visualizerOnlyMode ? SVG_EYE(24) : SVG_EYE_OFF(24);
-};
 
 function sortTracks(tracks, sortType) {
     if (sortType === 'custom') return [...tracks];
@@ -189,8 +188,20 @@ export class UIRenderer {
                 } else {
                     overlay.classList.remove('fullscreen-cover-no-round');
                 }
-                if (coverImage?.vanillaTilt) {
-                    coverImage.vanillaTilt.destroy();
+                if (coverImage) {
+                    if (fullscreenCoverVanillaTiltSettings.isEnabled() && window.VanillaTilt) {
+                        if (coverImage.vanillaTilt) {
+                            coverImage.vanillaTilt.destroy();
+                        }
+                        window.VanillaTilt.init(coverImage, {
+                            max: fullscreenCoverTiltDistanceSettings.getValue(),
+                            speed: fullscreenCoverTiltSpeedSettings.getValue(),
+                            glare: true,
+                            'max-glare': 0.3,
+                        });
+                    } else if (coverImage.vanillaTilt) {
+                        coverImage.vanillaTilt.destroy();
+                    }
                 }
             }
         });
@@ -1170,23 +1181,6 @@ export class UIRenderer {
         root.style.removeProperty('--track-hover-bg');
     }
 
-    getFullscreenQualityBadgeHTML(track) {
-        const nowPlayingTitle = document.querySelector('.now-playing-bar .title');
-        if (nowPlayingTitle && this.player?.currentTrack?.id === track?.id) {
-            const badges = Array.from(nowPlayingTitle.querySelectorAll('.shaka-quality-badge, .quality-badge'));
-            const liveBadge = badges.find((badge) => getComputedStyle(badge).display !== 'none') || badges[0];
-            if (liveBadge) {
-                const badgeClone = liveBadge.cloneNode(true);
-                if (badgeClone instanceof HTMLElement) {
-                    badgeClone.style.removeProperty('display');
-                }
-                return badgeClone.outerHTML;
-            }
-        }
-
-        return createQualityBadgeHTML(track);
-    }
-
     async updateFullscreenMetadata(track, nextTrack) {
         if (!track) return;
         const overlay = document.getElementById('fullscreen-cover-overlay');
@@ -1301,7 +1295,7 @@ export class UIRenderer {
             await this.extractAndApplyColor(this.api.getCoverUrl(track.album?.cover, '80'));
         }
 
-        const qualityBadge = this.getFullscreenQualityBadgeHTML(track);
+        const qualityBadge = createQualityBadgeHTML(track);
         title.innerHTML = `${escapeHtml(track.title)} ${qualityBadge}`;
         artist.textContent = getTrackArtists(track);
 
@@ -1315,14 +1309,11 @@ export class UIRenderer {
 
     async showFullscreenCover(track, nextTrack, lyricsManager, activeElement) {
         if (!track) return;
-        this.fullscreenVisualizerSuppressed = true;
         if (window.location.hash !== '#fullscreen') {
             window.history.pushState({ fullscreen: true }, '', '#fullscreen');
         }
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const nextTrackEl = document.getElementById('fullscreen-next-track');
-        const lyricsPane = document.getElementById('fullscreen-lyrics-pane');
-        const lyricsContent = document.getElementById('fullscreen-lyrics-content');
         const lyricsToggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
 
         await this.updateFullscreenMetadata(track, nextTrack);
@@ -1335,36 +1326,27 @@ export class UIRenderer {
             nextTrackEl.classList.remove('animate-in');
         }
 
-        const canRenderLyrics = Boolean(
-            lyricsManager && activeElement && lyricsPane && lyricsContent && track.type !== 'video'
-        );
-        if (canRenderLyrics) {
-            lyricsToggleBtn.style.display = 'none';
-            overlay.classList.remove('lyrics-unavailable');
-            clearFullscreenLyricsSync(lyricsContent);
-            await renderLyricsInFullscreen(track, activeElement, lyricsManager, lyricsContent);
+        if (lyricsManager && activeElement) {
+            lyricsToggleBtn.style.display = 'flex';
+            lyricsToggleBtn.classList.remove('active');
+
+            const toggleLyrics = () => {
+                openLyricsPanel(track, activeElement, lyricsManager);
+                lyricsToggleBtn.classList.toggle('active');
+            };
+
+            const newToggleBtn = lyricsToggleBtn.cloneNode(true);
+            lyricsToggleBtn.parentNode.replaceChild(newToggleBtn, lyricsToggleBtn);
+            newToggleBtn.addEventListener('click', toggleLyrics);
         } else {
             lyricsToggleBtn.style.display = 'none';
-            overlay.classList.add('lyrics-unavailable');
-            if (lyricsContent) {
-                clearFullscreenLyricsSync(lyricsContent);
-                lyricsContent.innerHTML =
-                    '<div class="fullscreen-lyrics-empty">Lyrics are not available for this track.</div>';
-            }
         }
 
         const playerBar = document.querySelector('.now-playing-bar');
         if (playerBar) playerBar.style.display = 'none';
-        if (sidePanelManager.isActive('lyrics') || sidePanelManager.isActive('queue')) {
-            sidePanelManager.close();
-        }
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent instanceof HTMLElement) {
-            this.fullscreenMainContentOverflow = mainContent.style.overflowY;
-            mainContent.style.overflowY = 'hidden';
-        }
 
         this.setupFullscreenControls();
+
         overlay.style.display = 'flex';
 
         if (fullscreenCoverNoRoundSettings.isEnabled()) {
@@ -1374,45 +1356,75 @@ export class UIRenderer {
         }
 
         const coverImage = document.getElementById('fullscreen-cover-image');
-        if (coverImage?.vanillaTilt) {
-            coverImage.vanillaTilt.destroy();
+        if (fullscreenCoverVanillaTiltSettings.isEnabled() && coverImage && window.VanillaTilt) {
+            window.VanillaTilt.init(coverImage, {
+                max: fullscreenCoverTiltDistanceSettings.getValue(),
+                speed: fullscreenCoverTiltSpeedSettings.getValue(),
+                glare: true,
+                'max-glare': 0.3,
+            });
         }
+
+        const startVisualizer = async () => {
+            if (!visualizerSettings.isEnabled()) {
+                if (this.visualizer) this.visualizer.stop();
+                return;
+            }
+
+            if (!this.visualizer && activeElement) {
+                const canvas = document.getElementById('visualizer-canvas');
+                if (canvas) {
+                    this.visualizer = new Visualizer(canvas, activeElement);
+                    await this.visualizer.initPresets();
+                }
+            }
+            if (this.visualizer) {
+                await this.visualizer.start();
+            }
+
+            // Add visualizer-active class for enhanced drop shadow
+            overlay.classList.add('visualizer-active');
+        };
 
         // Setup UI toggle button
         this.setupUIToggleButton(overlay);
-        this.setupControlsAutoHide(overlay);
-        this.setupFullscreenSidePanelSync(overlay);
-        await this.refreshFullscreenVisualizerState(activeElement);
+
+        if (localStorage.getItem('epilepsy-warning-dismissed') === 'true') {
+            await startVisualizer();
+        } else {
+            const modal = document.getElementById('epilepsy-warning-modal');
+            if (modal) {
+                modal.classList.add('active');
+
+                const acceptBtn = document.getElementById('epilepsy-accept-btn');
+                const cancelBtn = document.getElementById('epilepsy-cancel-btn');
+
+                acceptBtn.onclick = async () => {
+                    modal.classList.remove('active');
+                    localStorage.setItem('epilepsy-warning-dismissed', 'true');
+                    await startVisualizer();
+                };
+                cancelBtn.onclick = () => {
+                    modal.classList.remove('active');
+                    this.closeFullscreenCover();
+                };
+            } else {
+                await startVisualizer();
+            }
+        }
     }
 
     closeFullscreenCover() {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const coverImage = document.getElementById('fullscreen-cover-image');
-        const lyricsContent = document.getElementById('fullscreen-lyrics-content');
         if (coverImage && coverImage.vanillaTilt) {
             coverImage.vanillaTilt.destroy();
         }
-        if (lyricsContent) {
-            clearFullscreenLyricsSync(lyricsContent);
-            lyricsContent.innerHTML = '<div class="fullscreen-lyrics-empty">Lyrics appear here.</div>';
-        }
         overlay.style.display = 'none';
-        overlay.classList.remove('visualizer-active', 'ui-hidden', 'fullscreen-cover-no-round', 'fullscreen-paused');
+        overlay.classList.remove('visualizer-active', 'ui-hidden', 'fullscreen-cover-no-round');
 
         const playerBar = document.querySelector('.now-playing-bar');
         if (playerBar) playerBar.style.removeProperty('display');
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent instanceof HTMLElement) {
-            if (
-                typeof this.fullscreenMainContentOverflow === 'string' &&
-                this.fullscreenMainContentOverflow.length > 0
-            ) {
-                mainContent.style.overflowY = this.fullscreenMainContentOverflow;
-            } else {
-                mainContent.style.removeProperty('overflow-y');
-            }
-            this.fullscreenMainContentOverflow = null;
-        }
 
         if (this.player?.currentTrack?.type === 'video') {
             const coverContainer = document.querySelector('.now-playing-bar .track-info');
@@ -1444,117 +1456,11 @@ export class UIRenderer {
         if (this.visualizer) {
             this.visualizer.stop();
         }
-        this.fullscreenVisualizerSuppressed = false;
 
         // Clear UI toggle button timers
         if (this.uiToggleMouseTimer) {
             clearTimeout(this.uiToggleMouseTimer);
             this.uiToggleMouseTimer = null;
-        }
-
-        if (this.controlsIdleCleanup) {
-            this.controlsIdleCleanup();
-            this.controlsIdleCleanup = null;
-        }
-
-        if (this.fullscreenSidePanelSyncCleanup) {
-            this.fullscreenSidePanelSyncCleanup();
-            this.fullscreenSidePanelSyncCleanup = null;
-        }
-    }
-
-    async startFullscreenVisualizer(activeElement, overlay) {
-        if (!activeElement) return;
-
-        if (!this.visualizer) {
-            const canvas = document.getElementById('visualizer-canvas');
-            if (canvas) {
-                this.visualizer = new Visualizer(canvas, activeElement);
-                await this.visualizer.initPresets();
-            }
-        }
-
-        if (this.visualizer) {
-            await this.visualizer.start();
-            overlay.classList.add('visualizer-active');
-        }
-    }
-
-    async ensureVisualizerPermission(activeElement, overlay, { closeOnCancel = false } = {}) {
-        if (localStorage.getItem('epilepsy-warning-dismissed') === 'true') {
-            await this.startFullscreenVisualizer(activeElement, overlay);
-            return true;
-        }
-
-        const modal = document.getElementById('epilepsy-warning-modal');
-        if (!modal) {
-            await this.startFullscreenVisualizer(activeElement, overlay);
-            return true;
-        }
-
-        return await new Promise((resolve) => {
-            modal.classList.add('active');
-
-            const acceptBtn = document.getElementById('epilepsy-accept-btn');
-            const cancelBtn = document.getElementById('epilepsy-cancel-btn');
-
-            acceptBtn.onclick = async () => {
-                modal.classList.remove('active');
-                localStorage.setItem('epilepsy-warning-dismissed', 'true');
-                await this.startFullscreenVisualizer(activeElement, overlay);
-                resolve(true);
-            };
-
-            cancelBtn.onclick = () => {
-                modal.classList.remove('active');
-                if (closeOnCancel) {
-                    this.closeFullscreenCover();
-                }
-                resolve(false);
-            };
-        });
-    }
-
-    async refreshFullscreenVisualizerState(activeElement, { closeOnCancel = false } = {}) {
-        const overlay = document.getElementById('fullscreen-cover-overlay');
-        const visualizerBtn = document.getElementById('fs-visualizer-btn');
-        const toggleBtn = document.getElementById('toggle-ui-btn');
-        const isVideoTrack = this.player?.currentTrack?.type === 'video';
-        const enabled = visualizerSettings.isEnabled() && !isVideoTrack && !this.fullscreenVisualizerSuppressed;
-
-        if (!overlay) return;
-
-        if (visualizerBtn) {
-            visualizerBtn.style.display = isVideoTrack ? 'none' : 'flex';
-            visualizerBtn.classList.toggle('active', enabled);
-            visualizerBtn.title = enabled ? 'Disable Visualizer' : 'Use Visualizer';
-        }
-
-        if (!enabled) {
-            overlay.classList.remove('visualizer-active');
-            overlay.classList.remove('ui-hidden');
-            if (this.visualizer) {
-                this.visualizer.stop();
-            }
-            if (toggleBtn) {
-                toggleBtn.classList.remove('active', 'visible');
-                toggleBtn.title = 'Hide UI';
-                setFullscreenUIToggleIcon(toggleBtn, false);
-            }
-            return;
-        }
-
-        const allowed = await this.ensureVisualizerPermission(activeElement, overlay, { closeOnCancel });
-        if (!allowed) {
-            this.fullscreenVisualizerSuppressed = true;
-            overlay.classList.remove('visualizer-active');
-            if (this.visualizer) {
-                this.visualizer.stop();
-            }
-            if (visualizerBtn) {
-                visualizerBtn.classList.remove('active');
-                visualizerBtn.title = 'Use Visualizer';
-            }
         }
     }
 
@@ -1562,16 +1468,9 @@ export class UIRenderer {
         const toggleBtn = document.getElementById('toggle-ui-btn');
         if (!toggleBtn) return;
 
-        const updateToggleButtonIcon = () => {
-            const visualizerOnlyMode =
-                overlay.classList.contains('ui-hidden') && overlay.classList.contains('visualizer-active');
-            setFullscreenUIToggleIcon(toggleBtn, visualizerOnlyMode);
-        };
-
         let isUIHidden = overlay.classList.contains('ui-hidden');
         toggleBtn.classList.toggle('active', isUIHidden);
         toggleBtn.title = isUIHidden ? 'Show UI' : 'Hide UI';
-        updateToggleButtonIcon();
 
         // Show button
         const showButton = () => {
@@ -1590,55 +1489,37 @@ export class UIRenderer {
             showButton();
         }
 
-        const toggleUI = async (e) => {
+        const toggleUI = (e) => {
             if (e) e.stopPropagation();
-            if (!overlay.classList.contains('visualizer-active')) {
-                const isVideoTrack = this.player?.currentTrack?.type === 'video';
-                if (isVideoTrack) {
-                    overlay.classList.remove('ui-hidden');
-                    isUIHidden = false;
-                    toggleBtn.classList.remove('active');
-                    toggleBtn.title = 'Hide UI';
-                    updateToggleButtonIcon();
-                    showButton();
-                    return;
-                }
-
-                this.fullscreenVisualizerSuppressed = false;
-                visualizerSettings.setEnabled(true);
-                await this.refreshFullscreenVisualizerState(this.player?.activeElement);
-
-                if (!overlay.classList.contains('visualizer-active')) {
-                    overlay.classList.remove('ui-hidden');
-                    isUIHidden = false;
-                    toggleBtn.classList.remove('active');
-                    toggleBtn.title = 'Hide UI';
-                    updateToggleButtonIcon();
-                    showButton();
-                    return;
-                }
-            }
             isUIHidden = !isUIHidden;
             overlay.classList.toggle('ui-hidden', isUIHidden);
             toggleBtn.classList.toggle('active', isUIHidden);
             toggleBtn.title = isUIHidden ? 'Show UI' : 'Hide UI';
-            updateToggleButtonIcon();
 
             if (isUIHidden) {
-                showButton();
+                hideButton();
             } else {
                 showButton();
             }
         };
 
+        // Mouse move handler
         const handleMouseMove = (e) => {
-            if (!isUIHidden) return;
-            const btnRect = toggleBtn.getBoundingClientRect();
-            const nearBtn = e.clientY < 100 && Math.abs(e.clientX - (btnRect.left + btnRect.width / 2)) < 150;
-            if (nearBtn) {
-                showButton();
-            } else {
-                hideButton();
+            const rect = overlay.getBoundingClientRect();
+            const isNearTopRight = e.clientY < 100 && e.clientX > rect.width - 150;
+
+            if (isUIHidden) {
+                if (overlay.classList.contains('is-video-mode')) {
+                    if (isNearTopRight) {
+                        showButton();
+                    } else {
+                        hideButton();
+                    }
+                } else if (isNearTopRight) {
+                    showButton();
+                } else {
+                    hideButton();
+                }
             }
         };
 
@@ -1658,41 +1539,12 @@ export class UIRenderer {
         };
     }
 
-    setupControlsAutoHide(overlay) {
-        if (this.controlsIdleCleanup) this.controlsIdleCleanup();
-        overlay.classList.remove('controls-idle');
-
-        this.controlsIdleCleanup = () => {
-            overlay.classList.remove('controls-idle');
-        };
-    }
-
-    setupFullscreenSidePanelSync(overlay) {
-        if (this.fullscreenSidePanelSyncCleanup) {
-            this.fullscreenSidePanelSyncCleanup();
-        }
-
-        const syncState = () => {
-            overlay.classList.toggle('queue-panel-active', sidePanelManager.isActive('queue'));
-        };
-
-        const handleChange = () => syncState();
-        window.addEventListener('side-panel-changed', handleChange);
-        syncState();
-
-        this.fullscreenSidePanelSyncCleanup = () => {
-            window.removeEventListener('side-panel-changed', handleChange);
-            overlay.classList.remove('queue-panel-active');
-        };
-    }
-
     setupFullscreenControls() {
         const playBtn = document.getElementById('fs-play-pause-btn');
         const prevBtn = document.getElementById('fs-prev-btn');
         const nextBtn = document.getElementById('fs-next-btn');
         const shuffleBtn = document.getElementById('fs-shuffle-btn');
         const repeatBtn = document.getElementById('fs-repeat-btn');
-        const visualizerBtn = document.getElementById('fs-visualizer-btn');
         const progressBar = document.getElementById('fs-progress-bar');
         const progressFill = document.getElementById('fs-progress-fill');
         const currentTimeEl = document.getElementById('fs-current-time');
@@ -1752,22 +1604,6 @@ export class UIRenderer {
                 repeatBtn.innerHTML = SVG_REPEAT(24);
             }
         };
-
-        if (visualizerBtn) {
-            visualizerBtn.onclick = async () => {
-                if (this.fullscreenVisualizerSuppressed) {
-                    this.fullscreenVisualizerSuppressed = false;
-                    visualizerSettings.setEnabled(true);
-                } else if (visualizerSettings.isEnabled()) {
-                    visualizerSettings.setEnabled(false);
-                    this.fullscreenVisualizerSuppressed = false;
-                } else {
-                    this.fullscreenVisualizerSuppressed = false;
-                    visualizerSettings.setEnabled(true);
-                }
-                await this.refreshFullscreenVisualizerState(this.player.activeElement);
-            };
-        }
 
         // Progress bar with drag support
         let isFsSeeking = false;
@@ -3739,6 +3575,7 @@ export class UIRenderer {
                     const data = await response.json();
 
 <<<<<<< HEAD
+<<<<<<< HEAD
                     const critviews = data.critic.reviews || [];
 
                     rateCriticsEl.innerHTML = `<a href="javascript:void(0)" style="color: var(--muted-foreground); cursor: pointer;">Critic Score: ${data.critic.score}, Based on <span style="text-decoration: underline;">${data.critic.count} reviews</span></a>`;
@@ -3808,6 +3645,10 @@ export class UIRenderer {
                     rateCriticsEl.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--muted-foreground);">Critic Score: <span style="text-decoration: underline;">${data.critic.score}</span>, Based on ${data.critic.count} reviews</a>`;
 >>>>>>> parent of d876eeb (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
                     rateUsersEl.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--muted-foreground);">User Score: <span style="text-decoration: underline;">${data.user.score}</span>, Based on ${data.user.count} reviews</a>`;
+=======
+                    rateCriticsEl.innerHTML = `<a href="${data.url}" style="color: var(--muted-foreground);">Critic Score: <span style="text-decoration: underline;">${data.critic.score}</span>, Based on ${data.critic.count} reviews</a>`;
+                    rateUsersEl.innerHTML = `<a href="${data.url}" style="color: var(--muted-foreground);">User Score: <span style="text-decoration: underline;">${data.user.score}</span>, Based on ${data.user.count} reviews</a>`;
+>>>>>>> parent of 10b7afc (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
                 } catch (e) {
                     rateCriticsEl.innerHTML = `<a style="color: var(--muted-foreground);">Unable to Fetch Critic Score</a>`;
                     rateUsersEl.innerHTML = `<a style="color: var(--muted-foreground);">Unable to Fetch User Score</a>`;

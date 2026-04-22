@@ -1131,20 +1131,18 @@ export class LosslessAPI {
         entries.forEach((entry) => scan(entry, visited));
         scan(primaryData, visited);
 
-        const matchesArtistId = (item) => {
-            const candidateIds = [
-                item.artist?.id,
-                ...(Array.isArray(item.artists) ? item.artists.map((a) => a.id) : []),
-            ].filter((id) => id != null);
-            return candidateIds.some((id) => Number(id) === Number(artistId));
-        };
-
         if (!options.lightweight) {
             try {
                 const videoSearch = await this.searchVideos(artist.name);
                 if (videoSearch && videoSearch.items) {
+                    const numericArtistId = Number(artistId);
                     for (const item of videoSearch.items) {
-                        if (matchesArtistId(item) && !videoMap.has(item.id)) {
+                        const itemArtistId = item.artist?.id;
+                        const matchesArtist =
+                            itemArtistId === numericArtistId ||
+                            (Array.isArray(item.artists) && item.artists.some((a) => a.id === numericArtistId));
+
+                        if (matchesArtist && !videoMap.has(item.id)) {
                             videoMap.set(item.id, item);
                         }
                     }
@@ -1154,7 +1152,7 @@ export class LosslessAPI {
             }
         }
 
-        const rawReleases = Array.from(albumMap.values()).filter(matchesArtistId);
+        const rawReleases = Array.from(albumMap.values());
         const allReleases = this.deduplicateAlbums(rawReleases).sort(
             (a, b) => new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0)
         );
@@ -1163,7 +1161,6 @@ export class LosslessAPI {
         const albums = allReleases.filter((a) => !eps.includes(a));
 
         const topTracks = Array.from(trackMap.values())
-            .filter(matchesArtistId)
             .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
             .slice(0, 15);
 

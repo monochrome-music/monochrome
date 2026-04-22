@@ -235,104 +235,77 @@
                 <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
                     <use svg="!lucide/mic-vocal.svg" size="24" />
                 </button>
-                <div class="fullscreen-top-actions">
-                    <button id="fs-visualizer-btn" class="fs-visualizer-btn" title="Disable Visualizer">
-                        <use svg="!lucide/audio-lines.svg" size="20" />
-                    </button>
-                    <button id="close-fullscreen-cover-btn" title="Close"><use svg="!lucide/x.svg" size="24" /></button>
-                </div>
-                <div class="fullscreen-shell">
-                    <div class="fullscreen-main-view">
-                        <div class="fullscreen-media-column">
-                            <div class="fullscreen-artwork-card">
-                                <img
-                                    id="fullscreen-cover-image"
-                                    src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                                    alt="Album Cover"
-                                />
-                            </div>
+                <button id="close-fullscreen-cover-btn" title="Close"><use svg="!lucide/x.svg" size="24" /></button>
+                <div class="fullscreen-main-view">
+                    <img
+                        id="fullscreen-cover-image"
+                        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                        alt="Album Cover"
+                    />
 
-                            <div class="fullscreen-track-info">
-                                <div class="fullscreen-track-text">
-                                    <h2 id="fullscreen-track-title"></h2>
-                                    <h3 id="fullscreen-track-artist"></h3>
-                                </div>
-                                <div class="fullscreen-actions">
-                                    <button id="fs-like-btn" class="btn-icon like-btn" title="Like">
-                                        <use svg="!lucide/heart.svg" class="heart-icon" size="24" />
-                                    </button>
-                                    <button id="fs-add-playlist-btn" class="btn-icon" title="Add to Playlist">
-                                        <use svg="!lucide/square-pen.svg" size="24" />
-                                    </button>
-                                    <button id="fs-download-btn" class="btn-icon" title="Download">
-                                        <use svg="!lucide/download.svg" size="24" />
-                                    </button>
-                                    <button id="fs-cast-btn" class="btn-icon" title="Cast">
-                                        <use svg="!lucide/cast.svg" size="24" />
-                                    </button>
-                                    <button id="fs-queue-btn" class="btn-icon" title="Queue">
-                                        <use svg="!lucide/list.svg" size="24" />
-                                    </button>
-                                </div>
-                                <div id="fullscreen-next-track" style="display: none">
-                                    <span class="label">Up Next</span>
-                                    <span class="value"></span>
-                                </div>
+                    <div class="fullscreen-track-info">
+                        <h2 id="fullscreen-track-title"></h2>
+                        <h3 id="fullscreen-track-artist"></h3>
+                        <div class="fullscreen-actions">
+                            <button id="fs-like-btn" class="btn-icon like-btn" title="Like">
+                                <use svg="!lucide/heart.svg" class="heart-icon" size="24" />
+                            </button>
+                            <button id="fs-add-playlist-btn" class="btn-icon" title="Add to Playlist">
+                                <use svg="!lucide/square-pen.svg" size="24" />
+                            </button>
+                            <button id="fs-download-btn" class="btn-icon" title="Download">
+                                <use svg="!lucide/download.svg" size="24" />
+                            </button>
+                            <button id="fs-cast-btn" class="btn-icon" title="Cast">
+                                <use svg="!lucide/cast.svg" size="24" />
+                            </button>
+                            <button id="fs-queue-btn" class="btn-icon" title="Queue">
+                                <use svg="!lucide/list.svg" size="24" />
+                            </button>
+                        </div>
+                        <div id="fullscreen-next-track" style="display: none">
+                            <span class="label">Up Next: </span>
+                            <span class="value"></span>
+                        </div>
+                    </div>
+                    <div class="fullscreen-controls">
+                        <div class="fullscreen-progress-container">
+                            <span id="fs-current-time">0:00</span>
+                            <div id="fs-progress-bar" class="progress-bar">
+                                <div id="fs-progress-fill" class="progress-fill"></div>
                             </div>
-
-                            <div class="fullscreen-controls">
-                                <div class="fullscreen-progress-container">
-                                    <span id="fs-current-time">0:00</span>
-                                    <div id="fs-progress-bar" class="progress-bar">
-                                        <div id="fs-progress-fill" class="progress-fill"></div>
-                                    </div>
-                                    <span id="fs-total-duration">0:00</span>
-                                </div>
-                                <div class="fullscreen-buttons">
-                                    <button id="fs-shuffle-btn" title="Shuffle">
-                                        <use svg="!lucide/shuffle.svg" size="24" />
-                                    </button>
-                                    <button id="fs-prev-btn" title="Previous">
-                                        <use svg="!lucide/arrow-left-to-line.svg" size="24" />
-                                    </button>
-                                    <button id="fs-play-pause-btn" class="play-pause-btn" title="Play">
-                                        <use svg="./images/play-large.svg" size="32" />
-                                    </button>
-                                    <button id="fs-next-btn" title="Next">
-                                        <use svg="!lucide/arrow-right-to-line.svg" size="24" />
-                                    </button>
-                                    <button id="fs-repeat-btn" title="Repeat">
-                                        <use svg="!lucide/repeat.svg" size="24" />
-                                    </button>
-                                    <button
-                                        id="fs-quality-btn"
-                                        class="fs-quality-btn"
-                                        title="Quality"
-                                        style="display: none"
-                                    >
-                                        <use svg="!lucide/pencil-line.svg" size="20" />
-                                        <span class="fs-quality-label">Auto</span>
-                                    </button>
-                                    <div id="fs-quality-menu" class="fs-quality-menu" style="display: none"></div>
-                                </div>
-                                <div class="fullscreen-volume-container">
-                                    <button id="fs-volume-btn" class="fs-volume-btn" title="Mute">
-                                        <use svg="!lucide/volume-1.svg" size="24" />
-                                    </button>
-                                    <div id="fs-volume-bar" class="fs-volume-bar">
-                                        <div id="fs-volume-fill" class="fs-volume-fill"></div>
-                                    </div>
-                                </div>
+                            <span id="fs-total-duration">0:00</span>
+                        </div>
+                        <div class="fullscreen-buttons">
+                            <button id="fs-shuffle-btn" title="Shuffle">
+                                <use svg="!lucide/shuffle.svg" size="24" />
+                            </button>
+                            <button id="fs-prev-btn" title="Previous">
+                                <use svg="!lucide/arrow-left-to-line.svg" size="24" />
+                            </button>
+                            <button id="fs-play-pause-btn" class="play-pause-btn" title="Play">
+                                <use svg="./images/play-large.svg" size="32" />
+                            </button>
+                            <button id="fs-next-btn" title="Next">
+                                <use svg="!lucide/arrow-right-to-line.svg" size="24" />
+                            </button>
+                            <button id="fs-repeat-btn" title="Repeat">
+                                <use svg="!lucide/repeat.svg" size="24" />
+                            </button>
+                            <button id="fs-quality-btn" class="fs-quality-btn" title="Quality" style="display: none">
+                                <use svg="!lucide/pencil-line.svg" size="20" />
+                                <span class="fs-quality-label">Auto</span>
+                            </button>
+                            <div id="fs-quality-menu" class="fs-quality-menu" style="display: none"></div>
+                        </div>
+                        <div class="fullscreen-volume-container">
+                            <button id="fs-volume-btn" class="fs-volume-btn" title="Mute">
+                                <use svg="!lucide/volume-1.svg" size="24" />
+                            </button>
+                            <div id="fs-volume-bar" class="fs-volume-bar">
+                                <div id="fs-volume-fill" class="fs-volume-fill"></div>
                             </div>
                         </div>
-
-                        <aside id="fullscreen-lyrics-pane" class="fullscreen-lyrics-pane">
-                            <div class="fullscreen-lyrics-shell">
-                                <div id="fullscreen-lyrics-content" class="fullscreen-lyrics-content">
-                                    <div class="fullscreen-lyrics-empty">Lyrics appear here.</div>
-                                </div>
-                            </div>
-                        </aside>
                     </div>
                 </div>
             </div>
@@ -4195,7 +4168,6 @@
                                     <!-- Mode Toggle + How To -->
                                     <div class="autoeq-mode-row">
                                         <div class="autoeq-mode-toggle">
-                                            <button class="autoeq-mode-btn" data-mode="legacy">Legacy EQ</button>
                                             <button class="autoeq-mode-btn active" data-mode="autoeq">AutoEQ</button>
                                             <button class="autoeq-mode-btn" data-mode="parametric">
                                                 Parametric EQ
@@ -4332,66 +4304,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- Legacy 16-Band Graphic EQ (visible in legacy mode) -->
-                                    <div class="graphic-eq-section" id="graphic-eq-section" style="display: none">
-                                        <div class="graphic-eq-preset-row">
-                                            <label for="legacy-graphic-eq-preset-select" class="graphic-eq-preset-label"
-                                                >Preset</label
-                                            >
-                                            <select
-                                                id="legacy-graphic-eq-preset-select"
-                                                class="graphic-eq-preset-select"
-                                            >
-                                                <option value="">Custom</option>
-                                                <option value="flat">Flat</option>
-                                                <option value="bass_boost">Bass Boost</option>
-                                                <option value="bass_reducer">Bass Reducer</option>
-                                                <option value="treble_boost">Treble Boost</option>
-                                                <option value="treble_reducer">Treble Reducer</option>
-                                                <option value="vocal_boost">Vocal Boost</option>
-                                                <option value="loudness">Loudness</option>
-                                                <option value="rock">Rock</option>
-                                                <option value="pop">Pop</option>
-                                                <option value="classical">Classical</option>
-                                                <option value="jazz">Jazz</option>
-                                                <option value="electronic">Electronic</option>
-                                                <option value="hip_hop">Hip-Hop</option>
-                                                <option value="r_and_b">R&amp;B</option>
-                                                <option value="acoustic">Acoustic</option>
-                                                <option value="podcast">Speech</option>
-                                            </select>
-                                        </div>
-                                        <div class="graphic-eq-bands" id="legacy-graphic-eq-bands">
-                                            <!-- 16 vertical sliders generated by JS -->
-                                        </div>
-                                        <div class="graphic-eq-bottom-row">
-                                            <div class="graphic-eq-preamp">
-                                                <label
-                                                    for="legacy-graphic-eq-preamp-slider"
-                                                    class="graphic-eq-preamp-label"
-                                                    >Preamp</label
-                                                >
-                                                <input
-                                                    type="range"
-                                                    id="legacy-graphic-eq-preamp-slider"
-                                                    class="graphic-eq-preamp-slider"
-                                                    min="-20"
-                                                    max="20"
-                                                    step="0.1"
-                                                    value="0"
-                                                />
-                                                <span
-                                                    class="graphic-eq-preamp-value"
-                                                    id="legacy-graphic-eq-preamp-value"
-                                                    >0 dB</span
-                                                >
-                                            </div>
-                                            <button id="legacy-graphic-eq-reset-btn" class="btn-secondary">
-                                                Reset
-                                            </button>
-                                        </div>
-                                    </div>
-
                                     <!-- Frequency Response Graph -->
                                     <div class="autoeq-graph-section">
                                         <div class="autoeq-graph-header">
@@ -4438,42 +4350,29 @@
 
                                     <!-- Database Browser -->
                                     <div class="autoeq-database-section" id="autoeq-database-section">
-                                        <div class="autoeq-database-header" id="autoeq-database-toggle">
+                                        <div class="autoeq-database-header">
                                             <div>
                                                 <h4 class="autoeq-database-title">Database</h4>
                                                 <span class="autoeq-database-subtitle">AutoEq Repo</span>
                                             </div>
-                                            <div class="autoeq-database-header-right">
-                                                <span class="autoeq-database-count" id="autoeq-database-count"></span>
-                                                <button
-                                                    class="autoeq-collapse-btn"
-                                                    id="autoeq-database-collapse"
-                                                    aria-label="Collapse database"
-                                                    aria-expanded="true"
-                                                    aria-controls="autoeq-database-body"
-                                                >
-                                                    <use svg="!lucide/chevron-up.svg" size="18" />
-                                                </button>
-                                            </div>
+                                            <span class="autoeq-database-count" id="autoeq-database-count"></span>
                                         </div>
-                                        <div class="autoeq-database-body" id="autoeq-database-body">
-                                            <div class="autoeq-database-search">
-                                                <use svg="!lucide/search.svg" size="16" />
-                                                <input
-                                                    type="text"
-                                                    id="autoeq-headphone-search"
-                                                    placeholder="Search model (e.g. HD 600)..."
-                                                    autocomplete="off"
-                                                    aria-label="Search headphone model"
-                                                />
+                                        <div class="autoeq-database-search">
+                                            <use svg="!lucide/search.svg" size="16" />
+                                            <input
+                                                type="text"
+                                                id="autoeq-headphone-search"
+                                                placeholder="Search model (e.g. HD 600)..."
+                                                autocomplete="off"
+                                                aria-label="Search headphone model"
+                                            />
+                                        </div>
+                                        <div class="autoeq-database-content">
+                                            <div class="autoeq-database-list" id="autoeq-database-list">
+                                                <!-- Dynamically populated -->
                                             </div>
-                                            <div class="autoeq-database-content">
-                                                <div class="autoeq-database-list" id="autoeq-database-list">
-                                                    <!-- Dynamically populated -->
-                                                </div>
-                                                <div class="autoeq-database-alpha-index" id="autoeq-alpha-index">
-                                                    <!-- A-Z generated by JS -->
-                                                </div>
+                                            <div class="autoeq-database-alpha-index" id="autoeq-alpha-index">
+                                                <!-- A-Z generated by JS -->
                                             </div>
                                         </div>
                                     </div>

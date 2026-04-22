@@ -976,7 +976,6 @@ ul {
     display: grid;
     height: 100vh;
     height: 100dvh;
-    min-height: 0;
     grid-template:
         'sidebar main' 1fr
         'player player' auto / 210px 1fr;
@@ -984,7 +983,6 @@ ul {
 
 .sidebar {
     grid-area: sidebar;
-    min-height: 0;
     background-color: var(--background);
     border-right: 1px solid var(--border);
     padding: 1.25rem;
@@ -1031,10 +1029,7 @@ ul {
 
 .main-content {
     grid-area: main;
-    min-height: 0;
-    min-width: 0;
     overflow-y: auto;
-    overflow-x: hidden;
     padding: var(--spacing-xl);
     scroll-behavior: smooth;
     position: relative;
@@ -4123,26 +4118,7 @@ input:checked + .slider::before {
     filter: var(--cover-filter);
     z-index: -1;
     background-image: var(--bg-image);
-    transition:
-        background-image var(--transition),
-        filter 0.65s ease,
-        opacity 0.65s ease;
-}
-
-#fullscreen-cover-overlay::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(circle at 20% 22%, rgb(var(--highlight-rgb) / 0.28), transparent 36%),
-        radial-gradient(circle at 82% 18%, rgb(255 255 255 / 0.09), transparent 28%),
-        linear-gradient(135deg, rgb(10 13 18 / 0.48), rgb(10 13 18 / 0.2) 38%, rgb(var(--highlight-rgb) / 0.12) 100%);
-    opacity: 0.36;
-    pointer-events: none;
-    z-index: 0;
-    transition:
-        opacity 0.65s ease,
-        background 0.65s ease;
+    transition: background-image var(--transition);
 }
 
 #visualizer-container {
@@ -4152,13 +4128,7 @@ input:checked + .slider::before {
     height: 100%;
     z-index: 0;
     pointer-events: none;
-    filter: blur(14px) saturate(0.84) brightness(0.8);
-    transform: scale(1.04);
-    opacity: 0.82;
-    transition:
-        opacity 0.65s ease,
-        filter 0.65s ease,
-        transform 0.65s ease;
+    transition: opacity 0.3s ease;
 }
 
 #visualizer-canvas {
@@ -4177,7 +4147,6 @@ input:checked + .slider::before {
     height: 100%;
     position: relative;
     padding: 1rem;
-    overflow: hidden;
 }
 
 /* UI Toggle Button for Visualizer Mode - Rightmost position */
@@ -4294,20 +4263,9 @@ input:checked + .slider::before {
 /* When UI is hidden, only toggle button stays visible at right edge (when .visible class is added) */
 
 #fullscreen-cover-overlay.ui-hidden .fullscreen-lyrics-toggle,
-#fullscreen-cover-overlay.ui-hidden .fullscreen-top-actions {
+#fullscreen-cover-overlay.ui-hidden #close-fullscreen-cover-btn {
     opacity: 0;
     pointer-events: none;
-}
-
-#fullscreen-cover-overlay.ui-hidden::before,
-#fullscreen-cover-overlay.ui-hidden::after {
-    opacity: 0;
-}
-
-#fullscreen-cover-overlay.ui-hidden #visualizer-container {
-    filter: none;
-    transform: none;
-    opacity: 1;
 }
 
 #fullscreen-cover-overlay:not(.ui-hidden) .fullscreen-main-view,
@@ -4316,60 +4274,6 @@ input:checked + .slider::before {
     opacity: 1;
     pointer-events: auto;
     transition: opacity 0.5s ease;
-}
-
-/* Auto-hide controls on idle */
-#fullscreen-cover-overlay.controls-idle .fullscreen-track-info,
-#fullscreen-cover-overlay.controls-idle .fullscreen-controls,
-#fullscreen-cover-overlay.controls-idle #fullscreen-next-track,
-#fullscreen-cover-overlay.controls-idle #toggle-ui-btn,
-#fullscreen-cover-overlay.controls-idle .fullscreen-lyrics-toggle,
-#fullscreen-cover-overlay.controls-idle .fullscreen-top-actions {
-    opacity: 0;
-    pointer-events: none;
-    transition:
-        opacity 0.6s ease,
-        transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#fullscreen-cover-overlay.controls-idle #fullscreen-cover-image {
-    transform: translateY(4rem);
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#fullscreen-cover-overlay:not(.controls-idle) #fullscreen-cover-image {
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#fullscreen-cover-overlay.controls-idle .fullscreen-controls {
-    transform: translateY(1.5rem);
-}
-
-#fullscreen-cover-overlay.controls-idle .fullscreen-track-info {
-    transform: translateY(0.5rem);
-}
-
-#fullscreen-cover-overlay.controls-idle #toggle-ui-btn,
-#fullscreen-cover-overlay.controls-idle .fullscreen-lyrics-toggle,
-#fullscreen-cover-overlay.controls-idle .fullscreen-top-actions {
-    transform: translateY(-0.5rem);
-}
-
-#fullscreen-cover-overlay:not(.controls-idle) .fullscreen-track-info,
-#fullscreen-cover-overlay:not(.controls-idle) .fullscreen-controls,
-#fullscreen-cover-overlay:not(.controls-idle) #fullscreen-next-track,
-#fullscreen-cover-overlay:not(.controls-idle) #toggle-ui-btn,
-#fullscreen-cover-overlay:not(.controls-idle) .fullscreen-lyrics-toggle,
-#fullscreen-cover-overlay:not(.controls-idle) .fullscreen-top-actions {
-    opacity: 1;
-    transform: translateY(0);
-    transition:
-        opacity 0.4s ease,
-        transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#fullscreen-cover-overlay.controls-idle {
-    cursor: none;
 }
 
 #fullscreen-cover-image {
@@ -5234,7 +5138,7 @@ input:checked + .slider::before {
 
 #download-notifications {
     position: fixed;
-    bottom: calc(max(env(safe-area-inset-bottom), 0px) + 12px);
+    bottom: 120px;
     right: 20px;
     z-index: 20000;
     max-width: 350px;
@@ -7062,7 +6966,7 @@ img[src=''] {
     }
 
     #download-notifications {
-        bottom: calc(max(env(safe-area-inset-bottom), 0px) + 10px);
+        bottom: 10px;
         right: 10px;
         left: 10px;
         max-width: none;
@@ -8010,148 +7914,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 /* ========================================
-   16-Band Graphic Equalizer (Legacy EQ)
-   ======================================== */
-.graphic-eq-section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-}
-
-.graphic-eq-preset-row {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-}
-
-.graphic-eq-preset-label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--foreground);
-    white-space: nowrap;
-}
-
-.graphic-eq-preset-select {
-    flex: 1;
-    padding: 8px 12px;
-    background: var(--input);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--foreground);
-    font-size: 0.85rem;
-}
-
-.graphic-eq-bands {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 2px;
-    padding: var(--spacing-md) var(--spacing-sm);
-    background: rgb(0, 0, 0, 0.15);
-    border-radius: var(--radius);
-    min-height: 240px;
-}
-
-.graphic-eq-band {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    flex: 1;
-    min-width: 0;
-}
-
-.graphic-eq-band-value {
-    font-size: 0.65rem;
-    color: var(--foreground);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    min-height: 14px;
-    opacity: 0.7;
-}
-
-.graphic-eq-band-slider-wrap {
-    position: relative;
-    height: 160px;
-    width: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.graphic-eq-band-slider-wrap input[type='range'] {
-    writing-mode: vertical-lr;
-    direction: rtl;
-    width: 28px;
-    height: 100%;
-    accent-color: var(--foreground);
-    cursor: pointer;
-    margin: 0;
-    padding: 0;
-}
-
-.graphic-eq-band-label {
-    font-size: 0.6rem;
-    color: var(--muted-foreground);
-    white-space: nowrap;
-    text-align: center;
-    letter-spacing: -0.02em;
-}
-
-.graphic-eq-bottom-row {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-}
-
-.graphic-eq-preamp {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    flex: 1;
-}
-
-.graphic-eq-preamp-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--muted-foreground);
-    white-space: nowrap;
-}
-
-.graphic-eq-preamp-slider {
-    flex: 1;
-    height: 4px;
-    accent-color: var(--highlight);
-}
-
-.graphic-eq-preamp-value {
-    font-size: 0.75rem;
-    color: var(--muted-foreground);
-    min-width: 45px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
-
-@media (max-width: 600px) {
-    .graphic-eq-bands {
-        min-height: 180px;
-    }
-
-    .graphic-eq-band-slider-wrap {
-        height: 130px;
-        width: 22px;
-    }
-
-    .graphic-eq-band-label {
-        font-size: 0.5rem;
-    }
-
-    .graphic-eq-band-value {
-        font-size: 0.5rem;
-    }
-}
-
-/* ========================================
    Precision AutoEQ - Redesigned Equalizer
    ======================================== */
 .equalizer-container {
@@ -8771,19 +8533,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     align-items: center;
     justify-content: space-between;
     padding: var(--spacing-md);
-    cursor: pointer;
-    user-select: none;
-    transition: background var(--transition-fast);
-}
-
-.autoeq-database-header:hover {
-    background: rgb(var(--highlight-rgb), 0.08);
-}
-
-.autoeq-database-header-right {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
 }
 
 .autoeq-database-title {
@@ -9502,69 +9251,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     .autoeq-profile-name-input {
         flex: 1;
         width: auto;
-    }
-
-    /* Mobile parametric EQ band layout */
-    .autoeq-band-control {
-        padding: 0.5rem;
-    }
-
-    .autoeq-band-header {
-        flex-wrap: wrap;
-        gap: 0.3rem;
-    }
-
-    .autoeq-band-number {
-        min-width: 1.2rem;
-    }
-
-    .autoeq-band-param {
-        min-width: 0;
-        flex: 0 0 auto;
-    }
-
-    .autoeq-band-sliders {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .autoeq-band-slider {
-        width: 100%;
-        height: 6px;
-    }
-
-    .autoeq-band-slider::-webkit-slider-thumb {
-        width: 18px;
-        height: 18px;
-    }
-
-    .autoeq-band-slider::-moz-range-thumb {
-        width: 18px;
-        height: 18px;
-    }
-
-    .autoeq-filters-actions {
-        flex-wrap: wrap;
-        gap: 0.3rem;
-    }
-
-    .autoeq-filters-actions button {
-        font-size: 0.7rem;
-        padding: 0.3rem 0.5rem;
-    }
-}
-
-@media (max-width: 600px) {
-    /* Rearrange band header into 2 rows on small screens */
-    .autoeq-band-header {
-        display: grid;
-        grid-template-columns: auto auto 1fr 1fr 1fr;
-        gap: 0.25rem 0.4rem;
-        align-items: center;
-    }
-
-    .autoeq-band-param {
-        justify-content: flex-start;
     }
 }
 
@@ -10465,6 +10151,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 .contrib {
     font-size: 10px;
 }
+<<<<<<< HEAD
 
 /* Fullscreen layout rebuild on PR 378 base */
 #fullscreen-cover-overlay .fullscreen-shell {
@@ -11010,3 +10697,5 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
         width: 100%;
     }
 }
+=======
+>>>>>>> parent of 10b7afc (Merge branch 'main' of https://github.com/monochrome-music/monochrome)

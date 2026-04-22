@@ -189,13 +189,9 @@ export class Player {
                 .catch(() => {});
         });
 
-        // Handle visibility change - AudioContext can be suspended when backgrounded
+        // Handle visibility change for iOS - AudioContext gets suspended when screen locks
         document.addEventListener('visibilitychange', async () => {
             const el = this.activeElement;
-            if (document.visibilityState === 'hidden' && !el.paused) {
-                // Proactively resume context when going to background to prevent suspension
-                void audioContextManager.resume();
-            }
             if (document.visibilityState === 'visible' && !el.paused) {
                 // Ensure audio context is resumed when user returns to the app
                 if (!audioContextManager.isReady()) {
@@ -2329,6 +2325,7 @@ export class Player {
     }
 
     updateMediaSessionPlaybackState() {
+<<<<<<< HEAD
         const isPlaying = !this.activeElement.paused;
         void MediaSession.setPlaybackState({ playbackState: isPlaying ? 'playing' : 'paused' });
 
@@ -2364,6 +2361,10 @@ export class Player {
                 this._bgAudioPending = false;
             }
         })();
+=======
+        if (!('mediaSession' in navigator)) return;
+        navigator.mediaSession.playbackState = this.activeElement.paused ? 'paused' : 'playing';
+>>>>>>> parent of 10b7afc (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
     }
 
     updateMediaSessionPositionState() {

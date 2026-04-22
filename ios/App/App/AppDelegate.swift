@@ -1,5 +1,4 @@
 import UIKit
-import AVFoundation
 import Capacitor
 
 @UIApplicationMain
@@ -8,80 +7,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        configureAudioSession()
+        // Override point for customization after application launch.
         return true
-    }
-
-    private func configureAudioSession() {
-        let session = AVAudioSession.sharedInstance()
-        do {
-            // .playback keeps audio alive when the app is backgrounded or the screen locks
-            try session.setCategory(.playback, mode: .default, options: [])
-            try session.setActive(true)
-        } catch {
-            print("[AudioSession] Failed to configure: \(error.localizedDescription)")
-        }
-
-        // Handle audio interruptions (phone calls, Siri, alarms, etc.)
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleAudioInterruption),
-            name: AVAudioSession.interruptionNotification,
-            object: session
-        )
-
-        // Handle route changes (headphones unplugged, Bluetooth disconnect, etc.)
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleRouteChange),
-            name: AVAudioSession.routeChangeNotification,
-            object: session
-        )
-    }
-
-    @objc private func handleAudioInterruption(notification: Notification) {
-        guard let userInfo = notification.userInfo,
-              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
-              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
-            return
-        }
-
-        switch type {
-        case .began:
-            // Interruption began — system pauses audio automatically
-            break
-        case .ended:
-            // Interruption ended — reactivate session so playback can resume
-            if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
-                let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
-                if options.contains(.shouldResume) {
-                    do {
-                        try AVAudioSession.sharedInstance().setActive(true)
-                    } catch {
-                        print("[AudioSession] Failed to reactivate after interruption: \(error.localizedDescription)")
-                    }
-                }
-            }
-        @unknown default:
-            break
-        }
-    }
-
-    @objc private func handleRouteChange(notification: Notification) {
-        guard let userInfo = notification.userInfo,
-              let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
-              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
-            return
-        }
-
-        if reason == .oldDeviceUnavailable {
-            // Headphones/Bluetooth disconnected — reactivate session to keep background alive
-            do {
-                try AVAudioSession.sharedInstance().setActive(true)
-            } catch {
-                print("[AudioSession] Failed to reactivate after route change: \(error.localizedDescription)")
-            }
-        }
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
