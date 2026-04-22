@@ -187,9 +187,11 @@ describe('Player', () => {
         player = new Player(audioElement, api);
 
         player.setPlaybackSpeed(2.0);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(2.0);
 
         player.setPlaybackSpeed(0);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(0.01);
     });
 });

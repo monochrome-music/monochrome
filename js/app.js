@@ -460,6 +460,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ],
         token: localStorage.getItem('hifi_token') || undefined,
         tokenExpiry: parseInt(localStorage.getItem('hifi_token_expiry') || '0'),
+        refreshToken: localStorage.getItem('hifi_refresh_token') || undefined,
     });
 
     await MusicAPI.initialize(apiSettings);
@@ -664,12 +665,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const mode = nowPlayingSettings.getMode();
 
-        if (mode === 'lyrics') {
-            const isActive = sidePanelManager.isActive('lyrics');
-        } else if (mode === 'cover') {
+        if (mode === 'cover') {
             const overlay = document.getElementById('fullscreen-cover-overlay');
             if (overlay && overlay.style.display === 'flex') {
+                // UI already displayed
             } else {
+                // UI needs to be shown
             }
         }
 
@@ -725,7 +726,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         switch (action) {
             case 'exit':
-                closeFullscreenOverlay();
+                void closeFullscreenOverlay();
                 break;
             case 'hide-ui':
                 if (overlay) {
@@ -767,7 +768,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             case 'nothing':
                 break;
             default:
-                closeFullscreenOverlay();
+                void closeFullscreenOverlay();
         }
     });
 

@@ -29,7 +29,7 @@ export class DashDownloader {
             let totalSize = 0;
 
             await Promise.all(
-                urls.map(async (url) => {
+                urls.map(async (url): Promise<void> => {
                     const result = await fetch(getProxyUrl(url), { method: 'HEAD', signal });
 
                     if (result.ok) {
@@ -42,7 +42,7 @@ export class DashDownloader {
             );
 
             return totalSize;
-        } catch {
+        } catch (_error: unknown) {
             return undefined;
         }
     }
