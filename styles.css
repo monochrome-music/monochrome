@@ -10107,35 +10107,12 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 .about-contributors div {
-    flex: 1 1 calc(25% - 10px);
-    min-width: 150px;
-    max-width: calc(50% - 10px);
+    width: calc(20% - 8px);
     border: 1px solid var(--border);
     border-radius: 14px;
-    padding: 20px;
+    padding: 30px;
     text-align: center;
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-@media (max-width: 768px) {
-    .about-contributors div {
-        flex: 1 1 calc(50% - 10px);
-        max-width: 100%;
-        padding: 15px;
-    }
-}
-
-.about-contributors a {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    text-decoration: none;
-    color: inherit;
 }
 
 .about-contributors img {

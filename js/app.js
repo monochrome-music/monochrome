@@ -131,9 +131,8 @@ async function fetchcontributors() {
         const response = await fetch('https://api.samidy.com/api/contributors');
         if (!response.ok) return;
         const data1 = await response.json();
-        if (!Array.isArray(data1)) return;
 
-        let data = data1.filter(
+        const data = data1.filter(
             (user) => user.type !== 'Bot' && user.login !== 'edidealt' && user.login !== 'satanyahoo'
         );
 
@@ -142,8 +141,6 @@ async function fetchcontributors() {
             edideaur.contributions += data1.find((u) => u.login === 'edidealt')?.contributions || 0;
             edideaur.contributions += data1.find((u) => u.login === 'satanyahoo')?.contributions || 0;
         }
-
-        data.sort((a, b) => b.contributions - a.contributions);
 
         const con = document.querySelector('.about-contributors');
         if (!con) return;
@@ -161,7 +158,6 @@ async function fetchcontributors() {
         });
     } catch (e) {
         const con = document.querySelector('.about-contributors-failed');
-        if (!con) return;
         const userDIV = document.createElement('div');
         userDIV.innerHTML = `
         <h4 style="text-align: center; color: var(--muted-foreground);">Failed to Fetch Contributor List</h4>
