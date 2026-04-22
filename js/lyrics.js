@@ -16,7 +16,7 @@ const loadAmLyrics = () => {
     if (images.length === 0) {
         import('@uimaxbai/am-lyrics/am-lyrics.js').catch(console.error);
     } else {
-        Promise.all(
+        await Promise.all(
             images.map(
                 (img) =>
                     new Promise((res) => {

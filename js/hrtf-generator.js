@@ -184,7 +184,7 @@ export async function generateHRTFSet(audioContext, preset = 'studio') {
 
         // Scale angle by preset
         const scaledAzimuth = ch.azimuth * angleScale;
-        const stereoBuffer = await generateHRTF(audioContext, scaledAzimuth);
+        const stereoBuffer = generateHRTF(audioContext, scaledAzimuth);
 
         results.set(ch.index, {
             stereo: stereoBuffer,

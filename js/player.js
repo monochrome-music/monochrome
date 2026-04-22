@@ -273,6 +273,7 @@ export class Player {
     }
 
     applyReplayGain() {
+        const el = this.activeElement;
         const mode = replayGainSettings.getMode(); // 'off', 'track', 'album'
         let gainDb = 0;
         let peak = 1.0;
@@ -306,9 +307,21 @@ export class Player {
         // Calculate effective volume
         const effectiveVolume = curvedVolume * scale;
 
-        const el = this.activeElement;
+        // Apply to audio element and/or Web Audio graph
+        const isApple = isIos || isSafari;
 
-        el.volume = Math.max(0, Math.min(1, effectiveVolume));
+        if (audioContextManager.isReady() && !isApple) {
+            // If Web Audio is active, we apply volume there for better compatibility
+            // Especially on Linux where audio.volume might not affect the Web Audio graph
+            el.volume = 1.0;
+            audioContextManager.setVolume(effectiveVolume);
+        } else {
+            // Safari bypasses WebAudio for HLS, so we MUST set el.volume directly to reflect ReplayGain
+            if (audioContextManager.isReady()) {
+                audioContextManager.setVolume(1.0); // Reset graph gain if it somehow routes
+            }
+            el.volume = Math.max(0, Math.min(1, effectiveVolume));
+        }
     }
 
     applyAudioEffects() {
@@ -914,7 +927,7 @@ export class Player {
         const yearDisplay = getTrackYearDisplay(track);
 
         if (!track.videoUrl && !track.videoCoverUrl && !track.album?.videoCoverUrl) {
-            this.api.getVideoArtwork(trackTitle, artistName).then((result) => {
+            void this.api.getVideoArtwork(trackTitle, artistName).then((result) => {
                 if (this.currentTrack?.id === track.id && result && (result.videoUrl || result.hlsUrl)) {
                     track.videoCoverUrl = result.videoUrl || result.hlsUrl;
                     this.updateVideoCovers(track.videoCoverUrl);
@@ -999,7 +1012,7 @@ export class Player {
                 const coverSrcset = videoCoverUrl ? null : this.api.getCoverSrcset(coverId);
 
                 if (videoCoverUrl) {
-                    this.updateVideoCovers(videoCoverUrl);
+                    void this.updateVideoCovers(videoCoverUrl);
                 } else {
                     let imgEl = coverEl;
                     if (coverEl.tagName === 'VIDEO') {

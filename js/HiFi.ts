@@ -1176,6 +1176,13 @@ class HiFiClient {
                 storage.removeItem('hifi_token_expiry');
             }
         });
+        this.on(HiFiClientEvents.RefreshTokenUpdate, (refreshToken) => {
+            if (refreshToken) {
+                storage.setItem('hifi_refresh_token', refreshToken);
+            } else {
+                storage.removeItem('hifi_refresh_token');
+            }
+        });
     }
 
     static #jsonResponse<T>(data: T): TidalResponse<T> {
@@ -1355,7 +1362,7 @@ class HiFiClient {
                     signal,
                 });
             } catch (err: unknown) {
-                throw new ResponseError(0, err instanceof Error ? err.message : String(err));
+                throw new ResponseError(0, err instanceof Error ? err.message : String(err as any));
             }
 
             if (previousResponse && unauthorized && res.status === 401) {
@@ -1721,6 +1728,7 @@ class HiFiClient {
         if (!id && !f) throw new ResponseError(400, 'Provide id or f query param');
 
         if (id) {
+            /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
             const artist_url = `https://openapi.tidal.com/v2/artists/${id}`;
             const payload = await this.#fetchJson<any>(
                 artist_url,
@@ -1834,6 +1842,7 @@ class HiFiClient {
                 albums: { items: albums },
                 tracks,
             });
+            /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
         }
 
         // fallback to original f logic
@@ -2038,6 +2047,7 @@ class HiFiClient {
         const { q, s, a, al, v, p, i, offset = 0, limit = 25 } = options;
 
         const parseOpenApiSearch = (jsonApi: any): SearchResponse['data'] => {
+            /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
             if (!jsonApi || !jsonApi.data) return {};
 
             const includedMap = new Map<string, any>();
@@ -2139,6 +2149,7 @@ class HiFiClient {
                 videos: mapBucket('videos'),
                 playlists: mapBucket('playlists'),
             };
+            /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
         };
 
         if (i) {

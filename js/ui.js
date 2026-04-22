@@ -3684,16 +3684,19 @@ export class UIRenderer {
 
         try {
             const provider = this.api.getCurrentProvider();
-            
+
             // Intelligent Search: Query Genius API concurrently for lyrics matches
             const geniusSearchPromise = (async () => {
                 try {
                     const hostname = window.location.hostname;
-                    const token = (hostname.endsWith('monochrome.tf') || hostname === 'monochrome.tf')
-                        ? 'OpITG-h86oehKYuJJ5QVY5F-HxUWXb31EwGKarx2Ble3W9rBUVnMaUL9qo_Oh9Q7'
-                        : 'QmS9OvsS-7ifRBKx_ochIPQU7oejIS9Eo_z5iWHmCPyhwLVQID3pYTHJmJTa6z8z';
+                    const token =
+                        hostname.endsWith('monochrome.tf') || hostname === 'monochrome.tf'
+                            ? 'OpITG-h86oehKYuJJ5QVY5F-HxUWXb31EwGKarx2Ble3W9rBUVnMaUL9qo_Oh9Q7'
+                            : 'QmS9OvsS-7ifRBKx_ochIPQU7oejIS9Eo_z5iWHmCPyhwLVQID3pYTHJmJTa6z8z';
                     const url = `https://api.genius.com/search?q=${encodeURIComponent(query)}&access_token=${token}`;
-                    const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, { signal });
+                    const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, {
+                        signal,
+                    });
                     if (!response.ok) return [];
                     const data = await response.json();
                     return data.response?.hits || [];
@@ -3713,19 +3716,19 @@ export class UIRenderer {
             // Merge lyrics hits
             const geniusHits = await geniusSearchPromise;
             const topGeniusHits = geniusHits.slice(0, 3); // Top 3 lyric matches
-            
+
             for (const hit of topGeniusHits) {
                 const song = hit.result;
                 const title = song?.title;
                 const artist = song?.primary_artist?.name;
-                
+
                 if (title && artist) {
                     try {
                         const trackResults = await this.api.searchTracks(`${title} ${artist}`);
                         if (trackResults.items && trackResults.items.length > 0) {
                             const matchedTrack = trackResults.items[0];
                             // Avoid duplicates and prepend to tracks list
-                            if (!finalTracks.some(t => t.id === matchedTrack.id)) {
+                            if (!finalTracks.some((t) => t.id === matchedTrack.id)) {
                                 finalTracks.unshift(matchedTrack);
                             }
                         }
@@ -4151,7 +4154,7 @@ export class UIRenderer {
                 }
             }
 
-            fetchAotyWorker(album.title, album.artist.name);
+            await fetchAotyWorker(album.title, album.artist.name);
 
             tracklistContainer.innerHTML = `
                 <div class="track-list-header">
