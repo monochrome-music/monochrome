@@ -2,6 +2,9 @@
 
 While the website works without the extension with the use of proxies, it is recommended to install it to prevent various annoying issues. The website works best with the extension on.
 
+## What it does
+It makes your `requestHeaders` look like they are from Tidal themselves. Which will result in less blocked Requests.  
+
 ## Installation
 
 1. Click on the **Code** button on the [home page](https://github.com/monochrome-music/monochrome) of the repo and click **Download ZIP**. (or download the [latest main branch ZIP](https://github.com/monochrome-music/monochrome/archive/refs/heads/main.zip))
