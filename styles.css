@@ -3754,7 +3754,7 @@ input:checked + .slider::before {
 }
 
 .player-controls .progress-container span {
-    min-width: 45px;
+    min-width: 40px;
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
 }

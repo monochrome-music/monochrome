@@ -304,7 +304,7 @@ export function createProjectCardHTML(era, _artist, sheetId, trackCount) {
                 ${playBtnHTML}
             </div>
             <div class="card-info">
-                <h3 class="card-title">${escapeHtml(era.name)}</h3>
+                <h4 class="card-title">${escapeHtml(era.name)}</h4>
                 <p class="card-subtitle">${era.timeline || 'Unreleased'} • ${trackCount} tracks</p>
             </div>
         </div>
@@ -784,7 +784,7 @@ export async function renderUnreleasedPage(container) {
                 <img class="card-image" src="${coverImage}" alt="${artist.name}" loading="lazy" onerror="this.src='assets/logo.svg'">
             </div>
             <div class="card-info">
-                <h3 class="card-title">${artist.name}</h3>
+                <h4 class="card-title">${artist.name}</h4>
                 <p class="card-subtitle">Unreleased Music</p>
             </div>
         `;
