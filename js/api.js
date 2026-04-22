@@ -1087,7 +1087,7 @@ export class LosslessAPI {
 
         const artist = {
             ...this.prepareArtist(rawArtist),
-            picture: rawArtist.picture || null,
+            picture: rawArtist.picture || primaryData.cover || null,
             name: rawArtist.name || 'Unknown Artist',
         };
 

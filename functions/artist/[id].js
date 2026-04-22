@@ -116,8 +116,13 @@ class ServerAPI {
     }
 
     async getArtistMetadata(id) {
-        const response = await this.fetchWithRetry(`/artist/?id=${id}`);
-        return await response.json();
+        try {
+            const response = await this.fetchWithRetry(`/artist/${id}`);
+            return await response.json();
+        } catch {
+            const response = await this.fetchWithRetry(`/artist?id=${id}`);
+            return await response.json();
+        }
     }
 
     getArtistPictureUrl(id, size = '750') {
