@@ -1049,8 +1049,8 @@ ul {
     gap: 0.375rem;
     padding: 0.4rem 0.6rem;
     margin-bottom: 1rem;
-    background: rgb(245, 158, 11, 0.12);
-    border: 1px solid rgb(245, 158, 11, 0.25);
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.25);
     border-radius: var(--radius-md);
     color: #f59e0b;
     font-size: 0.7rem;
