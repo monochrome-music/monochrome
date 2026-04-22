@@ -16,8 +16,11 @@ import {
     exponentialVolumeSettings,
     audioEffectsSettings,
     radioSettings,
+<<<<<<< HEAD
     autoplaySettings,
     binauralDspSettings,
+=======
+>>>>>>> parent of d876eeb (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
 import { isIos, isSafari } from './platform-detection.js';
@@ -325,8 +328,7 @@ export class Player {
     }
 
     setPlaybackSpeed(speed) {
-        const parsed = parseFloat(speed);
-        const validSpeed = Math.max(0.01, Math.min(100, isNaN(parsed) ? 1.0 : parsed));
+        const validSpeed = Math.max(0.01, Math.min(100, parseFloat(speed) || 1.0));
         audioEffectsSettings.setSpeed(validSpeed);
         this.applyAudioEffects();
     }
@@ -2115,29 +2117,9 @@ export class Player {
                     }
 
                     if (isAtmosPlaying) {
-                        // Auto-enable binaural DSP for spatial content
-                        if (binauralDspSettings.getAutoEnableForSpatial() && !binauralDspSettings.isEnabled()) {
-                            void audioContextManager.toggleBinaural(true);
-                            // Update toggle in settings UI if visible
-                            const toggle = document.getElementById('binaural-dsp-toggle');
-                            if (toggle) toggle.checked = true;
-                            const container = document.getElementById('binaural-dsp-container');
-                            if (container) container.style.display = 'block';
-                        }
-                        // Notify binaural DSP of the actual multichannel layout when Shaka exposes it.
-                        const atmosChannelCount =
-                            Number.isFinite(activeVariant.channelsCount) && activeVariant.channelsCount > 0
-                                ? activeVariant.channelsCount
-                                : 6;
-                        void audioContextManager.notifyBinauralChannelCount(atmosChannelCount);
-
-                        const binauralActive = audioContextManager.isBinauralActive();
                         badgeEl.className = 'quality-badge quality-atmos shaka-quality-badge';
-                        badgeEl.innerHTML =
-                            SVG_ATMOS(20) + (binauralActive ? ' <span class="binaural-badge">Binaural</span>' : '');
+                        badgeEl.innerHTML = SVG_ATMOS(20);
                     } else {
-                        // Notify binaural DSP that we're in stereo mode
-                        void audioContextManager.notifyBinauralChannelCount(2);
                         badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
                         badgeEl.textContent = text;
                     }
@@ -2382,7 +2364,7 @@ export class Player {
                     await this._bgAudioPlugin.stop();
                 }
             } catch {
-                // Not running in Capacitor or plugin unavailable - ignore
+                // Not running in Capacitor or plugin unavailable — ignore
             } finally {
                 this._bgAudioPending = false;
             }

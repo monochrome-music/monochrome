@@ -97,14 +97,13 @@ jobs:
 
             - name: Generate new editors picks
               if: steps.backoff.outputs.skip == 'false'
-              run: python3 .github/scripts/gen-editors-picks.py
+              run: python3 gen-editors-picks.py
 
             - name: Commit and push
               if: steps.backoff.outputs.skip == 'false'
               run: |
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git pull --rebase origin main
                   git add public/editors-picks.json public/editors-picks-old/
                   git diff --staged --quiet && echo "No changes to commit." && exit 0
                   git commit -m "chore: update editors picks"

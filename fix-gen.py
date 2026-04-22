@@ -19,3 +19,4 @@ new_func = """def download_and_process_cover(cover_uuid):
 content = re.sub(r"def download_and_process_cover\(cover_uuid\):[\s\S]*?(?=def process_cover)", new_func + "\n\n", content)
 
 with open("gen-editors-picks.py", "w") as f: f.write(content)
+

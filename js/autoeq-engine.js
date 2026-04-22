@@ -24,7 +24,8 @@ function calculateBiquadResponse(f, band, sr = DEFAULT_SR) {
     const w = (2 * PI * band.freq) / sr;
     const p = (2 * PI * f) / sr;
     const t = band.type[0];
-    const effectiveQ = band.q;
+    // WebAudio ignores Q for shelf filters; use 1/√2 (slope = 1) to match
+    const effectiveQ = t === 'l' || t === 'h' ? Math.SQRT1_2 : band.q;
     const s = Math.sin(w) / (2 * effectiveQ);
     const A = Math.pow(DB_BASE, band.gain / DB_DIVISOR);
     const c = Math.cos(w);
@@ -243,7 +244,7 @@ function runAutoEqAlgorithm(
         if (peakFreq > 5000 && q > 3.0) q = 3.0;
         if (gain > 0 && q > 2.0) q = 2.0;
 
-        const newBand = { id: i, type: 'peaking', freq: peakFreq, gain, q, enabled: true, channel: 'stereo' };
+        const newBand = { id: i, type: 'peaking', freq: peakFreq, gain, q, enabled: true };
 
         // Check cumulative gain at the peak frequency across all existing bands + this one
         let cumulativeGain = gain;

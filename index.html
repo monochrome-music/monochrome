@@ -197,24 +197,6 @@
             </ul>
         </div>
 
-        <div id="eq-node-context-menu">
-            <ul>
-                <li data-action="eq-channel-stereo" class="eq-ctx-channel">Stereo</li>
-                <li data-action="eq-channel-mid" class="eq-ctx-channel">Mid</li>
-                <li data-action="eq-channel-side" class="eq-ctx-channel">Side</li>
-                <li class="separator"></li>
-                <li data-action="eq-type-lowshelf" class="eq-ctx-type">Low Shelf</li>
-                <li data-action="eq-type-peaking" class="eq-ctx-type">Peaking</li>
-                <li data-action="eq-type-highshelf" class="eq-ctx-type">High Shelf</li>
-            </ul>
-        </div>
-
-        <div id="eq-empty-context-menu">
-            <ul>
-                <li data-action="eq-add-node">Add Node</li>
-            </ul>
-        </div>
-
         <div id="side-panel" class="side-panel">
             <div id="side-panel-resizer" class="side-panel-resizer"></div>
             <div class="panel-header">
@@ -247,21 +229,13 @@
                         z-index: 0;
                     "
                 ></div>
-                <button id="fullscreen-dismiss-handle" type="button" aria-label="Dismiss fullscreen"></button>
-                <button
-                    id="toggle-fullscreen-lyrics-mobile-btn"
-                    class="fullscreen-mobile-lyrics-toggle"
-                    title="Hide Lyrics"
-                >
-                    <use svg="!lucide/mic-vocal.svg" size="18" />
-                </button>
                 <button id="toggle-ui-btn" class="fullscreen-ui-toggle" title="Toggle UI">
                     <use svg="!lucide/eye-off.svg" size="24" />
                 </button>
+                <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
+                    <use svg="!lucide/mic-vocal.svg" size="24" />
+                </button>
                 <div class="fullscreen-top-actions">
-                    <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Hide Lyrics">
-                        <use svg="!lucide/mic-vocal.svg" size="20" />
-                    </button>
                     <button id="fs-visualizer-btn" class="fs-visualizer-btn" title="Disable Visualizer">
                         <use svg="!lucide/audio-lines.svg" size="20" />
                     </button>
@@ -307,11 +281,6 @@
                             </div>
 
                             <div class="fullscreen-controls">
-                                <div
-                                    id="fullscreen-mobile-quality"
-                                    class="fullscreen-mobile-quality"
-                                    aria-hidden="true"
-                                ></div>
                                 <div class="fullscreen-progress-container">
                                     <span id="fs-current-time">0:00</span>
                                     <div id="fs-progress-bar" class="progress-bar">
@@ -4211,108 +4180,9 @@
 
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Binaural / Spatial DSP</span>
+                                        <span class="label">AutoEQ</span>
                                         <span class="description"
-                                            >Multichannel HRTF rendering for Atmos &amp; 3D Audio, crossfeed for
-                                            stereo</span
-                                        >
-                                    </div>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="binaural-dsp-toggle" />
-                                        <span class="slider"></span>
-                                    </label>
-                                </div>
-
-                                <div class="binaural-dsp-container" id="binaural-dsp-container" style="display: none">
-                                    <div class="binaural-status" id="binaural-status">
-                                        <span class="binaural-mode-label">Mode: Stereo</span>
-                                    </div>
-
-                                    <div class="binaural-sub-setting">
-                                        <div class="info">
-                                            <span class="label">Auto-enable for Spatial Audio</span>
-                                            <span class="description"
-                                                >Automatically activate when Atmos or 3D content is detected</span
-                                            >
-                                        </div>
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="binaural-auto-spatial-toggle" checked />
-                                            <span class="slider"></span>
-                                        </label>
-                                    </div>
-
-                                    <div class="binaural-sub-setting">
-                                        <div class="info">
-                                            <span class="label">Crossfeed</span>
-                                            <span class="description">Simulate speaker presentation on headphones</span>
-                                        </div>
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="binaural-crossfeed-toggle" checked />
-                                            <span class="slider"></span>
-                                        </label>
-                                    </div>
-
-                                    <div class="binaural-sub-setting" id="crossfeed-level-row">
-                                        <div class="info">
-                                            <span class="label">Crossfeed Level</span>
-                                        </div>
-                                        <select id="binaural-crossfeed-level">
-                                            <option value="low">Low</option>
-                                            <option value="medium" selected>Medium</option>
-                                            <option value="high">High</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="binaural-sub-setting">
-                                        <div class="info">
-                                            <span class="label">HRTF Preset</span>
-                                            <span class="description"
-                                                >Virtual speaker angle for multichannel rendering</span
-                                            >
-                                        </div>
-                                        <select id="binaural-hrtf-preset">
-                                            <option value="intimate">Intimate (&plusmn;22&deg;)</option>
-                                            <option value="studio" selected>Studio (&plusmn;30&deg;)</option>
-                                            <option value="wide">Wide (&plusmn;45&deg;)</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="binaural-sub-setting">
-                                        <div class="info">
-                                            <span class="label">Stereo Width</span>
-                                            <span class="description"
-                                                >Adjust spatial width (0 = mono, 1 = neutral, 2 = wide)</span
-                                            >
-                                        </div>
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="binaural-widening-toggle" checked />
-                                            <span class="slider"></span>
-                                        </label>
-                                    </div>
-
-                                    <div class="binaural-sub-setting" id="widening-slider-row">
-                                        <div class="info">
-                                            <span class="label">Width Amount</span>
-                                            <span class="binaural-width-value" id="binaural-width-value">1.0</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            id="binaural-widening-slider"
-                                            min="0"
-                                            max="2"
-                                            step="0.05"
-                                            value="1.0"
-                                            class="binaural-slider"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">EQ Studio</span>
-                                        <span class="description"
-                                            >Multi-mode equalizer with AutoEQ, M/S processing &amp; room
-                                            correction</span
+                                            >Precision headphone correction &amp; parametric equalizer</span
                                         >
                                     </div>
                                     <label class="toggle-switch">
@@ -4326,10 +4196,10 @@
                                     <div class="autoeq-mode-row">
                                         <div class="autoeq-mode-toggle">
                                             <button class="autoeq-mode-btn" data-mode="legacy">Legacy EQ</button>
+                                            <button class="autoeq-mode-btn active" data-mode="autoeq">AutoEQ</button>
                                             <button class="autoeq-mode-btn" data-mode="parametric">
                                                 Parametric EQ
                                             </button>
-                                            <button class="autoeq-mode-btn active" data-mode="autoeq">AutoEQ</button>
                                             <button class="autoeq-mode-btn" data-mode="speaker">Speaker EQ</button>
                                         </div>
                                         <button class="eq-howto-btn" id="eq-howto-btn" title="How to use">?</button>
@@ -4340,48 +4210,6 @@
                                         <button class="eq-howto-close" id="eq-howto-close" aria-label="Close tutorial">
                                             &times;
                                         </button>
-
-                                        <div class="eq-howto-tab legacy" id="eq-howto-legacy" style="display: none">
-                                            <h4>Legacy EQ - Graphic Equalizer</h4>
-                                            <ol>
-                                                <li>
-                                                    Set the <b>number of bands</b> (3-32) and
-                                                    <b>frequency range</b> (Min/Max Hz) at the top to customize the
-                                                    equalizer layout.
-                                                </li>
-                                                <li>
-                                                    <b>Drag the sliders</b> to boost or cut each frequency band. Bands
-                                                    are spaced logarithmically across your range.
-                                                </li>
-                                                <li>
-                                                    Pick a <b>preset</b> (Bass Boost, Rock, Vocal, etc.) as a starting
-                                                    point - presets auto-scale to your band count.
-                                                </li>
-                                                <li>
-                                                    Adjust the <b>preamp</b> slider to raise or lower the overall level
-                                                    - reduce it if you hear distortion from large boosts.
-                                                </li>
-                                                <li>
-                                                    <b>Save</b> your own custom presets with a name so you can recall
-                                                    them later.
-                                                </li>
-                                                <li>
-                                                    <b>Export</b> saves the EQ in EqualizerAPO text format.
-                                                    <b>Export APO</b> saves a GraphicEQ config line you can paste
-                                                    directly into Equalizer APO's config.txt.
-                                                </li>
-                                                <li>
-                                                    <b>Import</b> loads EQ settings from EqualizerAPO text files or
-                                                    simple frequency/gain CSV files - points are mapped to your current
-                                                    bands automatically.
-                                                </li>
-                                                <li>Click <b>Reset</b> to flatten all bands back to 0 dB.</li>
-                                            </ol>
-                                            <p class="eq-howto-tip">
-                                                Tip: Cut problem frequencies rather than boosting others - it sounds
-                                                cleaner and avoids clipping.
-                                            </p>
-                                        </div>
 
                                         <div class="eq-howto-tab autoeq" id="eq-howto-autoeq">
                                             <h4>AutoEQ - Headphone Correction</h4>
@@ -4407,16 +4235,9 @@
                                                     result.
                                                 </li>
                                                 <li>
-                                                    <b>Drag nodes</b> to adjust frequency and gain.
-                                                    <b>Scroll on a node</b> to adjust Q (bandwidth).
-                                                </li>
-                                                <li>
-                                                    <b>Right-click a node</b> to change its filter type (Peaking, Low
-                                                    Shelf, High Shelf) or channel mode (Stereo, Mid, Side).
-                                                </li>
-                                                <li>
-                                                    <b>Right-click empty space</b> or <b>double-click</b> to add a node.
-                                                    <b>Double-click a node</b> to remove it.
+                                                    <b>Double-click an empty area</b> on the graph to add a new filter
+                                                    band at that frequency. <b>Double-click an existing node</b> to
+                                                    remove it.
                                                 </li>
                                                 <li>
                                                     <b>Save</b> the profile so you can switch between headphones
@@ -4437,24 +4258,25 @@
                                             <h4>Parametric EQ - Manual Control</h4>
                                             <ol>
                                                 <li>
-                                                    Each band supports <b>Peaking, Low Shelf, and High Shelf</b> filter
-                                                    types with frequency, gain, and Q (bandwidth).
+                                                    Each band supports <b>peaking, low-shelf, and high-shelf</b> filter
+                                                    types with frequency, gain, and Q (width).
                                                 </li>
                                                 <li>
-                                                    <b>Drag nodes</b> on the graph to adjust frequency and gain.
-                                                    <b>Scroll on a node</b> to adjust Q.
+                                                    <b>Drag nodes</b> on the graph to adjust frequency and gain
+                                                    visually.
                                                 </li>
                                                 <li>
-                                                    <b>Right-click a node</b> to change its filter type or set its
-                                                    channel mode to <b>Stereo</b>, <b>Mid</b>, or <b>Side</b>.
-                                                </li>
-                                                <li>
-                                                    <b>Right-click empty space</b> or <b>double-click</b> to add a node
-                                                    at that position. <b>Double-click a node</b> to delete it.
+                                                    <b>Double-click an empty area</b> on the graph to add a new band at
+                                                    that exact frequency and gain.
+                                                    <b>Double-click an existing node</b> to delete it.
                                                 </li>
                                                 <li>
                                                     Use <b>+ Add Band / - Remove Band</b> to change the number of
                                                     filters.
+                                                </li>
+                                                <li>
+                                                    Pick a <b>preset</b> (Bass Boost, Vocal, etc.) as a starting point,
+                                                    then fine-tune.
                                                 </li>
                                                 <li>
                                                     <b>Import/Export</b> settings in EqualizerAPO format for use in
@@ -4466,14 +4288,7 @@
                                                 </li>
                                             </ol>
                                             <p class="eq-howto-tip">
-                                                Tip: Lower Q = wider curve, higher Q = narrower surgical cut.
-                                            </p>
-                                            <p class="eq-howto-tip">
-                                                Mid/Side tips: Set a band to <b>Mid</b> to EQ only the center image
-                                                (vocals, bass, kick). Set it to <b>Side</b> to EQ only the stereo width
-                                                (reverb, ambience, panned instruments). Try cutting low-end on Side
-                                                below 200 Hz for tighter, mono-compatible bass - or boost presence on
-                                                Mid around 2-5 kHz to bring vocals forward without touching the sides.
+                                                Tip: Lower Q = wider curve. Higher Q = narrower surgical cut.
                                             </p>
                                         </div>
 
@@ -4502,12 +4317,9 @@
                                                     Click <b>AutoEQ</b> to generate correction filters for that channel.
                                                 </li>
                                                 <li>
-                                                    <b>Drag nodes</b> to fine-tune. <b>Scroll on a node</b> to adjust Q.
-                                                    <b>Right-click a node</b> to change type or channel mode.
-                                                </li>
-                                                <li>
-                                                    <b>Right-click empty space</b> or <b>double-click</b> to add a node.
-                                                    <b>Double-click a node</b> to remove it.
+                                                    <b>Double-click an empty area</b> on the graph to add a filter band
+                                                    at that frequency. <b>Double-click an existing node</b> to remove
+                                                    it.
                                                 </li>
                                                 <li>
                                                     Repeat for each channel, then <b>Export JSON</b> with all channels.
@@ -4522,35 +4334,6 @@
 
                                     <!-- Legacy 16-Band Graphic EQ (visible in legacy mode) -->
                                     <div class="graphic-eq-section" id="graphic-eq-section" style="display: none">
-                                        <div class="graphic-eq-config-row">
-                                            <label>Bands</label>
-                                            <input
-                                                type="number"
-                                                id="legacy-geq-band-count"
-                                                min="3"
-                                                max="32"
-                                                value="16"
-                                                class="geq-config-input"
-                                            />
-                                            <label>Min Hz</label>
-                                            <input
-                                                type="number"
-                                                id="legacy-geq-freq-min"
-                                                min="10"
-                                                max="96000"
-                                                value="25"
-                                                class="geq-config-input"
-                                            />
-                                            <label>Max Hz</label>
-                                            <input
-                                                type="number"
-                                                id="legacy-geq-freq-max"
-                                                min="10"
-                                                max="96000"
-                                                value="20000"
-                                                class="geq-config-input"
-                                            />
-                                        </div>
                                         <div class="graphic-eq-preset-row">
                                             <label for="legacy-graphic-eq-preset-select" class="graphic-eq-preset-label"
                                                 >Preset</label
@@ -4577,21 +4360,6 @@
                                                 <option value="acoustic">Acoustic</option>
                                                 <option value="podcast">Speech</option>
                                             </select>
-                                            <button
-                                                id="legacy-geq-save-preset-btn"
-                                                class="btn-secondary"
-                                                title="Save current EQ as a preset"
-                                            >
-                                                Save
-                                            </button>
-                                            <button
-                                                id="legacy-geq-delete-preset-btn"
-                                                class="btn-secondary"
-                                                title="Delete selected custom preset"
-                                                style="display: none"
-                                            >
-                                                Delete
-                                            </button>
                                         </div>
                                         <div class="graphic-eq-bands" id="legacy-graphic-eq-bands">
                                             <!-- 16 vertical sliders generated by JS -->
@@ -4621,33 +4389,6 @@
                                             <button id="legacy-graphic-eq-reset-btn" class="btn-secondary">
                                                 Reset
                                             </button>
-                                            <button
-                                                id="legacy-geq-import-btn"
-                                                class="btn-secondary"
-                                                title="Import EQ from text file (frequency/gain pairs, Q values ignored)"
-                                            >
-                                                Import
-                                            </button>
-                                            <button
-                                                id="legacy-geq-export-btn"
-                                                class="btn-secondary"
-                                                title="Export EQ to text file"
-                                            >
-                                                Export
-                                            </button>
-                                            <button
-                                                id="legacy-geq-export-csv-btn"
-                                                class="btn-secondary"
-                                                title="Export EQ as Equalizer APO GraphicEQ config line"
-                                            >
-                                                Export APO
-                                            </button>
-                                            <input
-                                                type="file"
-                                                id="legacy-geq-import-file"
-                                                accept=".txt,.csv"
-                                                style="display: none"
-                                            />
                                         </div>
                                     </div>
 
@@ -5162,19 +4903,6 @@
                                                         <option value="r_and_b">R&amp;B</option>
                                                         <option value="acoustic">Acoustic</option>
                                                         <option value="podcast">Speech</option>
-                                                        <option disabled>── Shelf ──</option>
-                                                        <option value="shelf_warm">Warm</option>
-                                                        <option value="shelf_bright">Bright & Airy</option>
-                                                        <option value="shelf_hifi">Hi-Fi</option>
-                                                        <option value="shelf_dark">Dark & Smooth</option>
-                                                        <option value="shelf_radio">Radio Ready</option>
-                                                        <option disabled>── Mid/Side ──</option>
-                                                        <option value="ms_vocal_clarity">M/S Vocal Clarity</option>
-                                                        <option value="ms_wide_stereo">M/S Wide Stereo</option>
-                                                        <option value="ms_mono_bass">M/S Mono Bass</option>
-                                                        <option value="ms_master_polish">M/S Master Polish</option>
-                                                        <option value="ms_rock_master">M/S Rock Master</option>
-                                                        <option value="ms_hiphop">M/S Hip-Hop</option>
                                                     </select>
                                                 </div>
                                             </div>

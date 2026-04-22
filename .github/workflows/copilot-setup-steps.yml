@@ -20,6 +20,7 @@ jobs:
         # Copilot will be given its own token for its operations.
         permissions:
             contents: read
+            workflows: write
 
         steps:
             - name: Checkout code

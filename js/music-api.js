@@ -258,7 +258,10 @@ export class MusicAPI {
             };
             this.videoArtworkCache.set(cacheKey, result);
             return result;
+<<<<<<< HEAD
         
+=======
+>>>>>>> parent of d876eeb (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
         } catch (error) {
             console.warn('Failed to fetch video artwork:', error);
             return null;
