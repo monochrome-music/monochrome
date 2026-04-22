@@ -4,8 +4,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 import authGatePlugin from './vite-plugin-auth-gate.js';
 import blobAssetPlugin from './vite-plugin-blob.js';
 import svgUse from './vite-plugin-svg-use.js';
+<<<<<<< HEAD
 import uploadPlugin from './vite-plugin-upload.js';
 // import purgecss from 'vite-plugin-purgecss';
+=======
+import purgecss from 'vite-plugin-purgecss';
+import { execSync } from 'child_process';
+>>>>>>> parent of bc004d3 (fix: refine image size logic and update build configuration for better performance)
 import { playwright } from '@vitest/browser-playwright';
 import { execSync } from 'child_process';
 import purgecss from 'vite-plugin-purgecss';
@@ -77,13 +82,6 @@ export default defineConfig((_options) => {
             outDir: 'dist',
             emptyOutDir: true,
             sourcemap: true,
-            minify: 'terser',
-            terserOptions: {
-                compress: {
-                    drop_console: true,
-                    drop_debugger: true,
-                },
-            },
             rollupOptions: {
                 treeshake: true,
             },
@@ -91,12 +89,7 @@ export default defineConfig((_options) => {
         plugins: [
             proxyAudioPlugin(),
             purgecss({
-                variables: false, // DO NOT REMOVE UNUSED VARIABLES (breaks web components like am-lyrics)
-                safelist: {
-                    standard: [/^am-lyrics/, /^lyplus-/, 'sidepanel', 'side-panel', 'active', 'show', /^data-/, /^modal-/],
-                    deep: [/^am-lyrics/],
-                    greedy: [/^lyplus-/, /sidepanel/, /side-panel/]
-                }
+                variables: true,
             }),
             authGatePlugin(),
             uploadPlugin(),
