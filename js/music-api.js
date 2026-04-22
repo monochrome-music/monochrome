@@ -259,9 +259,14 @@ export class MusicAPI {
             this.videoArtworkCache.set(cacheKey, result);
             return result;
 <<<<<<< HEAD
+<<<<<<< HEAD
         
 =======
 >>>>>>> parent of d876eeb (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
+=======
+            */
+            throw new Error("Video artwork is disabled for now.");
+>>>>>>> parent of 4394cce (style: auto-fix linting issues)
         } catch (error) {
             console.warn('Failed to fetch video artwork:', error);
             return null;
