@@ -23,7 +23,6 @@ import {
 >>>>>>> parent of d876eeb (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
-import { isIos } from './platform-detection.js';
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
 
