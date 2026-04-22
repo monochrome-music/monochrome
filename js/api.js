@@ -1967,8 +1967,61 @@ export class LosslessAPI {
                 }
             }
 
+<<<<<<< HEAD
             if (!isVideo) {
                 blob = await applyAudioPostProcessing(blob, quality, onProgress, options.signal, postProcessingQuality);
+=======
+            // Convert to MP3 320kbps if requested
+            if (quality === 'MP3_320') {
+                try {
+                    blob = await encodeToMp3(blob, onProgress, options.signal);
+                } catch (encodingError) {
+                    if (onProgress) {
+                        onProgress({
+                            stage: 'error',
+                            message: `Encoding failed: ${encodingError.message}`,
+                        });
+                    }
+                    throw encodingError;
+                }
+            }
+
+            if (quality.endsWith('LOSSLESS')) {
+                try {
+                    switch (losslessContainerSettings.getContainer()) {
+                        case 'flac':
+                            if ((await getExtensionFromBlob(blob)) != 'flac') {
+                                blob = await ffmpeg(
+                                    blob,
+                                    { args: ['-c:a', 'flac'] },
+                                    'output.flac',
+                                    'audio/flac',
+                                    onProgress,
+                                    options.signal
+                                );
+                            }
+                            break;
+                        case 'alac':
+                            blob = await ffmpeg(
+                                blob,
+                                { args: ['-c:a', 'alac'] },
+                                'output.m4a',
+                                'audio/mp4',
+                                onProgress,
+                                options.signal
+                            );
+                            break;
+                        default:
+                            break;
+                    }
+                } catch (error) {
+                    if (error?.name === 'AbortError') {
+                        throw error;
+                    }
+
+                    console.error('Lossless container conversion failed:', error);
+                }
+>>>>>>> parent of fb5fe05 (Remux instead of transcode)
             }
 
             // Add metadata if track information is provided

@@ -314,6 +314,7 @@ function removeBulkDownloadTask(notifEl) {
     }, 300);
 }
 
+<<<<<<< HEAD
 async function downloadTrackBlob(track, quality, api, signal = null, onProgress = null) {
     const blob = await api.downloadTrack(track.id, quality, undefined, {
         track,
@@ -322,6 +323,127 @@ async function downloadTrackBlob(track, quality, api, signal = null, onProgress 
         triggerDownload: false,
         calculateDashBytes: false,
     });
+=======
+async function downloadTrackBlob(track, quality, api, lyricsManager = null, signal = null) {
+    let enrichedTrack = {
+        ...track,
+        artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
+    };
+
+    // MP3_320 is not a native TIDAL quality, we download LOSSLESS and convert
+    const downloadQuality = quality === 'MP3_320' ? 'LOSSLESS' : quality;
+
+    try {
+        const fullTrack = await api.getTrackMetadata(track.id);
+        if (fullTrack) {
+            enrichedTrack = {
+                ...fullTrack,
+                ...enrichedTrack,
+                artist: enrichedTrack.artist || fullTrack.artist,
+                album: {
+                    ...(fullTrack.album || {}),
+                    ...(enrichedTrack.album || {}),
+                },
+                // Preserve explicit disc fields from either source
+                discNumber: enrichedTrack.discNumber ?? fullTrack.discNumber,
+                volumeNumber: enrichedTrack.volumeNumber ?? fullTrack.volumeNumber,
+            };
+        }
+    } catch {
+        // Non-fatal: continue with best available track payload
+    }
+
+    if (enrichedTrack.album && (!enrichedTrack.album.title || !enrichedTrack.album.artist) && enrichedTrack.album.id) {
+        try {
+            const albumData = await api.getAlbum(enrichedTrack.album.id);
+            if (albumData.album) {
+                enrichedTrack.album = {
+                    ...enrichedTrack.album,
+                    ...albumData.album,
+                };
+            }
+        } catch (error) {
+            console.warn('Failed to fetch album data for metadata:', error);
+        }
+    }
+
+    const lookup = await api.getTrack(track.id, downloadQuality);
+    let streamUrl;
+
+    if (lookup.originalTrackUrl) {
+        streamUrl = lookup.originalTrackUrl;
+    } else {
+        streamUrl = api.extractStreamUrlFromManifest(lookup.info.manifest);
+        if (!streamUrl) {
+            throw new Error('Could not resolve stream URL');
+        }
+    }
+
+    // Handle DASH streams (blob URLs)
+    let blob;
+    if (streamUrl.startsWith('blob:')) {
+        try {
+            const downloader = new DashDownloader();
+            blob = await downloader.downloadDashStream(streamUrl, { signal });
+        } catch (dashError) {
+            console.error('DASH download failed:', dashError);
+            // Fallback
+            if (downloadQuality !== 'LOSSLESS') {
+                console.warn('Falling back to LOSSLESS (16-bit) download.');
+                return downloadTrackBlob(track, 'LOSSLESS', api, lyricsManager, signal);
+            }
+            throw dashError;
+        }
+    } else {
+        const response = await fetch(streamUrl, { signal });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch track: ${response.status}`);
+        }
+        blob = await response.blob();
+    }
+
+    // Convert to MP3 320kbps if requested
+    if (quality === 'MP3_320') {
+        blob = await encodeToMp3(blob, () => undefined, signal);
+    }
+
+    if (quality.endsWith('LOSSLESS')) {
+        try {
+            switch (losslessContainerSettings.getContainer()) {
+                case 'flac':
+                    if ((await getExtensionFromBlob(blob)) != 'flac') {
+                        blob = await ffmpeg(
+                            blob,
+                            { args: ['-c:a', 'flac'] },
+                            'output.flac',
+                            'audio/flac',
+                            () => undefined,
+                            signal
+                        );
+                    }
+                    break;
+                case 'alac':
+                    blob = await ffmpeg(
+                        blob,
+                        { args: ['-c:a', 'alac'] },
+                        'output.m4a',
+                        'audio/mp4',
+                        () => undefined,
+                        signal
+                    );
+                    break;
+                default:
+                    break;
+            }
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                throw error;
+            }
+
+            console.error('Lossless container conversion failed:', error);
+        }
+    }
+>>>>>>> parent of fb5fe05 (Remux instead of transcode)
 
     // Detect actual format from blob signature BEFORE adding metadata
     const extension = await getExtensionFromBlob(blob);
