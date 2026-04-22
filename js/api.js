@@ -1531,6 +1531,7 @@ export class LosslessAPI {
         let streamUrl;
         let manifestRgInfo = null;
 
+<<<<<<< HEAD
         const lookup = await this.getTrack(id, quality);
 
         if (lookup.originalTrackUrl) {
@@ -1539,6 +1540,50 @@ export class LosslessAPI {
             const manifest = lookup.info?.manifest;
             if (manifest) {
                 streamUrl = this.extractStreamUrlFromManifest(manifest);
+=======
+        try {
+            const manifestType = isIos || isSafari ? 'HLS' : 'MPEG_DASH';
+
+            let canPlayAtmos = false;
+            try {
+                if (window.MediaSource && typeof window.MediaSource.isTypeSupported === 'function') {
+                    canPlayAtmos =
+                        MediaSource.isTypeSupported('audio/mp4; codecs="ec-3"') ||
+                        MediaSource.isTypeSupported('audio/mp4; codecs="eac3"');
+                }
+                if (!canPlayAtmos && typeof document !== 'undefined') {
+                    const a = document.createElement('audio');
+                    canPlayAtmos = !!(
+                        a.canPlayType('audio/mp4; codecs="ec-3"') || a.canPlayType('audio/mp4; codecs="eac3"')
+                    );
+                }
+            } catch (e) {}
+
+            const paramsArray = [];
+
+            if (quality === 'LOW') {
+                paramsArray.push(['formats', 'HEAACV1']);
+            } else if (quality === 'HIGH') {
+                paramsArray.push(['formats', 'AACLC']);
+            } else if (quality === 'LOSSLESS') {
+                // For Safari to not auto-downgrade to AAC, we only request FLAC
+                paramsArray.push(['formats', 'FLAC']);
+            } else if (quality === 'HI_RES_LOSSLESS') {
+                // FLAC_HIRES might fallback to FLAC by Tidal if unavailable, but we specify only HIRES and standard FLAC to avoid AAC downgrading
+                paramsArray.push(['formats', 'FLAC_HIRES']);
+                paramsArray.push(['formats', 'FLAC']);
+            } else if (quality === 'DOLBY_ATMOS' && canPlayAtmos) {
+                paramsArray.push(['formats', 'EAC3_JOC']);
+            } else {
+                // Default fallback or "auto" behavior
+                paramsArray.push(['formats', 'HEAACV1']);
+                paramsArray.push(['formats', 'AACLC']);
+                paramsArray.push(['formats', 'FLAC']);
+                paramsArray.push(['formats', 'FLAC_HIRES']);
+                if (canPlayAtmos) {
+                    paramsArray.push(['formats', 'EAC3_JOC']);
+                }
+>>>>>>> parent of 44d92b4 (feat: implement side panel resizer and responsive styles)
             }
             if (!streamUrl) {
                 throw new Error('Could not resolve stream URL');
