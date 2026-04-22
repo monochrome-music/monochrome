@@ -406,6 +406,32 @@ export class LyricsManager {
             await customElements.whenDefined('am-lyrics');
             this.componentLoaded = true;
         }
+<<<<<<< HEAD
+=======
+
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = 'https://cdn.jsdelivr.net/npm/@uimaxbai/am-lyrics@latest/dist/src/am-lyrics.min.js';
+
+            script.onload = () => {
+                if (typeof customElements !== 'undefined') {
+                    customElements
+                        .whenDefined('am-lyrics')
+                        .then(() => {
+                            this.componentLoaded = true;
+                            resolve();
+                        })
+                        .catch(reject);
+                } else {
+                    resolve();
+                }
+            };
+
+            script.onerror = () => reject(new Error('Failed to load lyrics component'));
+            document.head.appendChild(script);
+        });
+>>>>>>> parent of 5999f73 (Nope, turns out I did it wrong)
     }
 
     async fetchLyrics(trackId, track = null) {
