@@ -217,7 +217,12 @@ export const apiSettings = {
         }
     },
 
+<<<<<<< HEAD
     async getInstances(type = 'api', _sortBySpeed = false) {
+=======
+
+    async getInstances(type = 'api', sortBySpeed = false) {
+>>>>>>> parent of f79e078 (style: auto-fix linting issues)
         let instancesObj;
 
 <<<<<<< HEAD
@@ -304,7 +309,7 @@ export const apiSettings = {
         localStorage.removeItem(this.STORAGE_KEY);
 
         const instances = await this.loadInstancesFromGitHub();
-
+        
         const shuffle = (array) => {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -330,7 +335,7 @@ export const apiSettings = {
         if (instances.api && instances.api.length) {
             instances.api = prioritySort([...instances.api]);
         }
-
+        
         if (instances.streaming && instances.streaming.length) {
             instances.streaming = prioritySort([...instances.streaming]);
         }
