@@ -278,13 +278,13 @@ export class LyricsManager {
 
             // Load Kuroshiro from CDN
             if (!window.Kuroshiro) {
-                await this.loadScript('https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js');
+                await this.loadScript('https://unpkg.com/kuroshiro@1.2.0/dist/kuroshiro.min.js');
             }
 
             // Load Kuromoji analyzer from CDN
             if (!window.KuromojiAnalyzer) {
                 await this.loadScript(
-                    'https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js'
+                    'https://unpkg.com/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js'
                 );
             }
 
