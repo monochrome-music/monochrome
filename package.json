@@ -83,6 +83,7 @@
         "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",
         "@kawarp/core": "^1.1.1",
+<<<<<<< HEAD
         "@svta/common-media-library": "^0.18.1",
         "@types/wicg-file-system-access": "^2023.10.7",
         "@typescript-eslint/eslint-plugin": "^8.57.2",
@@ -96,6 +97,10 @@
         "@uimaxbai/am-lyrics": "^1.1.4",
 >>>>>>> parent of fdfe1a5 (deps: update @uimaxbai/am-lyrics to version 1.1.5)
         "@vitest/web-worker": "^4.1.2",
+=======
+        "@neutralinojs/lib": "^6.5.0",
+        "@uimaxbai/am-lyrics": "^1.1.2",
+>>>>>>> parent of 33d3c6c (fix(lyrics): update track title retrieval to use getTrackTitle function)
         "appwrite": "^23.0.0",
         "butterchurn": "^2.6.7",
         "butterchurn-presets": "^2.4.7",
