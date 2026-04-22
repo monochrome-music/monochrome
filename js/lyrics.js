@@ -830,6 +830,7 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
         const offsetDisplay = manager.getOffsetDisplayString(manager.timingOffset);
 
         container.innerHTML = `
+<<<<<<< HEAD
             <div class="lyrics-timing-controls">
                 <button id="lyrics-timing-minus-btn" class="btn-icon" title="Decrease delay (lyrics earlier) -0.5s">
                     ${SVG_MINUS(18)}
@@ -847,6 +848,10 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
             </button>
             <button id="genius-toggle-btn" class="btn-icon ${isGeniusMode ? 'active-genius' : ''}" title="Genius Mode" style="${isGeniusMode ? 'color: #ffff64;' : ''}">
                 ${isGeniusMode ? SVG_GENIUS_ACTIVE(20) : SVG_GENIUS_INACTIVE(20)}
+=======
+            <button id="download-lrc-btn" class="btn-icon" title="Download LRC">
+                ${SVG_DOWNLOAD}
+>>>>>>> parent of 134ceb3 (Remove big download button in favour of am-lyrics download button)
             </button>
             <button id="close-side-panel-btn" class="btn-icon" title="Close">
                 ${SVG_CLOSE(20)}
