@@ -983,6 +983,7 @@ class HiFiClient {
         const mapping: Array<[string | undefined, string, Params]> = [
             [
                 q,
+<<<<<<< HEAD
                 `https://openapi.tidal.com/v2/searchResults/${encodeURIComponent(q || '')}`,
                 {
                     limit,
@@ -990,6 +991,10 @@ class HiFiClient {
                     include: includeQ,
                     countryCode: this.#countryCode,
                 },
+=======
+                'https://api.tidal.com/v1/search',
+                { query: q, limit, offset, types: 'ARTISTS,ALBUMS,TRACKS,VIDEOS,PLAYLISTS', countryCode: this.countryCode },
+>>>>>>> parent of d987859 (style: auto-fix linting issues)
             ],
             [
                 s,

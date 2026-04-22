@@ -512,42 +512,49 @@ export class LosslessAPI {
         try {
             const response = await this.fetchWithRetry(`/search/?q=${encodeURIComponent(query)}`, options);
             const data = await response.json();
+<<<<<<< HEAD
 
+=======
+            
+            // Check if backend returned an error or if this looks like individual fallback
+            if (data.error || (!data.tracks && !data.artists && !data.albums && (!data.data || !data.data.tracks))) {
+                throw new Error('Fallback to individual searches');
+            }
+            
+>>>>>>> parent of d987859 (style: auto-fix linting issues)
             const extractSection = (key) => this.normalizeSearchResponse(data, key);
-
+            
             const tracksData = extractSection('tracks');
             const artistsData = extractSection('artists');
             const albumsData = extractSection('albums');
             const playlistsData = extractSection('playlists');
             const videosData = extractSection('videos');
-
+            
             const results = {
                 tracks: {
                     ...tracksData,
-                    items: tracksData.items.map((t) => this.prepareTrack(t)),
+                    items: tracksData.items.map(t => this.prepareTrack(t))
                 },
                 artists: {
                     ...artistsData,
-                    items: artistsData.items.map((a) => this.prepareArtist(a)),
+                    items: artistsData.items.map(a => this.prepareArtist(a))
                 },
                 albums: {
                     ...albumsData,
-                    items: albumsData.items.map((a) => this.prepareAlbum(a)),
+                    items: albumsData.items.map(a => this.prepareAlbum(a))
                 },
-                playlists: playlistsData
-                    ? {
-                          ...playlistsData,
-                          items: playlistsData.items.map((p) => this.preparePlaylist(p)),
-                      }
-                    : { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 },
+                playlists: playlistsData ? {
+                    ...playlistsData,
+                    items: playlistsData.items.map(p => this.preparePlaylist(p))
+                } : { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 },
                 videos: {
                     ...videosData,
-                    items: videosData.items.map((v) => this.prepareTrack(v)),
-                },
+                    items: videosData.items.map(v => this.prepareTrack(v))
+                }
             };
-
+            
             await this.cache.set('search_all', query, results);
-
+            
             return results;
         } catch (error) {
             if (import.meta.env.DEV) {
@@ -560,15 +567,11 @@ export class LosslessAPI {
                 this.searchVideos(query, options).catch(() => ({ items: [] })),
                 this.searchArtists(query, options).catch(() => ({ items: [] })),
                 this.searchAlbums(query, options).catch(() => ({ items: [] })),
-                this.searchPlaylists(query, options).catch(() => ({ items: [] })),
+                this.searchPlaylists(query, options).catch(() => ({ items: [] }))
             ]);
-
+            
             return {
-                tracks,
-                videos,
-                artists,
-                albums,
-                playlists,
+                tracks, videos, artists, albums, playlists
             };
         }
     }
@@ -1542,25 +1545,21 @@ export class LosslessAPI {
                 streamUrl = this.extractStreamUrlFromManifest(manifest);
 =======
         try {
-            const manifestType = isIos || isSafari ? 'HLS' : 'MPEG_DASH';
-
+            const manifestType = (isIos || isSafari) ? 'HLS' : 'MPEG_DASH';
+            
             let canPlayAtmos = false;
             try {
                 if (window.MediaSource && typeof window.MediaSource.isTypeSupported === 'function') {
-                    canPlayAtmos =
-                        MediaSource.isTypeSupported('audio/mp4; codecs="ec-3"') ||
-                        MediaSource.isTypeSupported('audio/mp4; codecs="eac3"');
+                    canPlayAtmos = MediaSource.isTypeSupported('audio/mp4; codecs="ec-3"') || MediaSource.isTypeSupported('audio/mp4; codecs="eac3"');
                 }
                 if (!canPlayAtmos && typeof document !== 'undefined') {
                     const a = document.createElement('audio');
-                    canPlayAtmos = !!(
-                        a.canPlayType('audio/mp4; codecs="ec-3"') || a.canPlayType('audio/mp4; codecs="eac3"')
-                    );
+                    canPlayAtmos = !!(a.canPlayType('audio/mp4; codecs="ec-3"') || a.canPlayType('audio/mp4; codecs="eac3"'));
                 }
             } catch (e) {}
 
             const paramsArray = [];
-
+            
             if (quality === 'LOW') {
                 paramsArray.push(['formats', 'HEAACV1']);
             } else if (quality === 'HIGH') {
@@ -1585,11 +1584,39 @@ export class LosslessAPI {
                 }
 >>>>>>> parent of 44d92b4 (feat: implement side panel resizer and responsive styles)
             }
+<<<<<<< HEAD
             if (!streamUrl) {
                 throw new Error('Could not resolve stream URL');
+=======
+
+            paramsArray.push(
+                ['adaptive', 'true'],
+                ['manifestType', manifestType],
+                ['uriScheme', 'HTTPS'],
+                ['usage', 'PLAYBACK']
+            );
+
+            const params = new URLSearchParams(paramsArray);
+
+            const response = await this.fetchWithRetry(`/trackManifests/?id=${id}&${params.toString()}`, { type: 'streaming', minVersion: '2.7' });
+            const jsonResponse = await response.json();
+            const url = jsonResponse?.data?.data?.attributes?.uri;
+            if (url) {
+                streamUrl = url;
+                manifestRgInfo = {
+                    trackReplayGain: jsonResponse?.data?.data?.attributes?.trackAudioNormalizationData?.replayGain,
+                    trackPeakAmplitude: jsonResponse?.data?.data?.attributes?.trackAudioNormalizationData?.peakAmplitude,
+                    albumReplayGain: jsonResponse?.data?.data?.attributes?.albumAudioNormalizationData?.replayGain,
+                    albumPeakAmplitude: jsonResponse?.data?.data?.attributes?.albumAudioNormalizationData?.peakAmplitude
+                };
+                isUsingManifestEndpoint = true;
+            } else {
+                throw new Error('No URI in trackManifests response');
+>>>>>>> parent of d987859 (style: auto-fix linting issues)
             }
         }
 
+<<<<<<< HEAD
         if (lookup.info) {
             manifestRgInfo = {
                 trackReplayGain: lookup.info.trackReplayGain || lookup.info.replayGain,
@@ -1597,11 +1624,32 @@ export class LosslessAPI {
                 albumReplayGain: lookup.info.albumReplayGain,
                 albumPeakAmplitude: lookup.info.albumPeakAmplitude,
             };
+=======
+        if (!isUsingManifestEndpoint) {
+            const lookup = await this.getTrack(id, quality);
+
+            if (lookup.originalTrackUrl) {
+                streamUrl = lookup.originalTrackUrl;
+            } else {
+                streamUrl = this.extractStreamUrlFromManifest(lookup.info.manifest);
+                if (!streamUrl) {
+                    throw new Error('Could not resolve stream URL');
+                }
+            }
+            if (lookup.info) {
+                manifestRgInfo = {
+                    trackReplayGain: lookup.info.trackReplayGain || lookup.info.replayGain,
+                    trackPeakAmplitude: lookup.info.trackPeakAmplitude || lookup.info.peakAmplitude,
+                    albumReplayGain: lookup.info.albumReplayGain,
+                    albumPeakAmplitude: lookup.info.albumPeakAmplitude
+                };
+            }
+>>>>>>> parent of d987859 (style: auto-fix linting issues)
         }
 
         const result = { url: streamUrl, rgInfo: manifestRgInfo };
         this.streamCache.set(cacheKey, result);
-
+        
         return result;
     }
 
