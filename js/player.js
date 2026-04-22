@@ -587,6 +587,7 @@ export class Player {
                             typeof this.shakaPlayer.preload === 'function'
                         ) {
                             try {
+<<<<<<< HEAD
                                 let preloadConfig = undefined;
                                 if (typeof this.shakaPlayer.getConfiguration === 'function') {
                                     preloadConfig = this.shakaPlayer.getConfiguration();
@@ -621,6 +622,9 @@ export class Player {
                                     null,
                                     preloadConfig
                                 );
+=======
+                                const preloadManager = await this.shakaPlayer.preload(streamUrl);
+>>>>>>> parent of 54e337d (fix: pass current abr estimatedBandwidth to preloadManager)
                                 streamInfo.preloadManager = preloadManager;
                             } catch (_e) {
                                 // Ignore preload errors, will just load fresh
