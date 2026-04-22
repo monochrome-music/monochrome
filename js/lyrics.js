@@ -412,8 +412,13 @@ export class LyricsManager {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.type = 'module';
+<<<<<<< HEAD
             script.src = 'https://cdn.jsdelivr.net/npm/@uimaxbai/am-lyrics@0.6.5/dist/src/am-lyrics.min.js';
 
+=======
+            script.src = 'https://cdn.jsdelivr.net/npm/@uimaxbai/am-lyrics@0.5.4/dist/src/am-lyrics.min.js';
+            
+>>>>>>> parent of 4dfa9ae (Update am-lyrics library version to 0.6.2)
             script.onload = () => {
                 if (typeof customElements !== 'undefined') {
                     customElements
@@ -1244,6 +1249,7 @@ export function clearFullscreenLyricsSync(container) {
         container.lyricsCleanup();
         container.lyricsCleanup = null;
     }
+<<<<<<< HEAD
     if (container && container.lyricsManager) {
         container.lyricsManager.stopLyricsObserver();
     }
@@ -1258,3 +1264,6 @@ export function clearLyricsPanelSync(_audioPlayer, panel) {
         panel.lyricsManager.stopLyricsObserver();
     }
 }
+=======
+}
+>>>>>>> parent of 4dfa9ae (Update am-lyrics library version to 0.6.2)
