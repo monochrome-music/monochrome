@@ -2,7 +2,9 @@
 // Shared Audio Context Manager - handles EQ and provides context for visualizer
 // Supports 3-32 parametric EQ bands
 
+import { isIos } from './platform-detection.js';
 import { equalizerSettings, monoAudioSettings, binauralDspSettings } from './storage.js';
+import { BinauralDSP } from './binaural-dsp.js';
 
 // Generate frequency array for given number of bands using logarithmic spacing
 function generateFrequencies(bandCount, minFreq = 20, maxFreq = 20000) {
@@ -483,7 +485,7 @@ class AudioContextManager {
                 this.audioContext = new AudioContext();
             }
 
-            if (window.__tidalOriginExtension) {
+            if (true) {
                 if (!this.sources.has(audioElement)) {
                     const src = this.audioContext.createMediaElementSource(audioElement);
                     this.sources.set(audioElement, src);
@@ -491,7 +493,10 @@ class AudioContextManager {
                 this.source = this.sources.get(audioElement);
 
                 try {
-                    this.audioContext.destination.channelCount = Math.min(this.audioContext.destination.maxChannelCount, 8);
+                    this.audioContext.destination.channelCount = Math.min(
+                        this.audioContext.destination.maxChannelCount,
+                        8
+                    );
                     this.audioContext.destination.channelCountMode = 'explicit';
                     this.audioContext.destination.channelInterpretation = 'discrete';
                 } catch {
@@ -521,16 +526,14 @@ class AudioContextManager {
 
             this.monoMergerNode = this.audioContext.createChannelMerger(2);
 
-            if (window.__tidalOriginExtension) {
-                this._connectGraph();
-            }
+            this._connectGraph();
 
             // Auto-recover from unexpected suspensions (e.g. background throttling)
             this.audioContext.addEventListener('statechange', () => {
                 if (this.audioContext.state === 'interrupted' || this.audioContext.state === 'suspended') {
                     console.log(`[AudioContext] State changed to ${this.audioContext.state}, attempting resume`);
                     setTimeout(() => {
-                        if (this.audioContext && this.audioContext.state !== 'running' && (window.__tidalOriginExtension ? this.source : true)) {
+                        if (this.audioContext && this.audioContext.state !== 'running' && (this.source || true)) {
                             this.audioContext.resume().catch((e) => {
                                 console.warn('[AudioContext] Auto-resume failed:', e);
                             });
@@ -552,7 +555,7 @@ class AudioContextManager {
         }
         if (this.audio === audioElement) return;
 
-        if (window.__tidalOriginExtension) {
+        if (true) {
             try {
                 if (this.source) {
                     try {
@@ -586,7 +589,158 @@ class AudioContextManager {
      * the new chain is wired up first, then the old connections are torn down.
      */
     _connectGraph() {
-        if (!this.isInitialized || !this.audioContext) return;
+        if (!this.isInitialized || !this.source || !this.audioContext) return;
+
+        if (this.geqFilters.length === 0 && this.isGraphicEQEnabled) {
+            this._createGraphicEQ();
+        }
+
+        const connectTail = (lastNode) => {
+            if (this.isGraphicEQEnabled && this.geqFilters.length > 0) {
+                lastNode.connect(this.geqPreampNode);
+                this.geqPreampNode.connect(this.geqFilters[0]);
+                for (let i = 0; i < this.geqFilters.length - 1; i++) {
+                    this.geqFilters[i].connect(this.geqFilters[i + 1]);
+                }
+                this.geqFilters[this.geqFilters.length - 1].connect(this.geqOutputNode);
+                this.geqOutputNode.connect(this.analyser);
+            } else {
+                lastNode.connect(this.analyser);
+            }
+            this.analyser.connect(this.volumeNode);
+            this.volumeNode.connect(this.audioContext.destination);
+        };
+
+        try {
+            if (this.isMonoAudioEnabled && this.monoMergerNode && !this.monoGainNode) {
+                this.monoGainNode = this.audioContext.createGain();
+                this.monoGainNode.gain.value = 0.5;
+            }
+
+            const safeDisconnect = (node) => {
+                try {
+                    node?.disconnect();
+                } catch {}
+            };
+            safeDisconnect(this.source);
+            safeDisconnect(this.monoGainNode);
+            safeDisconnect(this.monoMergerNode);
+            if (this.binauralDsp) {
+                const { input, output } = this.binauralDsp.getNodes();
+                safeDisconnect(input);
+                safeDisconnect(output);
+            }
+            safeDisconnect(this.preampNode);
+            this.filters.forEach(safeDisconnect);
+            safeDisconnect(this.outputNode);
+            safeDisconnect(this.msSplitter);
+            safeDisconnect(this.msEncoderMidL);
+            safeDisconnect(this.msEncoderMidR);
+            safeDisconnect(this.msEncoderSideL);
+            safeDisconnect(this.msEncoderSideR);
+            safeDisconnect(this.msMidInput);
+            safeDisconnect(this.msSideInput);
+            this.midFilters.forEach(safeDisconnect);
+            this.sideFilters.forEach(safeDisconnect);
+            safeDisconnect(this.midOutputNode);
+            safeDisconnect(this.sideOutputNode);
+            safeDisconnect(this.msDecoderMidToL);
+            safeDisconnect(this.msDecoderSideToL);
+            safeDisconnect(this.msDecoderMidToR);
+            safeDisconnect(this.msDecoderSideToR);
+            safeDisconnect(this.msLMix);
+            safeDisconnect(this.msRMix);
+            safeDisconnect(this.msMerger);
+            safeDisconnect(this.msOutputNode);
+            safeDisconnect(this.geqPreampNode);
+            this.geqFilters.forEach(safeDisconnect);
+            safeDisconnect(this.geqOutputNode);
+            safeDisconnect(this.analyser);
+            safeDisconnect(this.volumeNode);
+
+            let lastNode = this.source;
+
+            if (this.isMonoAudioEnabled && this.monoMergerNode) {
+                this.source.connect(this.monoGainNode);
+                this.monoGainNode.connect(this.monoMergerNode, 0, 0);
+                this.monoGainNode.connect(this.monoMergerNode, 0, 1);
+                lastNode = this.monoMergerNode;
+            }
+
+            if (this.isBinauralEnabled && this.binauralDsp) {
+                const { input, output } = this.binauralDsp.getNodes();
+                lastNode.connect(input);
+                this.binauralDsp.reconnect();
+                lastNode = output;
+            }
+
+            if (this.isEQEnabled && this.filters.length > 0) {
+                const useMS = this.msEnabled && this.midFilters.length > 0 && this.sideFilters.length > 0;
+
+                if (this.preampNode) {
+                    lastNode.connect(this.preampNode);
+                    lastNode = this.preampNode;
+                }
+
+                if (useMS) {
+                    lastNode.connect(this.msSplitter);
+
+                    this.msSplitter.connect(this.msEncoderMidL, 0);
+                    this.msSplitter.connect(this.msEncoderMidR, 1);
+                    this.msEncoderMidL.connect(this.msMidInput);
+                    this.msEncoderMidR.connect(this.msMidInput);
+
+                    this.msSplitter.connect(this.msEncoderSideL, 0);
+                    this.msSplitter.connect(this.msEncoderSideR, 1);
+                    this.msEncoderSideL.connect(this.msSideInput);
+                    this.msEncoderSideR.connect(this.msSideInput);
+
+                    this.msMidInput.connect(this.midFilters[0]);
+                    for (let i = 0; i < this.midFilters.length - 1; i++) {
+                        this.midFilters[i].connect(this.midFilters[i + 1]);
+                    }
+                    this.midFilters[this.midFilters.length - 1].connect(this.midOutputNode);
+
+                    this.msSideInput.connect(this.sideFilters[0]);
+                    for (let i = 0; i < this.sideFilters.length - 1; i++) {
+                        this.sideFilters[i].connect(this.sideFilters[i + 1]);
+                    }
+                    this.sideFilters[this.sideFilters.length - 1].connect(this.sideOutputNode);
+
+                    this.midOutputNode.connect(this.msDecoderMidToL);
+                    this.sideOutputNode.connect(this.msDecoderSideToL);
+                    this.msDecoderMidToL.connect(this.msLMix);
+                    this.msDecoderSideToL.connect(this.msLMix);
+
+                    this.midOutputNode.connect(this.msDecoderMidToR);
+                    this.sideOutputNode.connect(this.msDecoderSideToR);
+                    this.msDecoderMidToR.connect(this.msRMix);
+                    this.msDecoderSideToR.connect(this.msRMix);
+
+                    this.msLMix.connect(this.msMerger, 0, 0);
+                    this.msRMix.connect(this.msMerger, 0, 1);
+                    this.msMerger.connect(this.msOutputNode);
+
+                    connectTail(this.msOutputNode);
+                } else {
+                    lastNode.connect(this.filters[0]);
+                    for (let i = 0; i < this.filters.length - 1; i++) {
+                        this.filters[i].connect(this.filters[i + 1]);
+                    }
+                    this.filters[this.filters.length - 1].connect(this.outputNode);
+                    connectTail(this.outputNode);
+                }
+            } else {
+                connectTail(lastNode);
+            }
+
+            this._notifyGraphChange();
+        } catch (e) {
+            console.warn('[AudioContext] Failed to connect graph:', e);
+            try {
+                this.source.connect(this.audioContext.destination);
+            } catch {}
+        }
     }
 
     /**

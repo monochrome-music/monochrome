@@ -663,7 +663,7 @@ export class Player {
                         const preloader = new Audio();
                         preloader.preload = 'auto';
                         preloader.muted = true;
-                        preloader.src = streamUrl;
+                        preloader.src = getProxyUrl(streamUrl);
                         streamInfo.preloader = preloader; // Hold reference
                     }
                 }
@@ -1179,10 +1179,10 @@ export class Player {
                             : streamUrl;
 
                     try {
-                        await this.shakaPlayer.load(loadTarget);
+                        await this.shakaPlayer.load(getProxyUrl(loadTarget));
                     } catch (e) {
                         console.error('PreloadManager load Error:', e);
-                        if (loadTarget !== streamUrl) await this.shakaPlayer.load(streamUrl);
+                        if (loadTarget !== streamUrl) await this.shakaPlayer.load(getProxyUrl(streamUrl));
                         else throw e;
                     }
 
@@ -1253,13 +1253,13 @@ export class Player {
 
                     try {
                         if (startTime > 0) {
-                            await this.shakaPlayer.load(loadTarget, startTime);
+                            await this.shakaPlayer.load(getProxyUrl(loadTarget), startTime);
                         } else {
-                            await this.shakaPlayer.load(loadTarget);
+                            await this.shakaPlayer.load(getProxyUrl(loadTarget));
                         }
                     } catch (e) {
                         console.error('PreloadManager load Error:', e);
-                        if (loadTarget !== streamUrl) await this.shakaPlayer.load(streamUrl);
+                        if (loadTarget !== streamUrl) await this.shakaPlayer.load(getProxyUrl(streamUrl));
                         else throw e;
                     }
 
@@ -1282,7 +1282,7 @@ export class Player {
                         } catch {}
                         this.shakaInitialized = false;
                     }
-                    activeElement.src = streamUrl;
+                    activeElement.src = getProxyUrl(streamUrl);
                     this.applyAudioEffects();
                     this.updateAdaptiveQualityBadge();
 
