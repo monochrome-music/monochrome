@@ -24,6 +24,7 @@
         "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",
         "@kawarp/core": "^1.1.1",
+<<<<<<< HEAD
         "@svta/common-media-library": "^0.18.1",
         "@types/wicg-file-system-access": "^2023.10.7",
         "@typescript-eslint/eslint-plugin": "^8.57.2",
@@ -33,6 +34,10 @@
         "@uimaxbai/am-lyrics": "^1.1.4",
 >>>>>>> parent of 2827184 (bump am-lyrics and add robust isrc input)
         "@vitest/web-worker": "^4.1.2",
+=======
+        "@neutralinojs/lib": "^6.5.0",
+        "@uimaxbai/am-lyrics": "^1.1.2",
+>>>>>>> parent of d09b830 (fix(dependencies): update bun.lock)
         "appwrite": "^23.0.0",
         "butterchurn": "^2.6.7",
         "butterchurn-presets": "^2.4.7",
@@ -690,6 +695,7 @@
 
     "@types/trusted-types": ["@types/trusted-types@2.0.7", "", {}, "sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw=="],
 
+<<<<<<< HEAD
     "@types/wicg-file-system-access": ["@types/wicg-file-system-access@2023.10.7", "", {}, "sha512-g49ijasEJvCd7ifmAY2D0wdEtt1xRjBbA33PJTiv8mKBr7DoMsPeISoJ8oQOTopSRi+FBWPpPW5ouDj2QPKtGA=="],
 
     "@typescript-eslint/eslint-plugin": ["@typescript-eslint/eslint-plugin@8.58.0", "", { "dependencies": { "@eslint-community/regexpp": "^4.12.2", "@typescript-eslint/scope-manager": "8.58.0", "@typescript-eslint/type-utils": "8.58.0", "@typescript-eslint/utils": "8.58.0", "@typescript-eslint/visitor-keys": "8.58.0", "ignore": "^7.0.5", "natural-compare": "^1.4.0", "ts-api-utils": "^2.5.0" }, "peerDependencies": { "@typescript-eslint/parser": "^8.58.0", "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0", "typescript": ">=4.8.4 <6.1.0" } }, "sha512-RLkVSiNuUP1C2ROIWfqX+YcUfLaSnxGE/8M+Y57lopVwg9VTYYfhuz15Yf1IzCKgZj6/rIbYTmJCUSqr76r0Wg=="],
@@ -737,6 +743,9 @@
     "@vitest/utils": ["@vitest/utils@4.1.2", "", { "dependencies": { "@vitest/pretty-format": "4.1.2", "convert-source-map": "^2.0.0", "tinyrainbow": "^3.1.0" } }, "sha512-xw2/TiX82lQHA06cgbqRKFb5lCAy3axQ4H4SoUFhUsg+wztiet+co86IAMDtF6Vm1hc7J6j09oh/rgDn+JdKIQ=="],
 
     "@vitest/web-worker": ["@vitest/web-worker@4.1.2", "", { "dependencies": { "obug": "^2.1.1" }, "peerDependencies": { "vitest": "4.1.2" } }, "sha512-P5XxkZuiVcN8NGePi53VS3gJUHu3J0luyPPuWBirZB3d6Tjfqy4+AW+3vCQTMr5KnEfZXBmEXWh3o9K58bSoAw=="],
+=======
+    "@uimaxbai/am-lyrics": ["@uimaxbai/am-lyrics@1.1.2", "", { "dependencies": { "@babel/runtime": "^7.27.6", "lit": "^3.1.4" }, "peerDependencies": { "@lit/react": "^1.0.0", "react": ">=17.0.0" }, "optionalPeers": ["@lit/react", "react"] }, "sha512-M7LxiE6nzSoPpKPO9qX7msy7SRRU5Hn4Bbu05uj//BeSeuPmVT5+ii5wOyeO5npT99IezcKr+MvJaUqArfsbvw=="],
+>>>>>>> parent of d09b830 (fix(dependencies): update bun.lock)
 
     "acorn": ["acorn@8.16.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw=="],
 
