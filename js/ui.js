@@ -555,43 +555,27 @@ export class UIRenderer {
         `;
     }
 
-    getCoverHTML(
-        cover,
-        alt,
-        className = 'card-image',
-        loading = 'lazy',
-        videoCoverUrl = null,
-        isEditorsPick = false,
-        type = 'album'
-    ) {
+    getCoverHTML(cover, alt, className = 'card-image', loading = 'lazy', videoCoverUrl = null, isEditorsPick = false, type = 'album') {
         let size = '320';
         if (this.currentPage === 'search' || className === 'track-item-cover') {
             size = '80';
         } else if (type === 'artist') {
             size = '160';
         }
-
-        const imageUrl =
-            type === 'artist' ? this.api.getArtistPictureUrl(cover, size) : this.api.getCoverUrl(cover, size);
-
+        
+        const imageUrl = type === 'artist' ? this.api.getArtistPictureUrl(cover, size) : this.api.getCoverUrl(cover, size);
+        
         if (videoCoverUrl) {
             return `<video src="${videoCoverUrl}" poster="${imageUrl}" class="${className}" alt="${alt}" preload="metadata" playsinline muted></video>`;
         }
-
-        if (
-            isEditorsPick &&
-            cover &&
-            typeof cover === 'string' &&
-            !cover.startsWith('http') &&
-            !cover.startsWith('blob:') &&
-            !cover.startsWith('assets/')
-        ) {
+        
+        if (isEditorsPick && cover && typeof cover === 'string' && !cover.startsWith('http') && !cover.startsWith('blob:') && !cover.startsWith('assets/')) {
             const formattedId = String(cover).replace(/-/g, '/');
             const tidalUrl = `https://resources.tidal.com/images/${formattedId}/320x320.jpg`;
             const wsrvUrl = `https://wsrv.nl/?url=${encodeURIComponent(tidalUrl)}&w=250&h=250&output=webp`;
             return `<img src="${wsrvUrl}" class="${className}" alt="${alt}" loading="${loading}">`;
         }
-
+        
         return `<img src="${imageUrl}" class="${className}" alt="${alt}" loading="${loading}">`;
     }
 

@@ -345,7 +345,8 @@ export class Player {
                 if (coverEl) {
                     const videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
                     const coverId = track.image || track.cover || track.album?.cover;
-                    const coverUrl = videoCoverUrl || this.api.getCoverUrl(coverId);
+                    const coverUrl =
+                        videoCoverUrl || this.api.getCoverUrl(coverId);
                     const coverSrcset = videoCoverUrl ? null : this.api.getCoverSrcset(coverId);
 
                     if (videoCoverUrl) {
