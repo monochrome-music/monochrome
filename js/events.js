@@ -22,7 +22,6 @@ import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { waveformGenerator } from './waveform.js';
 import { audioContextManager } from './audio-context.js';
-import { hapticLongPress, hapticMedium, hapticLight } from './haptics.js';
 import {
     trackPlayTrack,
     trackPauseTrack,
@@ -84,7 +83,11 @@ function handleTrackTouchStart(e) {
     longPressTimer = setTimeout(async () => {
         isLongPress = true;
         toggleTrackSelection(trackItem, true, false);
+<<<<<<< HEAD
         await hapticLongPress();
+=======
+        if (navigator.vibrate) navigator.vibrate(50);
+>>>>>>> parent of 98cc3b9 (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
     }, LONG_PRESS_DURATION);
 }
 
@@ -600,6 +603,7 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
         setupMediaListeners(player.video);
     }
 
+<<<<<<< HEAD
     playPauseBtn.addEventListener('click', async () => {
         await hapticMedium();
         player.handlePlayPause();
@@ -611,20 +615,36 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
     });
     prevBtn.addEventListener('click', async () => {
         await hapticMedium();
+=======
+    playPauseBtn.addEventListener('click', () => player.handlePlayPause());
+    nextBtn.addEventListener('click', () => {
+        trackSkipTrack(player.currentTrack, 'next');
+        player.playNext();
+    });
+    prevBtn.addEventListener('click', () => {
+>>>>>>> parent of 98cc3b9 (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
         trackSkipTrack(player.currentTrack, 'previous');
         player.playPrev();
     });
 
+<<<<<<< HEAD
     shuffleBtn.addEventListener('click', async () => {
         await hapticLight();
+=======
+    shuffleBtn.addEventListener('click', () => {
+>>>>>>> parent of 98cc3b9 (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
         player.toggleShuffle();
         trackToggleShuffle(player.shuffleActive);
         shuffleBtn.classList.toggle('active', player.shuffleActive);
         if (window.renderQueueFunction) await window.renderQueueFunction();
     });
 
+<<<<<<< HEAD
     repeatBtn.addEventListener('click', async () => {
         await hapticLight();
+=======
+    repeatBtn.addEventListener('click', () => {
+>>>>>>> parent of 98cc3b9 (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
         const mode = player.toggleRepeat();
         trackToggleRepeat(mode === REPEAT_MODE.OFF ? 'off' : mode === REPEAT_MODE.ALL ? 'all' : 'one');
         repeatBtn.classList.toggle('active', mode !== REPEAT_MODE.OFF);

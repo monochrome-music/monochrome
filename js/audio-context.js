@@ -305,6 +305,15 @@ class AudioContextManager {
 
         this.audio = audioElement;
 
+<<<<<<< HEAD
+=======
+        // Detect iOS - skip Web Audio initialization on iOS to avoid lock screen audio issues
+        if (isIos) {
+            console.log('[AudioContext] Skipping Web Audio initialization on iOS for lock screen compatibility');
+            return;
+        }
+
+>>>>>>> parent of 98cc3b9 (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             const highResOptions = { sampleRate: 192000, latencyHint: 'playback' };
@@ -822,6 +831,7 @@ class AudioContextManager {
     }
 
     /**
+<<<<<<< HEAD
      * Apply AutoEQ-generated bands to the equalizer
      * Unlike regular presets, AutoEQ bands have specific frequencies, gains, and Q values
      * @param {Array<{id: number, type: string, freq: number, gain: number, q: number, enabled: boolean}>} bands
@@ -906,6 +916,8 @@ class AudioContextManager {
     }
 
     /**
+=======
+>>>>>>> parent of 98cc3b9 (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
      * Export equalizer settings to text format
      * @returns {string} Exported settings in text format
      */

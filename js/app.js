@@ -4,7 +4,6 @@ import googleSvg from '../images/google.svg?svg&size=22';
 import githubSvg from '../images/github.svg?svg&size=22';
 import spotifySvg from '../images/spotify.svg?svg&size=22';
 import { isIos, isSafari } from './platform-detection.js';
-import { hapticLight } from './haptics.js';
 import { MusicAPI } from './music-api.js';
 import {
     apiSettings,
@@ -431,9 +430,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             UIRenderer,
         };
     }
-
-    // Haptic feedback on every click
-    document.addEventListener('click', () => hapticLight(), { capture: true });
 
     // Initialize analytics
     initAnalytics();

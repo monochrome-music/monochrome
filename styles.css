@@ -1119,7 +1119,7 @@ ul {
     /* Floating bar overrides */
     width: calc(96% - 190px) !important;
     left: calc(190px + 2%);
-    bottom: max(15px, env(safe-area-inset-bottom)) !important;
+    bottom: 15px !important;
     border-radius: var(--radius);
 
     /* Standardized radius */
@@ -5478,15 +5478,6 @@ input:checked + .slider::before {
     .sidebar {
         padding-top: max(var(--spacing-md), env(safe-area-inset-top));
     }
-
-    .sidebar {
-        padding-bottom: env(safe-area-inset-bottom);
-    }
-
-    .side-panel {
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-    }
 }
 
 /* Side Panels (Lyrics & Queue) */
@@ -6737,7 +6728,6 @@ img[src=''] {
     .main-header {
         grid-area: header;
         margin-bottom: var(--spacing-md);
-        padding-top: env(safe-area-inset-top);
     }
 
     .sidebar {

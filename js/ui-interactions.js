@@ -23,7 +23,6 @@ import {
     SVG_TRASH,
     SVG_EQUAL,
 } from './icons.js';
-import { hapticSuccess } from './haptics.js';
 
 export function initializeUIInteractions(player, api, ui) {
     const sidebar = document.querySelector('.sidebar');
@@ -310,7 +309,10 @@ export function initializeUIInteractions(player, api, ui) {
                     likeBtn.classList.toggle('active', added);
                     likeBtn.innerHTML = added ? SVG_HEART_FILLED(20) : SVG_HEART(20);
 
+<<<<<<< HEAD
                     await hapticSuccess();
+=======
+>>>>>>> parent of 98cc3b9 (Merge branch 'main' of https://github.com/monochrome-music/monochrome)
                     showNotification(added ? `Added to Liked: ${track.title}` : `Removed from Liked: ${track.title}`);
                 }
                 return;
