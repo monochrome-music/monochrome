@@ -85,8 +85,15 @@ export class MusicDatabase {
             const store = transaction.objectStore(storeName);
             const request = callback(store);
 
+            let result;
+            if (request) {
+                request.onsuccess = () => {
+                    result = request.result;
+                };
+            }
+
             transaction.oncomplete = () => {
-                resolve(request?.result);
+                resolve(result);
             };
             transaction.onerror = (event) => {
                 reject(event.target.error);
