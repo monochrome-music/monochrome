@@ -454,33 +454,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     new ThemeStore();
 
-    const helpBtn = document.getElementById('help-btn');
-    const helpModal = document.getElementById('help-modal');
-    const closeHelpModal = document.getElementById('close-help-modal');
-    const helpModalDone = document.getElementById('help-modal-done');
-    const helpModalOverlay = helpModal?.querySelector('.modal-overlay');
-
-    if (helpBtn && helpModal) {
-        helpBtn.addEventListener('click', () => {
-            const iframe = helpModal.querySelector('iframe');
-            if (iframe && iframe.dataset.src) {
-                iframe.src = iframe.dataset.src;
-            }
-            helpModal.classList.add('active');
-        });
-
-        const hideHelpModal = () => {
-            helpModal.classList.remove('active');
-            const iframe = helpModal.querySelector('iframe');
-            if (iframe) {
-                iframe.src = '';
-            }
-        };
-
-        closeHelpModal?.addEventListener('click', hideHelpModal);
-        helpModalDone?.addEventListener('click', hideHelpModal);
-        helpModalOverlay?.addEventListener('click', hideHelpModal);
-    }
     await HiFiClient.initialize({
         storage: [
             localStorage,
