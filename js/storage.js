@@ -5,8 +5,7 @@ import { SVG_RIGHT_ARROW } from './icons';
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances-v9',
     INSTANCES_URLS: [
-        'https://tidal-uptime.jiffy-puffs-1j.workers.dev/',
-        'https://tidal-uptime.props-76styles.workers.dev/',
+        'https://tidal-uptime.geeked.wtf',
     ],
     defaultInstances: { api: [], streaming: [] },
     userInstances: null,
