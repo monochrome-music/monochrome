@@ -462,6 +462,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (helpBtn && helpModal) {
         helpBtn.addEventListener('click', () => {
+            const iframe = helpModal.querySelector('iframe');
+            if (iframe && iframe.dataset.src) {
+                iframe.src = iframe.dataset.src;
+            }
             helpModal.classList.add('active');
         });
 
@@ -469,9 +473,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             helpModal.classList.remove('active');
             const iframe = helpModal.querySelector('iframe');
             if (iframe) {
-                const src = iframe.src;
                 iframe.src = '';
-                iframe.src = src;
             }
         };
 
