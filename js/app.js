@@ -453,6 +453,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     new ThemeStore();
+
+    const helpBtn = document.getElementById('help-btn');
+    const helpModal = document.getElementById('help-modal');
+    const closeHelpModal = document.getElementById('close-help-modal');
+    const helpModalDone = document.getElementById('help-modal-done');
+    const helpModalOverlay = helpModal?.querySelector('.modal-overlay');
+
+    if (helpBtn && helpModal) {
+        helpBtn.addEventListener('click', () => {
+            helpModal.classList.add('active');
+        });
+
+        const hideHelpModal = () => {
+            helpModal.classList.remove('active');
+            const iframe = helpModal.querySelector('iframe');
+            if (iframe) {
+                const src = iframe.src;
+                iframe.src = '';
+                iframe.src = src;
+            }
+        };
+
+        closeHelpModal?.addEventListener('click', hideHelpModal);
+        helpModalDone?.addEventListener('click', hideHelpModal);
+        helpModalOverlay?.addEventListener('click', hideHelpModal);
+    }
     await HiFiClient.initialize({
         storage: [
             localStorage,
