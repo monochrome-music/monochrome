@@ -6,6 +6,7 @@ import {
     isTrackUnavailable,
     getExtensionFromBlob,
     getTrackDiscNumber,
+    normalizeQualityToken,
 } from './utils.js';
 import { preferDolbyAtmosSettings, trackDateSettings, devModeSettings } from './storage.js';
 import { APICache } from './cache.js';
@@ -1455,6 +1456,104 @@ export class LosslessAPI {
         return [trackStub, raw];
     }
 
+    getTrackManifestFormats(quality) {
+        switch (normalizeQualityToken(quality) || quality) {
+            case 'DOLBY_ATMOS':
+                return ['EAC3_JOC'];
+            case 'HI_RES_LOSSLESS':
+                return ['FLAC_HIRES'];
+            case 'LOSSLESS':
+                return ['FLAC'];
+            case 'HIGH':
+                return ['AACLC'];
+            case 'LOW':
+                return ['HEAACV1'];
+            default:
+                return ['FLAC'];
+        }
+    }
+
+    getAdaptiveTrackManifestFormats() {
+        return ['FLAC_HIRES', 'FLAC', 'AACLC', 'HEAACV1', 'EAC3_JOC'];
+    }
+
+    shouldUseAdaptiveTrackManifest(download = false) {
+        if (download || typeof localStorage === 'undefined') {
+            return false;
+        }
+
+        try {
+            return (localStorage.getItem('adaptive-playback-quality') || '').toLowerCase() === 'auto';
+        } catch {
+            return false;
+        }
+    }
+
+    getAudioQualityFromManifestFormats(formats = []) {
+        if (formats.includes('EAC3_JOC')) return 'DOLBY_ATMOS';
+        if (formats.includes('FLAC_HIRES')) return 'HI_RES_LOSSLESS';
+        if (formats.includes('FLAC')) return 'LOSSLESS';
+        if (formats.includes('AACLC')) return 'HIGH';
+        if (formats.includes('HEAACV1')) return 'LOW';
+        return null;
+    }
+
+    async normalizeTrackManifestResponse(apiResponse, quality) {
+        if (!apiResponse || typeof apiResponse !== 'object') {
+            return apiResponse;
+        }
+
+        const raw = apiResponse.data?.data ?? apiResponse.data ?? apiResponse;
+        const attributes = raw?.attributes ?? {};
+        const manifestUrl = attributes.uri;
+
+        if (!manifestUrl) {
+            throw new Error('Malformed track manifests response');
+        }
+
+        const manifestResponse = await fetch(manifestUrl);
+        if (!manifestResponse.ok) {
+            throw new Error(`Failed to fetch signed track manifest: HTTP ${manifestResponse.status}`);
+        }
+
+        const manifestText = await manifestResponse.text();
+        const manifestMimeType =
+            manifestResponse.headers.get('content-type') ||
+            (manifestText.includes('<MPD') ? 'application/dash+xml' : 'application/octet-stream');
+        const normalizedQuality =
+            this.getAudioQualityFromManifestFormats(attributes.formats) || normalizeQualityToken(quality) || 'HIGH';
+
+        const isHiRes = normalizedQuality === 'HI_RES_LOSSLESS';
+        const isLossless = normalizedQuality === 'LOSSLESS' || isHiRes;
+        const trackNorm = attributes.trackAudioNormalizationData || {};
+        const albumNorm = attributes.albumAudioNormalizationData || {};
+
+        const info = {
+            trackId: Number(raw.id) || null,
+            assetPresentation: attributes.trackPresentation || 'FULL',
+            audioQuality: normalizedQuality,
+            manifestMimeType,
+            manifestHash: attributes.hash || '',
+            manifest: btoa(manifestText),
+            bitDepth: isHiRes ? 24 : isLossless ? 16 : undefined,
+            sampleRate: isHiRes ? 96000 : isLossless ? 44100 : undefined,
+            replayGain: trackNorm.replayGain,
+            trackReplayGain: trackNorm.replayGain,
+            trackPeakAmplitude: trackNorm.peakAmplitude,
+            albumReplayGain: albumNorm.replayGain,
+            albumPeakAmplitude: albumNorm.peakAmplitude,
+            drmData: attributes.drmData || null,
+            formats: attributes.formats || [],
+        };
+
+        const trackStub = {
+            duration: raw.duration ?? 0,
+            id: Number(raw.id) || null,
+        };
+
+        return [trackStub, info];
+    }
+
     async getTrackMetadata(id) {
         const cacheKey = `meta_${id}`;
         const cached = await this.cache.get('track', cacheKey);
@@ -1502,14 +1601,25 @@ export class LosslessAPI {
         }
     }
 
-    async getTrack(id, quality = 'LOSSLESS') {
-        const cacheKey = `${id}_${quality}`;
+    async getTrack(id, quality = 'LOSSLESS', { adaptive = false } = {}) {
+        const cacheKey = `${id}_${quality}_${adaptive ? 'adaptive' : 'fixed'}`;
         const cached = await this.cache.get('track', cacheKey);
         if (cached) return cached;
 
-        const response = await this.fetchWithRetry(`/track/?id=${id}&quality=${quality}`, { type: 'streaming' });
+        const requestedQuality = normalizeQualityToken(quality) || quality || 'LOSSLESS';
+        const params = new URLSearchParams({
+            id: String(id),
+            quality: requestedQuality,
+            adaptive: String(adaptive),
+        });
+        const formats = adaptive ? this.getAdaptiveTrackManifestFormats() : this.getTrackManifestFormats(quality);
+        for (const format of formats) {
+            params.append('formats', format);
+        }
+
+        const response = await this.fetchWithRetry(`/trackManifests/?${params.toString()}`, { type: 'streaming' });
         const jsonResponse = await response.json();
-        const result = this.parseTrackLookup(this.normalizeTrackResponse(jsonResponse));
+        const result = this.parseTrackLookup(await this.normalizeTrackManifestResponse(jsonResponse, quality));
 
         if (!(response instanceof TidalResponse)) {
             await this.cache.set('track', cacheKey, result);
@@ -1527,7 +1637,7 @@ export class LosslessAPI {
         let streamUrl;
         let manifestRgInfo = null;
 
-        const lookup = await this.getTrack(id, quality);
+        const lookup = await this.getTrack(id, quality, { adaptive: this.shouldUseAdaptiveTrackManifest(download) });
 
         if (lookup.originalTrackUrl) {
             streamUrl = lookup.originalTrackUrl;
