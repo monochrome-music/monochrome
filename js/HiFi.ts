@@ -1026,6 +1026,8 @@ interface JsonApiIncludeAttributes {
     albumType?: string;
     createdAt?: string;
     type?: string;
+    text?: string;
+    source?: string;
 }
 
 /** An included resource node from a TIDAL OpenAPI JSON:API response. */
@@ -1933,14 +1935,34 @@ class HiFiClient {
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, albums: page_data, tracks });
     }
     async getArtistBiography(artistId: number, signal?: AbortSignal): Promise<TidalResponse<ArtistBioResponse>> {
-        const url = `https://api.tidal.com/v1/artists/${artistId}/bio`;
-        const params = {
-            locale: this.#locale,
-            countryCode: this.#countryCode,
-        };
-        const data = await this.#fetchJson<ArtistBiography>(url, params, signal);
+        const url = `https://openapi.tidal.com/v2/artists/${artistId}`;
+        const payload = await this.#fetchJson<{ data?: JsonApiInclude; included?: JsonApiInclude[] }>(
+            url,
+            { countryCode: this.#countryCode, include: 'biography' },
+            signal
+        );
 
-        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: data });
+        const includedMap = new Map<string, JsonApiInclude>();
+        for (const item of payload?.included ?? []) {
+            includedMap.set(`${item.type}:${item.id}`, item);
+        }
+
+        const bioRelData = payload?.data?.relationships?.biography?.data;
+        const bioRef = (Array.isArray(bioRelData) ? bioRelData[0] : bioRelData) as JsonApiRef | undefined;
+        const bioItem = bioRef
+            ? (includedMap.get(`${bioRef.type}:${bioRef.id}`) ??
+               includedMap.get(`biographies:${bioRef.id}`) ??
+               includedMap.get(`biography:${bioRef.id}`))
+            : undefined;
+
+        const data: ArtistBiography = {
+            text: bioItem?.attributes?.text ?? '',
+            source: bioItem?.attributes?.source ?? 'Tidal',
+            lastUpdated: '',
+            summary: '',
+        };
+
+        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
     }
 
     #buildCoverEntry(cover_slug: string, name?: string | null, track_id?: number | null): CoverEntry {
