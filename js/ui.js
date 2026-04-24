@@ -4108,7 +4108,7 @@ export class UIRenderer {
                 }
             }
 
-            fetchAotyWorker(album.title, album.artist.name);
+            void fetchAotyWorker(album.title, album.artist.name);
 
             tracklistContainer.innerHTML = `
                 <div class="track-list-header">
@@ -6079,12 +6079,12 @@ export class UIRenderer {
     renderApiSettings() {
         const container = document.getElementById('api-instance-list');
         Promise.all([this.api.settings.getInstances('api'), this.api.settings.getInstances('streaming')])
-            .then(([apiInstances, streamingInstances]) => {
-                const renderGroup = (instances, type) => {
+            .then(async ([apiInstances, streamingInstances]) => {
+                const renderGroup = async (instances, type) => {
                     if (!instances || instances.length === 0) return '';
 
-                    const listHtml = instances
-                        .map((instance, index) => {
+                    const rows = await Promise.all(
+                        instances.map(async (instance, index) => {
                             const isObject = instance && typeof instance === 'object';
                             const instanceUrl = isObject ? instance.url || '' : String(instance || '');
                             const instanceName = isObject
@@ -6095,15 +6095,45 @@ export class UIRenderer {
                             const safeName = escapeHtml(instanceName || 'Unknown instance');
                             const safeUrl = escapeHtml(instanceUrl || '');
                             const safeVersion = escapeHtml(instanceVersion);
+                            const authSession = this.api.settings.getAuthSession?.(instanceUrl);
+                            const authRequired =
+                                isUser && instance.authRequired !== undefined
+                                    ? instance.authRequired === true
+                                    : isUser
+                                      ? await this.api.settings
+                                            .fetchAuthMetadata(instanceUrl)
+                                            .then((metadata) => metadata?.required === true)
+                                            .catch(() => false)
+                                      : false;
+                            const authBadge = authRequired
+                                ? authSession
+                                    ? `<span class="instance-auth-badge active">Signed in${authSession.username ? ` as ${escapeHtml(authSession.username)}` : ''}</span>`
+                                    : '<span class="instance-auth-badge">Authorization required</span>'
+                                : '';
 
                             return `
                         <li data-index="${index}" data-type="${type}" data-url="${safeUrl}">
                             <div style="flex: 1; min-width: 0;">
                                 <div class="instance-url">${safeName} ${isUser ? '<span style="font-size: 0.6rem; opacity: 0.7; background: var(--muted); padding: 1px 4px; border-radius: 3px; margin-left: 4px; vertical-align: middle;">U</span>' : ''}</div>
                                 ${safeUrl && safeUrl !== safeName ? `<div style="font-size: 0.8rem; color: var(--muted-foreground); margin-top: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeUrl}</div>` : ''}
-                                ${safeVersion ? `<div style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.1rem;">v${safeVersion}</div>` : ''}
+                                ${safeVersion && safeVersion !== 'custom' ? `<div style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.1rem;">v${safeVersion}</div>` : ''}
+                                ${authBadge}
                             </div>
                             <div class="controls">
+                                ${
+                                    isUser && authRequired
+                                        ? `
+                                <button class="authorize-instance" title="${authSession ? 'Manage Authorization' : 'Authorize Instance'}">
+                                    Auth
+                                </button>
+                                ${
+                                    authSession
+                                        ? `<button class="logout-instance" title="Log Out of Instance">Log out</button>`
+                                        : ''
+                                }
+                                `
+                                        : ''
+                                }
                                 ${
                                     isUser
                                         ? `
@@ -6116,7 +6146,8 @@ export class UIRenderer {
                         </li>
                     `;
                         })
-                        .join('');
+                    );
+                    const listHtml = rows.join('');
 
                     return `
                     <li class="group-header" style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; padding: 1rem 0 0.5rem; background: transparent; border: none;">
@@ -6129,7 +6160,8 @@ export class UIRenderer {
                 `;
                 };
 
-                container.innerHTML = renderGroup(apiInstances, 'api') + renderGroup(streamingInstances, 'streaming');
+                container.innerHTML =
+                    (await renderGroup(apiInstances, 'api')) + (await renderGroup(streamingInstances, 'streaming'));
 
                 const stats = this.api.getCacheStats();
                 const cacheInfo = document.getElementById('cache-info');

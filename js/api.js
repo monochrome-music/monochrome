@@ -124,7 +124,10 @@ export class LosslessAPI {
                     : `${baseUrl}${relativePath}`;
 
                 try {
-                    const response = await fetch(url, { signal: options.signal });
+                    const response = await fetch(url, {
+                        signal: options.signal,
+                        headers: this.settings?.getAuthHeaders?.(baseUrl) || {},
+                    });
 
                     if (response.status === 429) {
                         console.warn(`Rate limit hit on ${baseUrl}. Trying next instance...`);
@@ -144,6 +147,11 @@ export class LosslessAPI {
                             .catch(() => null);
                         if (errorData?.subStatus === 11002) {
                             console.warn(`Auth failed on ${baseUrl}. Trying next instance...`);
+                            instanceIndex++;
+                            continue;
+                        }
+                        if (this.settings?.getAuthSession?.(baseUrl)) {
+                            console.warn(`Stored HiFi API session was rejected by ${baseUrl}. Trying next instance...`);
                             instanceIndex++;
                             continue;
                         }
@@ -177,7 +185,10 @@ export class LosslessAPI {
                 console.log('[dev-mode]', url);
             }
 
-            const response = await fetch(url, { signal: options.signal });
+            const response = await fetch(url, {
+                signal: options.signal,
+                headers: this.settings?.getAuthHeaders?.(devBaseUrl) || {},
+            });
             if (!response.ok) {
                 throw new Error(`Dev mode request failed: ${response.status} ${response.statusText}`);
             }

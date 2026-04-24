@@ -45,6 +45,7 @@ import {
     serverDisruptionSettings,
 } from './storage.js';
 import { audioContextManager, getPresetsForBandCount } from './audio-context.js';
+import { createModal } from './utils.js';
 import { calculateBiquadResponse, interpolate, getNormalizationOffset, runAutoEqAlgorithm } from './autoeq-engine.js';
 import { parseRawData, TARGETS, SPEAKER_TARGETS } from './autoeq-data.js';
 import { fetchAutoEqIndex, fetchHeadphoneData, searchHeadphones, POPULAR_HEADPHONES } from './autoeq-importer.js';
@@ -84,25 +85,54 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     const devModeToggle = document.getElementById('dev-mode-toggle');
     const devModeUrlSetting = document.getElementById('dev-mode-url-setting');
     const devModeUrlInput = document.getElementById('dev-mode-url-input');
+    const devModeAuthBtn = document.getElementById('dev-mode-auth-btn');
 
     function updateDevModeUI() {
         if (devModeToggle) devModeToggle.checked = devModeSettings.isEnabled();
         if (devModeUrlSetting) devModeUrlSetting.style.display = devModeSettings.isEnabled() ? '' : 'none';
         if (devModeUrlInput) devModeUrlInput.value = devModeSettings.getUrl();
+        if (devModeAuthBtn) {
+            devModeAuthBtn.style.display = 'none';
+        }
+    }
+
+    async function updateDevModeAuthUI() {
+        if (!devModeAuthBtn || !devModeSettings.isEnabled()) return;
+
+        const devUrl = api.settings.normalizeInstanceUrl(devModeSettings.getUrl());
+        if (!devUrl) return;
+
+        try {
+            const metadata = await api.settings.fetchAuthMetadata(devUrl);
+            const authRequired = metadata?.required === true;
+            const session = api.settings.getAuthSession(devUrl);
+            devModeAuthBtn.style.display = authRequired ? '' : 'none';
+            devModeAuthBtn.textContent = session ? 'Authorized' : 'Authorize';
+        } catch {
+            devModeAuthBtn.style.display = 'none';
+        }
     }
 
     updateDevModeUI();
+    void updateDevModeAuthUI();
 
     if (devModeToggle) {
         devModeToggle.addEventListener('change', (e) => {
             devModeSettings.setEnabled(e.target.checked);
             updateDevModeUI();
+            void updateDevModeAuthUI();
         });
     }
 
     if (devModeUrlInput) {
-        devModeUrlInput.addEventListener('change', (e) => {
-            devModeSettings.setUrl(e.target.value.trim());
+        devModeUrlInput.addEventListener('change', async (e) => {
+            const devUrl = api.settings.normalizeInstanceUrl(e.target.value.trim());
+            devModeSettings.setUrl(devUrl);
+            updateDevModeUI();
+            await updateDevModeAuthUI();
+            if (await isHifiInstanceAuthRequired(devUrl)) {
+                openHifiInstanceAuthModal('dev', devUrl);
+            }
         });
     }
 
@@ -6439,6 +6469,165 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // API settings
+    const isHifiInstanceAuthRequired = async (url) => {
+        try {
+            const metadata = await api.settings.fetchAuthMetadata(url);
+            return metadata?.required === true;
+        } catch {
+            return false;
+        }
+    };
+
+    const openHifiInstanceAuthModal = (_type, url, authRequired = true) => {
+        const normalizedUrl = api.settings.normalizeInstanceUrl(url);
+        const authBaseUrl = api.settings.getAuthBaseUrl(normalizedUrl);
+        const session = api.settings.getAuthSession(normalizedUrl);
+        const sessionText = session
+            ? `Stored session${session.username ? ` for ${escapeHtml(session.username)}` : ''}${session.expiresAt ? `, expires ${escapeHtml(new Date(session.expiresAt).toLocaleString())}` : ''}.`
+            : 'No HiFi API session stored for this instance.';
+
+        const { modal, close } = createModal({
+            title: 'Authorize HiFi API Instance',
+            className: 'hifi-auth-modal',
+            content: `
+                <div class="hifi-auth-panel">
+                    <div class="hifi-auth-session">
+                        <span>Status</span>
+                        <strong>${authRequired ? 'Authorization required' : 'Authorization not required'}</strong>
+                        <p>${sessionText}</p>
+                        <details>
+                            <summary>Instance routing</summary>
+                            <code>API: ${escapeHtml(normalizedUrl)}</code>
+                            <code>Auth: ${escapeHtml(authBaseUrl)}</code>
+                        </details>
+                    </div>
+                    <div class="hifi-auth-result" id="hifi-auth-result"></div>
+                    <form class="hifi-auth-form" id="hifi-login-form">
+                        <h4>Log in</h4>
+                        <p>Use the username and login key from this HiFi API instance.</p>
+                        <input id="hifi-login-username" class="hifi-auth-input" type="text" autocomplete="username" placeholder="Username" />
+                        <input id="hifi-login-key" class="hifi-auth-input" type="password" autocomplete="current-password" placeholder="Login key" />
+                        <div class="hifi-auth-actions">
+                            <button type="submit" class="btn-primary">Log in</button>
+                        </div>
+                    </form>
+                    <form class="hifi-auth-form" id="hifi-redeem-form">
+                        <h4>Redeem invite</h4>
+                        <p>Invite redemption creates an account on this API instance and returns a login key. Keep that key.</p>
+                        <input id="hifi-redeem-username" class="hifi-auth-input" type="text" autocomplete="username" placeholder="New username" />
+                        <input id="hifi-invite-code" class="hifi-auth-input" type="password" autocomplete="one-time-code" placeholder="Invite code" />
+                        <div class="hifi-auth-actions">
+                            <button type="submit" class="btn-primary">Redeem invite</button>
+                        </div>
+                    </form>
+                    <div class="hifi-auth-actions">
+                        ${
+                            session
+                                ? '<button type="button" id="hifi-modal-logout-btn" class="btn-secondary danger">Log out</button>'
+                                : ''
+                        }
+                    </div>
+                </div>
+            `,
+        });
+
+        const resultEl = modal.querySelector('#hifi-auth-result');
+        const showResult = (message, isError = false) => {
+            resultEl.classList.add('active');
+            resultEl.style.borderColor = isError ? '#ef4444' : 'var(--border)';
+            resultEl.innerHTML = message;
+        };
+
+        const setBusy = (button, busy, text) => {
+            if (!button) return;
+            if (!button.dataset.originalText) button.dataset.originalText = button.textContent;
+            button.disabled = busy;
+            button.textContent = busy ? text : button.dataset.originalText;
+        };
+
+        modal.querySelector('#hifi-login-form')?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const button = event.submitter;
+            const username = modal.querySelector('#hifi-login-username')?.value.trim();
+            const loginKey = modal.querySelector('#hifi-login-key')?.value.trim();
+
+            if (!username || !loginKey) {
+                showResult('Enter both username and login key.', true);
+                return;
+            }
+
+            setBusy(button, true, 'Logging in...');
+            try {
+                await api.settings.loginToInstance(authBaseUrl, username, loginKey);
+                showResult('Session stored. Future requests to this instance will include its bearer token.');
+                updateDevModeUI();
+                void updateDevModeAuthUI();
+                ui.renderApiSettings();
+            } catch (error) {
+                showResult(escapeHtml(error.message || 'Login failed.'), true);
+            } finally {
+                setBusy(button, false);
+            }
+        });
+
+        modal.querySelector('#hifi-redeem-form')?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const button = event.submitter;
+            const username = modal.querySelector('#hifi-redeem-username')?.value.trim();
+            const inviteCode = modal.querySelector('#hifi-invite-code')?.value.trim();
+
+            if (!username || !inviteCode) {
+                showResult('Enter both username and invite code.', true);
+                return;
+            }
+
+            setBusy(button, true, 'Redeeming...');
+            try {
+                const savedSession = await api.settings.redeemInvite(authBaseUrl, inviteCode, username);
+                showResult(
+                    `Session stored. Save this login key for future logins:<code class="hifi-auth-login-key">${escapeHtml(savedSession.loginKey || '')}</code>`
+                );
+                updateDevModeUI();
+                void updateDevModeAuthUI();
+                ui.renderApiSettings();
+            } catch (error) {
+                showResult(escapeHtml(error.message || 'Invite redemption failed.'), true);
+            } finally {
+                setBusy(button, false);
+            }
+        });
+
+        modal.querySelector('#hifi-modal-logout-btn')?.addEventListener('click', async (event) => {
+            const button = event.currentTarget;
+            setBusy(button, true, 'Logging out...');
+            try {
+                await api.settings.logoutFromInstance(authBaseUrl);
+                updateDevModeUI();
+                void updateDevModeAuthUI();
+                ui.renderApiSettings();
+                close();
+            } catch (error) {
+                showResult(escapeHtml(error.message || 'Logout failed.'), true);
+                setBusy(button, false);
+            }
+        });
+
+        modal.querySelector('#hifi-login-username')?.focus();
+    };
+
+    devModeAuthBtn?.addEventListener('click', () => {
+        const devUrl = api.settings.normalizeInstanceUrl(devModeUrlInput?.value || devModeSettings.getUrl());
+        if (!devUrl) {
+            alert('Enter a dev mode API URL first.');
+            return;
+        }
+
+        devModeSettings.setUrl(devUrl);
+        updateDevModeUI();
+        void updateDevModeAuthUI();
+        openHifiInstanceAuthModal('dev', devUrl, true);
+    });
+
     document.getElementById('refresh-speed-test-btn')?.addEventListener('click', async () => {
         const btn = document.getElementById('refresh-speed-test-btn');
         const originalText = btn.textContent;
@@ -6477,7 +6666,30 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 if (!formattedUrl.startsWith('http')) {
                     formattedUrl = 'https://' + formattedUrl;
                 }
-                api.settings.addUserInstance(type, formattedUrl);
+                formattedUrl = api.settings.normalizeInstanceUrl(formattedUrl);
+                const authRequired = await isHifiInstanceAuthRequired(formattedUrl);
+                api.settings.addUserInstance(type, formattedUrl, { authRequired });
+                ui.renderApiSettings();
+                if (authRequired) {
+                    openHifiInstanceAuthModal(type, formattedUrl, true);
+                }
+            }
+            return;
+        }
+
+        if (button.classList.contains('authorize-instance')) {
+            if (await isHifiInstanceAuthRequired(li.dataset.url)) {
+                openHifiInstanceAuthModal(type, li.dataset.url, true);
+            }
+            return;
+        }
+
+        if (button.classList.contains('logout-instance')) {
+            const url = li.dataset.url;
+            if (url && confirm(`Log out of ${url}?`)) {
+                await api.settings.logoutFromInstance(url);
+                updateDevModeUI();
+                void updateDevModeAuthUI();
                 ui.renderApiSettings();
             }
             return;
@@ -6486,6 +6698,9 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         if (button.classList.contains('delete-instance')) {
             const url = li.dataset.url;
             if (url && confirm(`Delete custom instance ${url}?`)) {
+                api.settings.clearAuthSession(url);
+                updateDevModeUI();
+                void updateDevModeAuthUI();
                 api.settings.removeUserInstance(type, url);
                 ui.renderApiSettings();
             }

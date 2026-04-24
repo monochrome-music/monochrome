@@ -7,6 +7,7 @@ import {
     gaplessPlaybackSettings,
     exponentialVolumeSettings,
     audioEffectsSettings,
+    apiSettings,
 } from '../storage.js';
 
 describe('storage.js', () => {
@@ -120,6 +121,45 @@ describe('storage.js', () => {
             audioEffectsSettings.setSpeed(2.0);
             audioEffectsSettings.resetSpeed();
             expect(audioEffectsSettings.getSpeed()).toBe(1.0);
+        });
+    });
+
+    describe('apiSettings HiFi API auth sessions', () => {
+        test('stores auth sessions by normalized instance URL', () => {
+            apiSettings.setAuthSession('https://example.com/', {
+                username: 'listener',
+                sessionToken: 'session-token',
+                expiresAt: new Date(Date.now() + 60_000).toISOString(),
+            });
+
+            expect(apiSettings.getAuthSession('https://example.com')?.username).toBe('listener');
+            expect(apiSettings.getAuthHeaders('https://example.com/')).toEqual({
+                Authorization: 'Bearer session-token',
+            });
+        });
+
+        test('clears expired auth sessions', () => {
+            apiSettings.setAuthSession('https://example.com', {
+                username: 'listener',
+                sessionToken: 'session-token',
+                expiresAt: new Date(Date.now() - 60_000).toISOString(),
+            });
+
+            expect(apiSettings.getAuthSession('https://example.com')).toBeNull();
+            expect(apiSettings.getAuthHeaders('https://example.com')).toEqual({});
+        });
+
+        test('uses the server root auth session for /py API URLs', () => {
+            apiSettings.setAuthSession('https://example.com', {
+                username: 'listener',
+                sessionToken: 'session-token',
+                expiresAt: new Date(Date.now() + 60_000).toISOString(),
+            });
+
+            expect(apiSettings.getAuthBaseUrl('https://example.com/py')).toBe('https://example.com');
+            expect(apiSettings.getAuthHeaders('https://example.com/py')).toEqual({
+                Authorization: 'Bearer session-token',
+            });
         });
     });
 });

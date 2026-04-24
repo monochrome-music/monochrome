@@ -4,6 +4,7 @@ import { SVG_RIGHT_ARROW } from './icons';
 
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances-v9',
+    AUTH_STORAGE_KEY: 'monochrome-hifi-api-auth-sessions-v1',
     INSTANCES_URLS: [
         'https://tidal-uptime.geeked.wtf',
     ],
@@ -25,6 +26,163 @@ export const apiSettings = {
 
     _saveUserInstances() {
         localStorage.setItem('monochrome-user-api-instances-v1', JSON.stringify(this.userInstances));
+    },
+
+    normalizeInstanceUrl(url) {
+        return String(url || '').trim().replace(/\/+$/, '');
+    },
+
+    getAuthBaseUrl(url) {
+        return this.normalizeInstanceUrl(url).replace(/\/(?:py|v1)$/i, '');
+    },
+
+    _loadAuthSessions() {
+        try {
+            const stored = localStorage.getItem(this.AUTH_STORAGE_KEY);
+            const parsed = stored ? JSON.parse(stored) : {};
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch {
+            return {};
+        }
+    },
+
+    _saveAuthSessions(sessions) {
+        localStorage.setItem(this.AUTH_STORAGE_KEY, JSON.stringify(sessions));
+    },
+
+    getAuthSession(url) {
+        const key = this.getAuthBaseUrl(url);
+        if (!key) return null;
+
+        const sessions = this._loadAuthSessions();
+        const legacyKey = this.normalizeInstanceUrl(url);
+        const session = sessions[key] || sessions[legacyKey] || null;
+        if (!session?.sessionToken) return null;
+
+        if (session.expiresAt && new Date(session.expiresAt).getTime() <= Date.now()) {
+            this.clearAuthSession(key);
+            return null;
+        }
+
+        return session;
+    },
+
+    setAuthSession(url, session) {
+        const key = this.getAuthBaseUrl(url);
+        if (!key || !session?.sessionToken) return null;
+
+        const sessions = this._loadAuthSessions();
+        sessions[key] = {
+            instanceUrl: key,
+            username: session.username || session.user?.username || '',
+            user: session.user || null,
+            sessionToken: session.sessionToken,
+            expiresAt: session.expiresAt || null,
+            loginKey: session.loginKey || undefined,
+            savedAt: new Date().toISOString(),
+        };
+        this._saveAuthSessions(sessions);
+        return sessions[key];
+    },
+
+    clearAuthSession(url) {
+        const key = this.getAuthBaseUrl(url);
+        if (!key) return false;
+
+        const sessions = this._loadAuthSessions();
+        const legacyKey = this.normalizeInstanceUrl(url);
+        if (!(key in sessions) && !(legacyKey in sessions)) return false;
+
+        delete sessions[key];
+        delete sessions[legacyKey];
+        this._saveAuthSessions(sessions);
+        return true;
+    },
+
+    getAuthHeaders(url) {
+        const session = this.getAuthSession(url);
+        return session?.sessionToken ? { Authorization: `Bearer ${session.sessionToken}` } : {};
+    },
+
+    async authFetch(url, path, options = {}) {
+        const baseUrl = this.getAuthBaseUrl(url);
+        const endpoint = `${baseUrl}${path}`;
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(options.authorized ? this.getAuthHeaders(baseUrl) : {}),
+            ...(options.headers || {}),
+        };
+
+        const response = await fetch(endpoint, {
+            method: options.method || 'GET',
+            headers,
+            body: options.body ? JSON.stringify(options.body) : undefined,
+            signal: options.signal,
+        });
+        const data = await response
+            .clone()
+            .json()
+            .catch(() => null);
+
+        if (!response.ok) {
+            throw new Error(data?.detail || `Request failed with status ${response.status}`);
+        }
+
+        return data;
+    },
+
+    async fetchAuthMetadata(url, options = {}) {
+        const baseUrl = this.getAuthBaseUrl(url);
+        const response = await fetch(`${baseUrl}/`, {
+            signal: options.signal,
+            headers: this.getAuthHeaders(baseUrl),
+        });
+        const data = await response
+            .clone()
+            .json()
+            .catch(() => null);
+
+        if (!response.ok) {
+            throw new Error(data?.detail || `Request failed with status ${response.status}`);
+        }
+
+        return data?.auth || { required: false };
+    },
+
+    async redeemInvite(url, inviteCode, username) {
+        const baseUrl = this.normalizeInstanceUrl(url);
+        const data = await this.authFetch(baseUrl, '/auth/redeem', {
+            method: 'POST',
+            body: { inviteCode, username },
+        });
+        return this.setAuthSession(baseUrl, data);
+    },
+
+    async loginToInstance(url, username, loginKey) {
+        const baseUrl = this.normalizeInstanceUrl(url);
+        const data = await this.authFetch(baseUrl, '/auth/login', {
+            method: 'POST',
+            body: { username, loginKey },
+        });
+        return this.setAuthSession(baseUrl, { ...data, username, loginKey });
+    },
+
+    async logoutFromInstance(url) {
+        const baseUrl = this.normalizeInstanceUrl(url);
+        try {
+            await this.authFetch(baseUrl, '/auth/logout', {
+                method: 'POST',
+                authorized: true,
+            });
+        } finally {
+            this.clearAuthSession(baseUrl);
+        }
+    },
+
+    async getCurrentInstanceUser(url) {
+        return this.authFetch(this.normalizeInstanceUrl(url), '/auth/me', {
+            authorized: true,
+        });
     },
 
     async loadInstancesFromGitHub() {
@@ -160,15 +318,38 @@ export const apiSettings = {
         return combined;
     },
 
-    addUserInstance(type, url) {
+    updateUserInstance(type, url, patch = {}) {
         const userInst = this._loadUserInstances();
         if (!userInst[type]) userInst[type] = [];
 
+        url = this.normalizeInstanceUrl(url);
+        const index = userInst[type].findIndex((u) => (typeof u === 'string' ? u === url : u.url === url));
+        if (index === -1) return false;
+
+        const current = userInst[type][index];
+        userInst[type][index] = {
+            ...(typeof current === 'string' ? { url: current } : current),
+            ...patch,
+            url,
+            isUser: true,
+        };
+        this._saveUserInstances();
+        return true;
+    },
+
+    addUserInstance(type, url, metadata = {}) {
+        const userInst = this._loadUserInstances();
+        if (!userInst[type]) userInst[type] = [];
+
+        url = this.normalizeInstanceUrl(url);
+
         if (!userInst[type].some((u) => (typeof u === 'string' ? u === url : u.url === url))) {
-            userInst[type].push({ url, isUser: true, version: 'custom' });
+            userInst[type].push({ url, isUser: true, ...metadata });
             this._saveUserInstances();
             return true;
         }
+
+        this.updateUserInstance(type, url, metadata);
         return false;
     },
 

@@ -5066,6 +5066,8 @@ input:checked + .slider::before {
 #api-instance-list li .controls {
     display: flex;
     gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 #api-instance-list li button {
@@ -5093,6 +5095,155 @@ input:checked + .slider::before {
 #api-instance-list li button:disabled {
     opacity: 0.3;
     cursor: not-allowed;
+}
+
+.instance-auth-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    margin-top: 0.35rem;
+    padding: 0.15rem 0.45rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted-foreground);
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.instance-auth-badge.active {
+    border-color: var(--primary);
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.hifi-auth-modal {
+    width: min(980px, calc(100vw - 2rem));
+    max-width: 980px !important;
+}
+
+.hifi-auth-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+.hifi-auth-session {
+    grid-column: 1 / -1;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--secondary);
+}
+
+.hifi-auth-session span {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: var(--muted-foreground);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.hifi-auth-session strong {
+    display: block;
+    color: var(--foreground);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.hifi-auth-session p {
+    margin: 0.45rem 0 0;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+}
+
+.hifi-auth-session details {
+    margin-top: 0.65rem;
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
+}
+
+.hifi-auth-session summary {
+    width: fit-content;
+    cursor: pointer;
+}
+
+.hifi-auth-session code {
+    display: block;
+    margin-top: 0.4rem;
+    color: var(--foreground);
+    overflow-wrap: anywhere;
+}
+
+.hifi-auth-form {
+    display: grid;
+    gap: 0.8rem;
+    align-content: start;
+    padding: 1.15rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+}
+
+.hifi-auth-form h4 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.hifi-auth-form p {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.hifi-auth-input {
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--foreground);
+    background: var(--secondary);
+}
+
+.hifi-auth-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+}
+
+.hifi-auth-result {
+    display: none;
+    grid-column: 1 / -1;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--secondary);
+    color: var(--foreground);
+    font-size: 0.85rem;
+}
+
+.hifi-auth-result.active {
+    display: block;
+}
+
+.hifi-auth-login-key {
+    display: block;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    background: var(--background);
+    color: var(--foreground);
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+@media (max-width: 760px) {
+    .hifi-auth-panel {
+        grid-template-columns: 1fr;
+    }
 }
 
 .theme-picker {
