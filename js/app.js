@@ -453,6 +453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     new ThemeStore();
+
     await HiFiClient.initialize({
         storage: [
             localStorage,
