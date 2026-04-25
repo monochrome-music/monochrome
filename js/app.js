@@ -55,6 +55,7 @@ import {
     SVG_RESET,
 } from './icons.js';
 import { HiFiClient } from './HiFi.js';
+import { installDownloadInterceptors } from './download-blocker.js';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
@@ -66,6 +67,8 @@ if (typeof window !== 'undefined') {
         },
     });
 }
+
+installDownloadInterceptors();
 
 // Lazy-loaded modules
 let settingsModule = null;

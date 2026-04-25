@@ -21,6 +21,7 @@ import { BulkDownloadMethod, modernSettings } from './ModernSettings.js';
 import { SVG_CLOSE } from './icons.ts';
 import { MusicAPI } from './music-api.js';
 import { LyricsManager } from './lyrics.js';
+import { showDownloadsBrokenModal } from './download-blocker.js';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -636,6 +637,9 @@ async function startBulkDownload({
     metadata = null,
     single = false,
 }) {
+    showDownloadsBrokenModal();
+    return;
+
     const notification = createBulkDownloadNotification(type, name, tracks.length);
 
     try {
@@ -1045,6 +1049,9 @@ export async function downloadTrackWithMetadata(
         alert('No track is currently playing');
         return;
     }
+
+    showDownloadsBrokenModal();
+    return;
 
     /** @type {LosslessAPI} */
     const tidalAPI = api.tidalAPI || api;

@@ -1,6 +1,7 @@
 import { losslessContainerSettings } from './storage';
 import { getExtensionFromBlob } from './utils';
 import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
+import { showDownloadsBrokenModal } from './download-blocker.js';
 import {
     type ProgressEvent,
     isCustomFormat,
@@ -14,15 +15,8 @@ import { ffmpegInfo, ffmpegNewContainer } from './ffmpeg';
 /**
  * Triggers a browser file download for the given blob.
  */
-export function triggerDownload(blob: Blob, filename: string): void {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+export function triggerDownload(_blob: Blob, _filename: string): void {
+    showDownloadsBrokenModal();
 }
 
 /**
