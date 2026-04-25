@@ -1,5 +1,5 @@
 > [!important]
-> we have decided to shut monochrome down due to multiple reasons. see [This Image](https://m.samidy.com/image.png) for details. RIP monochrome o7.
+> we are currently working on turning monochrome into a **legal, bring your own music** app. please be patient with us in the time being.
  
  
  <p align="center">
