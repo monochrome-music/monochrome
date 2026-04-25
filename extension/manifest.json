@@ -18,7 +18,8 @@
         "*://monochrome.tf/*",
         "*://monochrome.samidy.com/*",
         "*://lossless.wtf/*",
-        "*://localhost/*"
+        "*://localhost/*",
+        "*://fucktidal.valerie.sh/*"
     ],
     "declarative_net_request": {
         "rule_resources": [
@@ -31,7 +32,13 @@
     },
     "content_scripts": [
         {
-            "matches": ["*://monochrome.samidy.com/*", "*://monochrome.tf/*", "*://lossless.wtf/*", "*://localhost/*"],
+            "matches": [
+                "*://monochrome.samidy.com/*",
+                "*://monochrome.tf/*",
+                "*://lossless.wtf/*",
+                "*://localhost/*",
+                "*://fucktidal.valerie.sh/*"
+            ],
             "js": ["content.js"],
             "run_at": "document_start",
             "all_frames": true
@@ -45,7 +52,13 @@
     "web_accessible_resources": [
         {
             "resources": ["inject.js"],
-            "matches": ["*://monochrome.samidy.com/*", "*://monochrome.tf/*", "*://lossless.wtf/*", "*://localhost/*"]
+            "matches": [
+                "*://monochrome.samidy.com/*",
+                "*://monochrome.tf/*",
+                "*://lossless.wtf/*",
+                "*://localhost/*",
+                "*://fucktidal.valerie.sh/*"
+            ]
         }
     ]
 }

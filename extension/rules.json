@@ -24,7 +24,7 @@
         },
         "condition": {
             "urlFilter": "||tidal.com*",
-            "initiatorDomains": ["monochrome.tf", "monochrome.samidy.com"],
+            "initiatorDomains": ["monochrome.tf", "monochrome.samidy.com", "localhost", "fucktidal.valerie.sh"],
             "resourceTypes": ["xmlhttprequest", "media"]
         }
     },
@@ -48,7 +48,7 @@
         },
         "condition": {
             "urlFilter": "||tidal.com*",
-            "initiatorDomains": ["monochrome.tf", "monochrome.samidy.com"],
+            "initiatorDomains": ["monochrome.tf", "monochrome.samidy.com", "localhost", "fucktidal.valerie.sh"],
             "resourceTypes": ["xmlhttprequest", "media"]
         }
     }

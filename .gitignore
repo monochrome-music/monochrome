@@ -12,6 +12,9 @@ dist
 **/__screenshots__/*
 bin/
 *.log
+party-server/*.sqlite
+party-server/*.sqlite-shm
+party-server/*.sqlite-wal
 .storage/
 auth_storage/
 www

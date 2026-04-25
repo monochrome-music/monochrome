@@ -8,6 +8,7 @@ export const apiSettings = {
     INSTANCES_URLS: [
         'https://tidal-uptime.geeked.wtf',
     ],
+    FORK_DEFAULT_API_INSTANCE: 'https://fucktidal2.valerie.sh/py',
     defaultInstances: { api: [], streaming: [] },
     userInstances: null,
     instancesLoaded: false,
@@ -307,10 +308,21 @@ export const apiSettings = {
 
         const defaultUrls = instancesObj[type] || instancesObj.api || [];
         const userUrls = userInst[type] || [];
+        const forkDefault = {
+            url: this.FORK_DEFAULT_API_INSTANCE,
+            name: 'fucktidal2.valerie.sh',
+            version: 'fork',
+            isUser: true,
+            isPinnedDefault: true,
+        };
 
         const combined = [
+            forkDefault,
             ...userUrls.map((u) => (typeof u === 'string' ? { url: u, isUser: true } : { ...u, isUser: true })),
-            ...defaultUrls,
+            ...defaultUrls.filter((item) => {
+                const url = typeof item === 'string' ? item : item.url;
+                return this.normalizeInstanceUrl(url) !== this.normalizeInstanceUrl(this.FORK_DEFAULT_API_INSTANCE);
+            }),
         ];
 
         if (combined.length === 0) return [];
@@ -2579,23 +2591,6 @@ export const autoplaySettings = {
 
     setSmartRecsEnabled(enabled) {
         localStorage.setItem(this.SMART_RECS_KEY, enabled ? 'true' : 'false');
-    },
-};
-
-export const analyticsSettings = {
-    ENABLED_KEY: 'analytics-enabled',
-
-    isEnabled() {
-        try {
-            const val = localStorage.getItem(this.ENABLED_KEY);
-            return val === null ? true : val === 'true';
-        } catch {
-            return true;
-        }
-    },
-
-    setEnabled(enabled) {
-        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
     },
 };
 

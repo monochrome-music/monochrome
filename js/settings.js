@@ -33,7 +33,6 @@ import {
     contentBlockingSettings,
     musicProviderSettings,
     gaplessPlaybackSettings,
-    analyticsSettings,
     modalSettings,
     preferDolbyAtmosSettings,
     binauralDspSettings,
@@ -224,6 +223,20 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 await authManager.sendPasswordReset(email);
             } catch {
                 /* ignore */
+            }
+        });
+    }
+
+    const partyBackendUrlInput = document.getElementById('party-backend-url-input');
+    if (partyBackendUrlInput) {
+        partyBackendUrlInput.value = localStorage.getItem('monochrome-party-backend-url') || '';
+        partyBackendUrlInput.addEventListener('change', (event) => {
+            const value = event.target.value.trim().replace(/\/+$/, '');
+            if (value) {
+                localStorage.setItem('monochrome-party-backend-url', value);
+                partyBackendUrlInput.value = value;
+            } else {
+                localStorage.removeItem('monochrome-party-backend-url');
             }
         });
     }
@@ -6477,6 +6490,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             return false;
         }
     };
+    let defaultInstanceAuthPrompted = false;
 
     const openHifiInstanceAuthModal = (_type, url, authRequired = true) => {
         const normalizedUrl = api.settings.normalizeInstanceUrl(url);
@@ -6614,6 +6628,19 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
         modal.querySelector('#hifi-login-username')?.focus();
     };
+
+    const maybePromptDefaultInstanceAuth = async () => {
+        if (defaultInstanceAuthPrompted) return;
+        const defaultUrl = api.settings.FORK_DEFAULT_API_INSTANCE;
+        if (!defaultUrl || api.settings.getAuthSession(defaultUrl)) return;
+
+        defaultInstanceAuthPrompted = true;
+        if (await isHifiInstanceAuthRequired(defaultUrl)) {
+            openHifiInstanceAuthModal('api', defaultUrl, true);
+        }
+    };
+
+    void maybePromptDefaultInstanceAuth();
 
     devModeAuthBtn?.addEventListener('click', () => {
         const devUrl = api.settings.normalizeInstanceUrl(devModeUrlInput?.value || devModeSettings.getUrl());
@@ -6947,15 +6974,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         pwaAutoUpdateToggle.checked = pwaUpdateSettings.isAutoUpdateEnabled();
         pwaAutoUpdateToggle.addEventListener('change', (e) => {
             pwaUpdateSettings.setAutoUpdateEnabled(e.target.checked);
-        });
-    }
-
-    // Analytics Toggle
-    const analyticsToggle = document.getElementById('analytics-toggle');
-    if (analyticsToggle) {
-        analyticsToggle.checked = analyticsSettings.isEnabled();
-        analyticsToggle.addEventListener('change', (e) => {
-            analyticsSettings.setEnabled(e.target.checked);
         });
     }
 

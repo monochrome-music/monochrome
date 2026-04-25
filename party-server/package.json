@@ -1,0 +1,10 @@
+{
+    "name": "monochrome-party-server",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "start": "bun run index.ts",
+        "start:proxy": "bun run proxy.ts"
+    },
+    "dependencies": {}
+}

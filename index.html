@@ -1998,10 +1998,7 @@
                             Listen to music together with your friends in real-time. Host controls the music, everyone
                             enjoys it.
                         </p>
-                        <div id="parties-auth-required" style="display: none">
-                            <p style="margin-bottom: 1rem">You need an account to host a listening party.</p>
-                            <button id="parties-login-btn" class="btn-primary">Sign In / Sign Up</button>
-                        </div>
+                        <div id="parties-auth-required" style="display: none"></div>
                         <div id="parties-host-controls" style="display: none">
                             <input
                                 type="text"
@@ -5599,6 +5596,29 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
+                                        <span class="label">Party Backend URL</span>
+                                        <span class="description"
+                                            >Optional self-hosted anonymous party server. Leave empty to use
+                                            fucktidal3.valerie.sh.</span
+                                        >
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="party-backend-url-input"
+                                        placeholder="https://fucktidal3.valerie.sh"
+                                        style="
+                                            width: 220px;
+                                            padding: 0.35rem 0.5rem;
+                                            border: 1px solid var(--border);
+                                            border-radius: var(--radius-md);
+                                            background: var(--card);
+                                            color: var(--foreground);
+                                            font-size: 0.8rem;
+                                        "
+                                    />
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
                                         <span class="label">ADVANCED: Custom Database/Auth</span>
                                         <span class="description"
                                             >Configure custom PocketBase and Appwrite instances</span
@@ -5653,18 +5673,6 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="pwa-auto-update-toggle" checked />
-                                        <span class="slider"></span>
-                                    </label>
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Analytics</span>
-                                        <span class="description"
-                                            >Send anonymous usage data to help improve the app</span
-                                        >
-                                    </div>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="analytics-toggle" checked />
                                         <span class="slider"></span>
                                     </label>
                                 </div>

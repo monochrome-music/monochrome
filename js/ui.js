@@ -2390,16 +2390,9 @@ export class UIRenderer {
         await this.showPage('parties');
         const authRequired = document.getElementById('parties-auth-required');
         const hostControls = document.getElementById('parties-host-controls');
-        const loginBtn = document.getElementById('parties-login-btn');
 
-        if (authManager.user) {
-            authRequired.style.display = 'none';
-            hostControls.style.display = 'block';
-        } else {
-            authRequired.style.display = 'block';
-            hostControls.style.display = 'none';
-            loginBtn.onclick = () => navigate('/account');
-        }
+        if (authRequired) authRequired.style.display = 'none';
+        if (hostControls) hostControls.style.display = 'block';
     }
 
     async renderResetPasswordPage() {
@@ -6092,14 +6085,15 @@ export class UIRenderer {
                                 : instanceUrl;
                             const instanceVersion = isObject && instance.version ? String(instance.version) : '';
                             const isUser = isObject && instance.isUser;
+                            const canAuthorize = isUser || (isObject && instance.isPinnedDefault);
                             const safeName = escapeHtml(instanceName || 'Unknown instance');
                             const safeUrl = escapeHtml(instanceUrl || '');
                             const safeVersion = escapeHtml(instanceVersion);
                             const authSession = this.api.settings.getAuthSession?.(instanceUrl);
                             const authRequired =
-                                isUser && instance.authRequired !== undefined
+                                canAuthorize && instance.authRequired !== undefined
                                     ? instance.authRequired === true
-                                    : isUser
+                                    : canAuthorize
                                       ? await this.api.settings
                                             .fetchAuthMetadata(instanceUrl)
                                             .then((metadata) => metadata?.required === true)
@@ -6121,7 +6115,7 @@ export class UIRenderer {
                             </div>
                             <div class="controls">
                                 ${
-                                    isUser && authRequired
+                                    canAuthorize && authRequired
                                         ? `
                                 <button class="authorize-instance" title="${authSession ? 'Manage Authorization' : 'Authorize Instance'}">
                                     Auth
@@ -6135,7 +6129,7 @@ export class UIRenderer {
                                         : ''
                                 }
                                 ${
-                                    isUser
+                                    isUser && !instance.isPinnedDefault
                                         ? `
                                 <button class="delete-instance" title="Delete Instance">
                                     ${SVG_TRASH(16)}

@@ -1472,9 +1472,9 @@ export class LosslessAPI {
             case 'DOLBY_ATMOS':
                 return ['EAC3_JOC'];
             case 'HI_RES_LOSSLESS':
-                return ['FLAC_HIRES'];
+                return ['FLAC_HIRES', 'FLAC'];
             case 'LOSSLESS':
-                return ['FLAC'];
+                return ['FLAC', 'FLAC_HIRES'];
             case 'HIGH':
                 return ['AACLC'];
             case 'LOW':
@@ -1522,7 +1522,7 @@ export class LosslessAPI {
             throw new Error('Malformed track manifests response');
         }
 
-        const manifestResponse = await fetch(manifestUrl);
+        const manifestResponse = await fetch(getProxyUrl(manifestUrl));
         if (!manifestResponse.ok) {
             throw new Error(`Failed to fetch signed track manifest: HTTP ${manifestResponse.status}`);
         }
@@ -1866,7 +1866,7 @@ export class LosslessAPI {
                 if (preferDolbyAtmosSettings.isEnabled() && track.audioModes?.includes('DOLBY_ATMOS')) {
                     try {
                         const stream = await this.getStreamUrl(id, 'DOLBY_ATMOS', true);
-                        const manifest = await fetch(stream.url, { signal: options.signal });
+                        const manifest = await fetch(getProxyUrl(stream.url), { signal: options.signal });
                         const manifestText = await manifest.text();
                         streamUrl = this.extractStreamUrlFromManifest(btoa(manifestText));
 
@@ -1921,7 +1921,7 @@ export class LosslessAPI {
                 // Try HEAD first to get Content-Length when GET uses chunked encoding (fixes #278)
                 let headContentLength = null;
                 try {
-                    const headResponse = await fetch(streamUrl, {
+                    const headResponse = await fetch(getProxyUrl(streamUrl), {
                         method: 'HEAD',
                         cache: 'no-store',
                         signal: options.signal,

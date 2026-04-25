@@ -35,7 +35,6 @@ import { openEditProfile } from './profile.js';
 import { ThemeStore } from './themeStore.js';
 import './commandPalette.js';
 import { initTracker } from './tracker.js';
-import { initAnalytics } from './analytics.js';
 import {
     parseCSV,
     parseJSPF,
@@ -66,24 +65,6 @@ if (typeof window !== 'undefined') {
             return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
         },
     });
-
-    // analytics
-    const plausibleScript = document.createElement('script');
-    plausibleScript.async = true;
-    plausibleScript.src = 'https://plausible.canine.tools/js/pa-dCMvQpiD1-AJmi8o3xviO.js';
-    document.head.appendChild(plausibleScript);
-
-    window.plausible =
-        window.plausible ||
-        function () {
-            (window.plausible.q = window.plausible.q || []).push(arguments);
-        };
-    window.plausible.init =
-        window.plausible.init ||
-        function (i) {
-            window.plausible.o = i || {};
-        };
-    window.plausible.init();
 }
 
 // Lazy-loaded modules
@@ -431,9 +412,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Haptic feedback on every click
     document.addEventListener('click', () => hapticLight(), { capture: true });
-
-    // Initialize analytics
-    initAnalytics();
 
     // Populate commit info
     {

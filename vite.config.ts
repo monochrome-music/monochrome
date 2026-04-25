@@ -65,9 +65,11 @@ export default defineConfig((_options) => {
         server: {
             fs: {
                 allow: ['.', 'node_modules'],
-                // host: true,
+                host: true,
+                allowedHosts: ['fucktidal.valerie.sh'],
                 // allowedHosts: ['<your_tailscale_hostname>'], // e.g. pi5.tailf5f622.ts.net
             },
+            allowedHosts: ['fucktidal.valerie.sh'],
         },
         // preview: {
         //     host: true,

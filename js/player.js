@@ -654,7 +654,10 @@ export class Player {
                                 // Ignore preload errors, will just load fresh
                             }
                         } else {
-                            fetch(streamUrl, { method: 'GET', signal: this.preloadAbortController.signal }).catch(
+                            fetch(getProxyUrl(streamUrl), {
+                                method: 'GET',
+                                signal: this.preloadAbortController.signal,
+                            }).catch(
                                 () => {}
                             );
                         }
@@ -1104,7 +1107,7 @@ export class Player {
 
                 if (isTracker && !streamUrl.startsWith('blob:') && streamUrl.startsWith('http')) {
                     try {
-                        const response = await fetch(streamUrl);
+                        const response = await fetch(getProxyUrl(streamUrl));
                         if (response.ok) {
                             const blob = await response.blob();
                             streamUrl = URL.createObjectURL(blob);
