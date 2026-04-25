@@ -1,3 +1,7 @@
+> [!important]
+> we have decided to shut monochrome down due to multiple reasons. see [This Image](https://m.samidy.com/image.png) for details. RIP monochrome o7.
+ 
+ 
  <p align="center">
   <a href="https://monochrome.tf">
     <img src="https://github.com/monochrome-music/monochrome/blob/main/public/assets/512.png?raw=true" alt="Monochrome Logo" width="150px">
