@@ -1,3 +1,7 @@
+> [!important]
+> we are currently working on turning monochrome into a **legal, bring your own music** app. please be patient with us in the time being.
+ 
+ 
  <p align="center">
   <a href="https://monochrome.tf">
     <img src="https://github.com/monochrome-music/monochrome/blob/main/public/assets/512.png?raw=true" alt="Monochrome Logo" width="150px">
