@@ -296,6 +296,10 @@ export class LosslessAPI {
             normalized = { ...normalized, artist: track.artists[0] };
         }
 
+        if (!normalized.artists && normalized.artist) {
+            normalized = { ...normalized, artists: [normalized.artist] };
+        }
+
         const derivedQuality = deriveTrackQuality(normalized);
         if (derivedQuality && normalized.audioQuality !== derivedQuality) {
             normalized = { ...normalized, audioQuality: derivedQuality };
@@ -515,7 +519,7 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/search/?q=${encodeURIComponent(query)}`, options);
+            const response = await this.fetchWithRetry(`/search/?q=${encodeURIComponent(query)}`, { ...options, directOnly: true });
             const data = await response.json();
 
             const extractSection = (key) => this.normalizeSearchResponse(data, key);
@@ -2033,7 +2037,7 @@ export class LosslessAPI {
 
     getCoverUrl(id, size = '320') {
         if (!id) {
-            return `https://picsum.photos/seed/${Math.random()}/${size}`;
+            return null;
         }
 
         if (typeof id === 'string' && (id.startsWith('http') || id.startsWith('blob:') || id.startsWith('assets/'))) {
@@ -2059,10 +2063,10 @@ export class LosslessAPI {
 
     getArtistPictureUrl(id, size = '320') {
         if (!id) {
-            return `https://picsum.photos/seed/${Math.random()}/${size}`;
+            return null;
         }
 
-        if (typeof id === 'string' && (id.startsWith('blob:') || id.startsWith('assets/'))) {
+        if (typeof id === 'string' && (id.startsWith('http') || id.startsWith('blob:') || id.startsWith('assets/'))) {
             return id;
         }
 
@@ -2071,7 +2075,7 @@ export class LosslessAPI {
     }
 
     getArtistPictureSrcset(id) {
-        if (!id || (typeof id === 'string' && (id.startsWith('blob:') || id.startsWith('assets/')))) {
+        if (!id || (typeof id === 'string' && (id.startsWith('http') || id.startsWith('blob:') || id.startsWith('assets/')))) {
             return '';
         }
 

@@ -310,7 +310,7 @@ export class UIRenderer {
                             ? this.api.getArtistPictureUrl(item.cover)
                             : this.api.getCoverUrl(item.cover);
                     const coverClass = item.type === 'artist' ? 'artist' : '';
-                    iconHTML = `<img src="${coverUrl}" class="pinned-item-cover ${coverClass}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='assets/logo.svg'">`;
+                    iconHTML = `<img src="${coverUrl || 'assets/logo.svg'}" class="pinned-item-cover ${coverClass}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='assets/logo.svg'">`;
                 }
 
                 return `
@@ -571,7 +571,11 @@ export class UIRenderer {
             type === 'artist' ? this.api.getArtistPictureUrl(cover, size) : this.api.getCoverUrl(cover, size);
 
         if (videoCoverUrl) {
-            return `<video src="${videoCoverUrl}" poster="${imageUrl}" class="${className}" alt="${alt}" preload="metadata" playsinline muted></video>`;
+            return `<video src="${videoCoverUrl}" poster="${imageUrl ?? ''}" class="${className}" alt="${alt}" preload="metadata" playsinline muted></video>`;
+        }
+
+        if (!imageUrl) {
+            return `<div class="${className}"></div>`;
         }
 
         if (
@@ -5192,12 +5196,17 @@ export class UIRenderer {
                     });
             }
 
-            imageEl.src = this.api.getArtistPictureUrl(artist.picture);
+            const artistPicUrl = this.api.getArtistPictureUrl(artist.picture);
+            if (artistPicUrl) {
+                imageEl.src = artistPicUrl;
+            } else {
+                imageEl.removeAttribute('src');
+            }
             imageEl.style.backgroundColor = '';
             nameEl.textContent = artist.name;
 
             // Set background
-            this.setPageBackground(imageEl.src);
+            this.setPageBackground(artistPicUrl);
 
             // Extract vibrant color using robust image extraction (160x160 for speed/accuracy balance)
             const artistPic160 = this.api.getArtistPictureUrl(artist.picture, '160');

@@ -1860,6 +1860,7 @@ input[type='search']::-webkit-search-cancel-button {
     box-shadow: var(--shadow-md);
     transition: box-shadow var(--transition-normal);
     aspect-ratio: 1;
+    background-color: var(--card);
 
     /* Enforce square aspect ratio */
 }
