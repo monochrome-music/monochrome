@@ -34,7 +34,8 @@ export function patchFetch() {
                 return await ogFetch(input, init, ...rest);
             } else if (
                 url.hostname.toLowerCase().endsWith('tidal.com') &&
-                !url.hostname.toLowerCase().endsWith('api.tidal.com')
+                !url.hostname.toLowerCase().endsWith('api.tidal.com') &&
+                !url.hostname.toLowerCase().endsWith('auth.tidal.com')
             ) {
                 return await ogFetch(getProxyUrl(url.href), init, ...rest);
             } else {

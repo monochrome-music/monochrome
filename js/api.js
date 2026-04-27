@@ -183,7 +183,7 @@ export class LosslessAPI {
             return response;
         }
 
-        const shouldTryNative = type !== 'streaming';
+        const shouldTryNative = type !== 'streaming' || localStorage.getItem('allTidal') === 'true';
 
         if (shouldTryNative) {
             try {
