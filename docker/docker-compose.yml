@@ -2,8 +2,8 @@ services:
     # Production frontend -- always runs
     monochrome:
         build:
-            context: .
-            dockerfile: Dockerfile
+            context: ..
+            dockerfile: docker/Dockerfile
             args:
                 - AUTH_ENABLED=${AUTH_ENABLED}
                 - AUTH_SECRET=${AUTH_SECRET}
@@ -54,15 +54,15 @@ services:
     # Development server -- only starts with: docker compose --profile dev up -d
     monochrome-dev:
         build:
-            context: .
-            dockerfile: Dockerfile.dev
+            context: ..
+            dockerfile: docker/Dockerfile.dev
         container_name: monochrome-dev
         profiles:
             - dev
         ports:
             - '${MONOCHROME_DEV_PORT:-5173}:5173'
         volumes:
-            - .:/app
+            - ..:/app
             - /app/node_modules
         command: npm run dev -- --host 0.0.0.0
         networks:
