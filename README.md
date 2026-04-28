@@ -121,7 +121,7 @@ We had to heavily customize the authentication system and write several custom s
 
 ```bash
 git clone https://github.com/monochrome-music/monochrome.git
-cd monochrome
+cd monochrome/docker
 docker compose up -d
 ```
 
