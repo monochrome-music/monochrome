@@ -15,7 +15,7 @@ ARG POCKETBASE_URL
 ARG SESSION_MAX_AGE
 
 # Copy package files first for caching
-COPY package.json package-lock.json ./
+COPY package.json bun.lock ./
 
 # Install dependencies (Node)
 RUN bun install
