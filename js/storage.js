@@ -7,7 +7,7 @@ export const apiSettings = {
     INSTANCES_URLS: [
         'https://tidal-uptime.geeked.wtf',
     ],
-    defaultInstances: { api: [], streaming: [] },
+    defaultInstances: { api: [], streaming: [], qobuz: [] },
     userInstances: null,
     instancesLoaded: false,
     _loadPromise: null,
@@ -16,9 +16,11 @@ export const apiSettings = {
         if (this.userInstances) return this.userInstances;
         try {
             const stored = localStorage.getItem('monochrome-user-api-instances-v1');
-            this.userInstances = stored ? JSON.parse(stored) : { api: [], streaming: [] };
+            const parsed = stored ? JSON.parse(stored) : { api: [], streaming: [], qobuz: [] };
+            if (!parsed.qobuz) parsed.qobuz = [];
+            this.userInstances = parsed;
         } catch {
-            this.userInstances = { api: [], streaming: [] };
+            this.userInstances = { api: [], streaming: [], qobuz: [] };
         }
         return this.userInstances;
     },
@@ -96,13 +98,16 @@ export const apiSettings = {
                         { url: 'https://hund.qqdl.site', version: '2.6' },
                         { url: 'https://wolf.qqdl.site', version: '2.6' },
                     ],
+                    qobuz: [
+                        { url: 'https://qobuz.kennyy.com.br', version: '1.0' },
+                    ],
                 };
                 this.instancesLoaded = true;
                 this._loadPromise = null;
                 return this.defaultInstances;
             }
 
-            let groupedInstances = { api: [], streaming: [] };
+            let groupedInstances = { api: [], streaming: [], qobuz: [] };
 
             const isBlockedInstance = (item) => {
                 const url = typeof item === 'string' ? item : item.url;
@@ -117,6 +122,17 @@ export const apiSettings = {
                 groupedInstances.streaming = data.streaming.filter((item) => !isBlockedInstance(item));
             } else if (groupedInstances.api.length > 0) {
                 groupedInstances.streaming = [...groupedInstances.api];
+            }
+
+            if (data.qobuz && Array.isArray(data.qobuz)) {
+                groupedInstances.qobuz = data.qobuz;
+            }
+
+            // Ensure default Qobuz instance is always available
+            if (groupedInstances.qobuz.length === 0) {
+                groupedInstances.qobuz = [
+                    { url: 'https://qobuz.kennyy.com.br', version: '1.0' },
+                ];
             }
 
             this.defaultInstances = groupedInstances;
@@ -221,6 +237,10 @@ export const apiSettings = {
 
         if (instances.streaming && instances.streaming.length) {
             instances.streaming = prioritySort([...instances.streaming]);
+        }
+
+        if (instances.qobuz && instances.qobuz.length) {
+            instances.qobuz = shuffle([...instances.qobuz]);
         }
 
         this.saveInstances(instances);
