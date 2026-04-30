@@ -2484,7 +2484,6 @@ export class UIRenderer {
         await this.showPage('library');
 
         const tracksContainer = document.getElementById('library-tracks-container');
-        const videosTabContent = document.getElementById('library-tab-videos');
         const albumsContainer = document.getElementById('library-albums-container');
         const artistsContainer = document.getElementById('library-artists-container');
         const playlistsContainer = document.getElementById('library-playlists-container');
@@ -2532,33 +2531,6 @@ export class UIRenderer {
             tracksContainer.classList.remove('card-grid');
             tracksContainer.classList.add('track-list');
             tracksContainer.innerHTML = createPlaceholder('No liked tracks yet.');
-        }
-
-        const likedVideos = await db.getFavorites('video');
-        if (videosTabContent) {
-            const grid = videosTabContent.querySelector('.card-grid');
-            if (likedVideos.length) {
-                grid.innerHTML = likedVideos.map((v) => this.createVideoCardHTML(v)).join('');
-                for (const video of likedVideos) {
-                    const el = grid.querySelector(`[data-video-id="${video.id}"]`);
-                    if (el) {
-                        trackDataStore.set(el, video);
-                        await this.updateLikeState(el, 'video', video.id);
-                        el.addEventListener('click', (e) => {
-                            if (e.target.closest('.like-btn')) {
-                                e.stopPropagation();
-                                return;
-                            }
-                            if (e.target.closest('.card-play-btn') || e.target.closest('.card-image-container')) {
-                                e.stopPropagation();
-                                this.player.playVideo(video);
-                            }
-                        });
-                    }
-                }
-            } else {
-                grid.innerHTML = createPlaceholder('No liked videos yet.');
-            }
         }
 
         const likedAlbums = await db.getFavorites('album');
@@ -3178,13 +3150,14 @@ export class UIRenderer {
         const qualityBadge = createQualityBadgeHTML(track);
         const isCompact = cardSettings.isCompactAlbum();
         const likeType = track.type === 'video' ? 'video' : 'track';
+        const yearDisplay = getTrackYearDisplay(track);
 
         return this.createBaseCardHTML({
             type: 'track',
             id: track.id,
             href: `/track/${track.id}`,
             title: `${escapeHtml(getTrackTitle(track))} ${explicitBadge} ${qualityBadge}`,
-            subtitle: escapeHtml(getTrackArtists(track)),
+            subtitle: `${escapeHtml(getTrackArtists(track))}${yearDisplay}`,
             imageHTML: this.getCoverHTML(
                 track.album?.cover,
                 escapeHtml(track.title),
@@ -3737,31 +3710,6 @@ export class UIRenderer {
                 await this.renderListWithTracks(tracksContainer, finalTracks, true, false, false, true);
             } else {
                 tracksContainer.innerHTML = createPlaceholder('No tracks found.');
-            }
-
-            const videosContainer = document.getElementById('search-videos-container');
-            if (videosContainer) {
-                videosContainer.innerHTML = finalVideos.length
-                    ? finalVideos.map((video) => this.createVideoCardHTML(video)).join('')
-                    : createPlaceholder('No videos found.');
-
-                for (const video of finalVideos) {
-                    const el = videosContainer.querySelector(`[data-video-id="${video.id}"]`);
-                    if (el) {
-                        trackDataStore.set(el, video);
-                        await this.updateLikeState(el, 'video', video.id);
-                        el.addEventListener('click', (e) => {
-                            if (e.target.closest('.like-btn')) {
-                                e.stopPropagation();
-                                return;
-                            }
-                            if (e.target.closest('.card-play-btn') || e.target.closest('.card-image-container')) {
-                                e.stopPropagation();
-                                this.player.playVideo(video);
-                            }
-                        });
-                    }
-                }
             }
 
             artistsContainer.innerHTML = finalArtists.length

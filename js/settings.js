@@ -939,14 +939,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    const prefersAtmosSetting = document.getElementById('dolby-atmos-toggle');
-    if (prefersAtmosSetting) {
-        prefersAtmosSetting.checked = preferDolbyAtmosSettings.isEnabled();
-        prefersAtmosSetting.addEventListener('change', (e) => {
-            preferDolbyAtmosSettings.setEnabled(e.target.checked);
-        });
-    }
-
     const losslessContainerSetting = document.getElementById('lossless-container-setting');
     const losslessContainerSettingItem = losslessContainerSetting?.closest('.setting-item');
 
