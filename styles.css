@@ -10562,6 +10562,19 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     }
 }
 
+.donate-donors-section {
+    max-width: 800px;
+    margin: 2rem auto 0;
+    padding: 2rem 0;
+    border-top: 1px solid var(--border);
+}
+
+.donor-icon {
+    font-size: 28px;
+    display: block;
+    margin-bottom: 4px;
+}
+
 /* Fullscreen layout rebuild on PR 378 base */
 #fullscreen-cover-overlay .fullscreen-shell {
     width: 100%;
