@@ -21,3 +21,6 @@ package-lock.json
 .envrc
 # vim
 .lazy.lua
+# Q-DL Files
+qobuz-api
+Qobuz-DL

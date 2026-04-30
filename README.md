@@ -1,6 +1,3 @@
-> [!important]
-> we are currently working on turning monochrome into a **legal, bring your own music** app. please be patient with us in the time being.
- 
  
  <p align="center">
   <a href="https://monochrome.tf">
@@ -39,7 +36,7 @@
 
 ## What is Monochrome?
 
-**Monochrome** is an open-source, privacy-respecting, ad-free [TIDAL](https://tidal.com) web UI, built on top of Hi-Fi. It provides a beautiful, minimalist interface for streaming high-quality music without the clutter of traditional streaming platforms.
+**Monochrome** is an open-source, privacy-respecting, ad-free [TIDAL](https://tidal.com) web UI, built on top of tidal API + Q-DL. It provides a beautiful, minimalist interface for streaming high-quality music without the clutter of traditional streaming platforms.
 
 [![Monochrome UI: NASIR by Nas](https://i.samidy.xyz/NASIR.png)](https://monochrome.tf/album/90502209)
 
@@ -57,7 +54,6 @@
 
 - Dark, minimalist interface optimized for focus
 - Animated Album Covers For Supported Albums
-- High-quality Music Videos
 - Customizable themes & Community Theme Store
 - Accurate and unique audio visualizer
 - Offline-capable Progressive Web App (PWA)
