@@ -129,9 +129,26 @@ test('Fetch artist info', async () => {
     await checkRoute(
         `/artist/?id=${ARTIST_ID}`,
         () => instance.getArtist(ARTIST_ID),
-        async (info: { cover: string }) => {
+        async (info: { cover: string; tracks: Array<{ duration?: number }>; albums: { items: Array<{ duration?: number }> } }) => {
             expect(info).toHaveProperty('cover');
             expect(info.cover).not.toBeUndefined();
+
+            // Verify track durations are parsed from ISO 8601, not hardcoded to 100
+            if (Array.isArray(info.tracks) && info.tracks.length > 0) {
+                const withDuration = info.tracks.filter((t) => typeof t.duration === 'number');
+                expect(withDuration.length).toBeGreaterThan(0);
+                const allAre100 = withDuration.every((t) => t.duration === 100);
+                expect(allAre100).toBe(false);
+            }
+
+            // Verify album durations are also parsed, not hardcoded to 100
+            if (info.albums?.items?.length > 0) {
+                const withDuration = info.albums.items.filter((a) => typeof a.duration === 'number');
+                if (withDuration.length > 0) {
+                    const allAre100 = withDuration.every((a) => a.duration === 100);
+                    expect(allAre100).toBe(false);
+                }
+            }
         },
         'artist'
     );
