@@ -1637,43 +1637,73 @@ export class LosslessAPI {
     }
 
     async getQobuzStreamUrl(isrc, quality = 'LOSSLESS') {
+        let qobuzInstances = [];
         try {
-            const trackRes = await fetch(`https://qobuz.kennyy.com.br/api/get-music?q=${isrc}&offset=0`);
-            const trackJson = await trackRes.json();
+            qobuzInstances = await this.settings.getInstances('qobuz');
+        } catch {
+            // ignore
+        }
 
-            const tracks = trackJson.data?.tracks?.items || [];
-            const match = tracks.find((t) => t.isrc?.toLowerCase() === isrc.toLowerCase()) || tracks[0];
+        if (!qobuzInstances || qobuzInstances.length === 0) {
+            return null;
+        }
 
-            if (match && match.id) {
-                const qobuzTrackId = match.id;
-                const qobuzQualityMap = {
-                    HI_RES_LOSSLESS: '27',
-                    LOSSLESS: '7',
-                    HIGH: '6',
-                    LOW: '5',
-                };
-                const qobuzQuality = qobuzQualityMap[quality] || '7';
+        for (const instance of qobuzInstances) {
+            const rawUrl = typeof instance === 'string' ? instance : instance?.url;
+            if (!rawUrl || typeof rawUrl !== 'string') continue;
+            const baseUrl = rawUrl.replace(/\/+$/, '');
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-                const streamRes = await fetch(
-                    `https://qobuz.kennyy.com.br/api/download-music?track_id=${qobuzTrackId}&quality=${qobuzQuality}`
-                );
-                const streamJson = await streamRes.json();
+                const trackRes = await fetch(`${baseUrl}/api/get-music?q=${encodeURIComponent(isrc)}&offset=0`, {
+                    signal: controller.signal,
+                });
+                clearTimeout(timeoutId);
+                if (!trackRes.ok) continue;
+                const trackJson = await trackRes.json();
 
-                if (streamJson.success && streamJson.data && streamJson.data.url) {
-                    let rgInfo = null;
-                    if (match.audio_info) {
-                        rgInfo = {
-                            trackReplayGain: match.audio_info.replaygain_track_gain,
-                            trackPeakAmplitude: match.audio_info.replaygain_track_peak,
-                            albumReplayGain: match.audio_info.replaygain_album_gain,
-                            albumPeakAmplitude: match.audio_info.replaygain_album_peak,
-                        };
+                const tracks = trackJson.data?.tracks?.items || [];
+                const match = tracks.find((t) => t.isrc?.toLowerCase() === isrc.toLowerCase()) || tracks[0];
+
+                if (match && match.id) {
+                    const qobuzTrackId = match.id;
+                    const qobuzQualityMap = {
+                        HI_RES_LOSSLESS: '27',
+                        LOSSLESS: '7',
+                        HIGH: '6',
+                        LOW: '5',
+                    };
+                    const qobuzQuality = qobuzQualityMap[quality] || '7';
+
+                    const streamController = new AbortController();
+                    const streamTimeoutId = setTimeout(() => streamController.abort(), 8000);
+
+                    const streamRes = await fetch(
+                        `${baseUrl}/api/download-music?track_id=${qobuzTrackId}&quality=${qobuzQuality}`,
+                        { signal: streamController.signal }
+                    );
+                    clearTimeout(streamTimeoutId);
+                    if (!streamRes.ok) continue;
+                    const streamJson = await streamRes.json();
+
+                    if (streamJson.success && streamJson.data && streamJson.data.url) {
+                        let rgInfo = null;
+                        if (match.audio_info) {
+                            rgInfo = {
+                                trackReplayGain: match.audio_info.replaygain_track_gain,
+                                trackPeakAmplitude: match.audio_info.replaygain_track_peak,
+                                albumReplayGain: match.audio_info.replaygain_album_gain,
+                                albumPeakAmplitude: match.audio_info.replaygain_album_peak,
+                            };
+                        }
+                        return { url: streamJson.data.url, rgInfo };
                     }
-                    return { url: streamJson.data.url, rgInfo };
                 }
+            } catch (e) {
+                console.warn(`Qobuz instance ${baseUrl} failed for ISRC ${isrc}:`, e);
+                continue;
             }
-        } catch (e) {
-            console.error('Failed to resolve ISRC:', isrc, e);
         }
         return null;
     }
