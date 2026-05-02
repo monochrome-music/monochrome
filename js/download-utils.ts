@@ -118,7 +118,7 @@ export async function applyAudioPostProcessing(
     // Transcode to AAC to match expected lossy output.
     if (sourceIsLossless && !statedLossless && !isCustomFormat(quality)) {
         try {
-            const bitrateMap: Record<string, string> = { HIGH: '256k', LOW: '96k' };
+            const bitrateMap: Record<string, string> = {HIGH: '320k', FFMPEG_AAC_256: '256k', LOW: '96k' };
             const bitrate = bitrateMap[quality] || '256k';
             blob = await ffmpeg(blob, {
                 args: ['-map_metadata', '-1', '-c:a', 'aac', '-b:a', bitrate],
