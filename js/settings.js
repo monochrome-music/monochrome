@@ -2289,9 +2289,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 }
                 // Soft knee past saturation so >10 dB still reads as "more"
                 const abs = Math.abs(eqGain);
-                const soft = abs <= TINT_DB_SCALE
-                    ? abs / TINT_DB_SCALE
-                    : 1 - Math.exp(-(abs - TINT_DB_SCALE) / TINT_DB_SCALE) * 0.5 + 0.5;
+                const soft =
+                    abs <= TINT_DB_SCALE
+                        ? abs / TINT_DB_SCALE
+                        : 1 - Math.exp(-(abs - TINT_DB_SCALE) / TINT_DB_SCALE) * 0.5 + 0.5;
                 const n = Math.min(1, soft);
                 if (eqGain > 0) {
                     boosts[i] = n;
@@ -4609,9 +4610,9 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         document.addEventListener('visibilitychange', onSpectrumVisibilityChange, sigOpts);
         if (eqToggle) eqToggle.addEventListener('change', reevalSpectrumLoop, sigOpts);
         window.addEventListener('equalizer-toggle', reevalSpectrumLoop, sigOpts);
-        document.querySelectorAll('.autoeq-mode-btn').forEach((b) =>
-            b.addEventListener('click', reevalSpectrumLoop, sigOpts)
-        );
+        document
+            .querySelectorAll('.autoeq-mode-btn')
+            .forEach((b) => b.addEventListener('click', reevalSpectrumLoop, sigOpts));
 
         applySpectrumState();
         spectrumBtn.addEventListener('click', () => {

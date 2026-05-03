@@ -187,7 +187,7 @@
     --ring: #3b82f6;
     --highlight: #3b82f6;
     --highlight-rgb: 59, 130, 246;
-    --highlight-foreground: #ffffff;
+    --highlight-foreground: #fff;
     --active-highlight: #3b82f6;
     --explicit-badge: #750a0a;
 }
@@ -233,7 +233,7 @@
     --ring: #a855f7;
     --highlight: #a855f7;
     --highlight-rgb: 168, 85, 247;
-    --highlight-foreground: #ffffff;
+    --highlight-foreground: #fff;
     --active-highlight: #a855f7;
     --explicit-badge: #ec4899;
 }

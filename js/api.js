@@ -127,9 +127,7 @@ export class LosslessAPI {
                     ? `${baseUrl}${relativePath.substring(1)}`
                     : `${baseUrl}${relativePath}`;
 
-                const url = isTidal
-                    ? wrapTidalUrl(targetUrl)
-                    : targetUrl;
+                const url = isTidal ? wrapTidalUrl(targetUrl) : targetUrl;
 
                 try {
                     const response = await fetch(url, { signal: options.signal });
