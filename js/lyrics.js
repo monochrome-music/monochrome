@@ -51,6 +51,19 @@ function trackHasAsianText(track) {
     return containsAsianText(title) || containsAsianText(artist);
 }
 
+// Hiragana (3040-309F) or Katakana (30A0-30FF) = unambiguously Japanese
+function containsJapaneseKana(text) {
+    if (!text) return false;
+    return /[\u3040-\u309F\u30A0-\u30FF]/.test(text);
+}
+
+function trackIsJapanese(track) {
+    if (!track) return false;
+    const title = track.title || '';
+    const artist = getTrackArtists(track) || '';
+    return containsJapaneseKana(title) || containsJapaneseKana(artist);
+}
+
 function cleanTrackerSearch(text) {
     if (!text) return '';
     // chud emojis will NOT be tolerated in my precious genius lyrics worker
@@ -598,6 +611,10 @@ export class LyricsManager {
                 clearTimeout(this.observerTimeout);
             }
             this.observerTimeout = setTimeout(async () => {
+                if (amLyricsElement.getAttribute('lang') !== 'ja') {
+                    const text = (amLyricsElement.shadowRoot || amLyricsElement).textContent || '';
+                    if (containsJapaneseKana(text)) amLyricsElement.setAttribute('lang', 'ja');
+                }
                 if (this.isRomajiMode) {
                     await this.convertLyricsContent(amLyricsElement);
                 }
@@ -615,6 +632,12 @@ export class LyricsManager {
             characterData: true, // Watch text changes to catch lyric refreshes
             attributes: false, // Don't watch attribute changes (highlight, etc)
         });
+
+        // Detect kana in pre-conversion text so Romaji mode doesn't strip the signal
+        if (amLyricsElement.getAttribute('lang') !== 'ja') {
+            const text = (amLyricsElement.shadowRoot || amLyricsElement).textContent || '';
+            if (containsJapaneseKana(text)) amLyricsElement.setAttribute('lang', 'ja');
+        }
 
         // Initial conversion if Romaji mode is enabled - single attempt, no periodic polling
         if (this.isRomajiMode) {
@@ -1104,6 +1127,7 @@ async function renderLyricsComponent(container, track, audioPlayer, lyricsManage
         amLyrics.setAttribute('hover-background-color', 'color-mix(in srgb, var(--primary) 16%, transparent)');
         amLyrics.setAttribute('autoscroll', '');
         amLyrics.setAttribute('interpolate', '');
+        if (trackIsJapanese(track)) amLyrics.setAttribute('lang', 'ja');
         amLyrics.style.height = '100%';
         amLyrics.style.width = '100%';
 

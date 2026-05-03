@@ -7,13 +7,11 @@ It makes your `requestHeaders` appear to come from Tidal, which can result in fe
 
 ## Installation
 
-1. Click on the **Code** button on the [home page](https://github.com/monochrome-music/monochrome) of the repo and click **Download ZIP**. (or download the [latest main branch ZIP](https://github.com/monochrome-music/monochrome/archive/refs/heads/main.zip))
-2. Unpack the **.zip** archive with your archive program (like WinRar or 7Zip on Windows)
-3. Open extensions page in your Chromium-based browser (Or `chrome://extensions/`) and make sure **Developer mode** is turned on.
-4. Click on the **Load unpacked** and navigate to the directory you just unpacked.
+1. Go to this website and let it download [the extension in a ZIP archive](https://download-directory.github.io/?url=https%3A%2F%2Fgithub.com%2Fmonochrome-music%2Fmonochrome%2Ftree%2Fmain%2Fextension)
+2. Open the extensions page in your Chromium-based browser (Or `chrome://extensions/`) and make sure **Developer mode** is turned on.
 
 ![Extension Help - Enabling Dev Mode](/assets/extension-help-1.png)
 
-5. Inside of it, there's a directory **extension**. **SELECT THAT DIRECTORY INSTEAD OF THE MAIN ONE!** It should contain file "manifest.json".
+3. Drag the zip file to the extensions window, whereafter you should see something like "drop to install".
 
-![Extension Help - Locating Correct Directory](/assets/extension-help-2.png)
+![Extension Help - example preview](/assets/extension-help-2.png)

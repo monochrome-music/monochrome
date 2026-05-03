@@ -262,12 +262,27 @@
                 <div class="fullscreen-shell">
                     <div class="fullscreen-main-view">
                         <div class="fullscreen-media-column">
-                            <div class="fullscreen-artwork-card">
+                            <div class="fullscreen-artwork-card" id="fullscreen-artwork-card">
                                 <img
                                     id="fullscreen-cover-image"
                                     src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                                     alt="Album Cover"
                                 />
+                                <div class="cd-ring" id="cd-ring"></div>
+                                <svg width="0" height="0">
+                                    <defs>
+                                        <clipPath id="cd-hole-clip" clipPathUnits="objectBoundingBox">
+                                            <path
+                                                fill-rule="evenodd"
+                                                d="M0,0 H1 V1 H0 Z
+                                                M0.5,0.5
+                                                m-0.069,0
+                                                a0.069,0.069 0 1,0 0.138,0
+                                                a0.069,0.069 0 1,0 -0.138,0 Z"
+                                            />
+                                        </clipPath>
+                                    </defs>
+                                </svg>
                             </div>
 
                             <div class="fullscreen-track-info">
@@ -1730,21 +1745,7 @@
                         </nav>
 
                         <div class="sidebar-nav-bottom">
-                            <div id="server-disruption-banner" class="server-disruption-sidebar" style="display: none">
-                                <span class="disruption-icon">&#9888;</span>
-                                <span
-                                    >Services are currently unstable. <br /><br />Use the extension
-                                    <a href="https://github.com/monochrome-music/monochrome/tree/main/extension"
-                                        >here</a
-                                    >
-                                    for the best experience.</span
-                                >
-                                <button id="dismiss-disruption-btn" class="disruption-dismiss" title="Dismiss">
-                                    &times;
-                                </button>
-                            </div>
-                            <nav class="sidebar-nav bottom">
-                                <ul>
+                            <nav class="sidebar-nav bottom">                                <ul>
                                     <li class="nav-item" id="sidebar-nav-about-bottom">
                                         <a href="/about">
                                             <use svg="!lucide/info.svg" size="24" />
@@ -1811,9 +1812,6 @@
                         </button>
                         <div id="search-history" class="search-history" style="display: none"></div>
                     </form>
-                    <button id="help-btn" class="btn-icon" title="Help">
-                        <use svg="!lucide/help-circle.svg" size="24" />
-                    </button>
                     <div class="header-account-control">
                         <button
                             id="header-account-btn"
@@ -2111,7 +2109,6 @@
                     <h2 class="section-title" id="search-results-title">Search Results</h2>
                     <div class="search-tabs">
                         <button class="search-tab active" data-tab="tracks">Tracks</button>
-                        <button class="search-tab" data-tab="videos">Videos</button>
                         <button class="search-tab" data-tab="albums">Albums</button>
                         <button class="search-tab" data-tab="artists">Artists</button>
                         <button class="search-tab" data-tab="playlists">Playlists</button>
@@ -2119,9 +2116,6 @@
                     </div>
                     <div class="search-tab-content active" id="search-tab-tracks">
                         <div class="track-list" id="search-tracks-container"></div>
-                    </div>
-                    <div class="search-tab-content" id="search-tab-videos">
-                        <div class="card-grid" id="search-videos-container"></div>
                     </div>
                     <div class="search-tab-content" id="search-tab-albums">
                         <div class="card-grid" id="search-albums-container"></div>
@@ -2175,7 +2169,6 @@
                         <h2 class="section-title">Favorites</h2>
                         <div class="search-tabs">
                             <button class="search-tab active" data-tab="tracks">Liked Tracks</button>
-                            <button class="search-tab" data-tab="videos">Videos</button>
                             <button class="search-tab" data-tab="albums">Albums</button>
                             <button class="search-tab" data-tab="artists">Artists</button>
                             <button class="search-tab" data-tab="playlists">Playlists and Mixes</button>
@@ -2258,9 +2251,6 @@
                                 </div>
                             </div>
                             <div class="track-list" id="library-tracks-container"></div>
-                        </div>
-                        <div class="search-tab-content" id="library-tab-videos">
-                            <div class="card-grid" id="library-videos-container"></div>
                         </div>
                         <div class="search-tab-content" id="library-tab-albums">
                             <div class="card-grid" id="library-albums-container"></div>
@@ -2716,10 +2706,6 @@
                     <section class="content-section">
                         <h2 class="section-title">Albums</h2>
                         <div class="card-grid" id="artist-detail-albums"></div>
-                    </section>
-                    <section class="content-section" id="artist-section-videos" style="display: none">
-                        <h2 class="section-title">Videos</h2>
-                        <div class="card-grid" id="artist-detail-videos"></div>
                     </section>
                     <section class="content-section" id="artist-section-eps" style="display: none">
                         <h2 class="section-title">EPs and Singles</h2>
@@ -3326,6 +3312,25 @@
                                     </label>
                                 </div>
                             </div>
+                            <div class="settings-group">
+                                <div class="setting-item" id="cd-album-cover-setting">
+                                    <div class="info">
+                                        <span class="label" id="cd-album-cover-label">CD Album Cover</span>
+                                        <span class="description" id="cd-album-cover-description"
+                                            >Spin album cover and add CD hole in fullscreen</span
+                                        >
+                                    </div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="cd-album-cover-toggle"
+                                        aria-labelledby="cd-album-cover-label"
+                                        aria-describedby="cd-album-cover-description"
+                                    />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <div class="settings-tab-content" id="settings-tab-interface">
@@ -3550,6 +3555,18 @@
                                         </div>
                                         <label class="toggle-switch">
                                             <input type="checkbox" id="sidebar-show-discordbtn-toggle" checked />
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="setting-item">
+                                        <div class="info">
+                                            <span class="label">Show Parties in Sidebar</span>
+                                            <span class="description"
+                                                >Display the Parties button in the sidebar navigation</span
+                                            >
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="sidebar-show-party-toggle" checked />
                                             <span class="slider"></span>
                                         </label>
                                     </div>
@@ -5371,23 +5388,13 @@
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Dolby Atmos</span>
-                                        <span class="description">Prefer Dolby Atmos tracks when available</span>
-                                    </div>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="dolby-atmos-toggle" />
-                                        <span class="slider"></span>
-                                    </label>
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
                                         <span class="label">Lossless Container</span>
                                         <span class="description">Container format for lossless downloads</span>
                                     </div>
                                     <select id="lossless-container-setting">
                                         <option value="nochange">Don't change</option>
                                     </select>
-                                </div>
+                                </div>                            
                             </div>
                             <div class="settings-group">
                                 <div class="setting-item">
@@ -6042,7 +6049,7 @@
                             helps pay for the server and domain, and you get to support us :)
                         </p>
                         <a
-                            href="https://ko-fi.com/monochromemusic"
+                            href="https://ko-fi.com/monochrometf"
                             target="_blank"
                             rel="noopener noreferrer"
                             class="btn-primary"

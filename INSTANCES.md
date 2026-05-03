@@ -1,3 +1,7 @@
+> [!important]
+> April 30th, 2026: this file is currently outdated, as we have switched away from hifi-api (kinda), however were lowk too lazy right now, though it will be updated soon.
+
+
 # Monochrome Instances
 
 This document lists public instances of Monochrome that you can use. Instances are community-hosted versions of Monochrome that provide access to the application.

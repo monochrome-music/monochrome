@@ -942,14 +942,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    const prefersAtmosSetting = document.getElementById('dolby-atmos-toggle');
-    if (prefersAtmosSetting) {
-        prefersAtmosSetting.checked = preferDolbyAtmosSettings.isEnabled();
-        prefersAtmosSetting.addEventListener('change', (e) => {
-            preferDolbyAtmosSettings.setEnabled(e.target.checked);
-        });
-    }
-
     const losslessContainerSetting = document.getElementById('lossless-container-setting');
     const losslessContainerSettingItem = losslessContainerSetting?.closest('.setting-item');
 
@@ -6670,6 +6662,18 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         observer.observe(appearanceTabContent, { attributes: true });
     }
 
+    // Spins album cover and adds hole in fullscreen
+    const cdAlbumCoverToggle = document.getElementById('cd-album-cover-toggle');
+
+    if (cdAlbumCoverToggle) {
+        cdAlbumCoverToggle.checked = visualizerSettings.isCdAlbumCoverEnabled();
+
+        cdAlbumCoverToggle.addEventListener('change', (e) => {
+            visualizerSettings.setCdAlbumCoverEnabled(e.target.checked);
+            window.dispatchEvent(new CustomEvent('fullscreen-cover-settings-changed'));
+        });
+    }
+
     // Watch for downloads tab becoming active and update setting visibility
     const downloadsTabContent = document.getElementById('settings-tab-downloads');
     if (downloadsTabContent) {
@@ -6840,6 +6844,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         sidebarShowDiscordToggle.checked = sidebarSectionSettings.shouldShowDiscord();
         sidebarShowDiscordToggle.addEventListener('change', (e) => {
             sidebarSectionSettings.setShowDiscord(e.target.checked);
+            sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
+    const sidebarShowPartyToggle = document.getElementById('sidebar-show-party-toggle');
+    if (sidebarShowPartyToggle) {
+        sidebarShowPartyToggle.checked = sidebarSectionSettings.shouldShowParty();
+        sidebarShowPartyToggle.addEventListener('change', (e) => {
+            sidebarSectionSettings.setShowParty(e.target.checked);
             sidebarSectionSettings.applySidebarVisibility();
         });
     }

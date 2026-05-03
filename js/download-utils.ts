@@ -9,7 +9,7 @@ import {
     getContainerFormat,
     transcodeWithContainerFormat,
 } from './ffmpegFormats';
-import { ffmpegInfo, ffmpegNewContainer } from './ffmpeg';
+import { ffmpegInfo, ffmpegNewContainer, ffmpeg } from './ffmpeg';
 
 /**
  * Triggers a browser file download for the given blob.
@@ -110,6 +110,29 @@ export async function applyAudioPostProcessing(
                 }
                 throw encodingError;
             }
+        }
+    }
+
+    // Source is lossless but user requested lossy quality (HIGH/LOW).
+    // This can happen when Qobuz returns FLAC regardless of the quality param.
+    // Transcode to AAC to match expected lossy output.
+    if (sourceIsLossless && !statedLossless && !isCustomFormat(quality)) {
+        try {
+            const bitrateMap: Record<string, string> = {HIGH: '320k', FFMPEG_AAC_256: '256k', LOW: '96k' };
+            const bitrate = bitrateMap[quality] || '256k';
+            blob = await ffmpeg(blob, {
+                args: ['-map_metadata', '-1', '-c:a', 'aac', '-b:a', bitrate],
+                outputName: 'output.m4a',
+                outputMime: 'audio/mp4',
+                onProgress,
+                signal,
+            });
+            return blob;
+        } catch (error) {
+            if ((error as Error)?.name === 'AbortError' || signal?.aborted) {
+                throw error;
+            }
+            console.warn('Lossy transcode failed, returning lossless source:', error);
         }
     }
 

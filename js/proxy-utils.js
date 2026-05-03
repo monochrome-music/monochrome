@@ -1,7 +1,10 @@
 export const getProxyUrl = (url) => {
+    return url;
+};
+
+export const wrapTidalUrl = (url) => {
     if (!url || typeof url !== 'string') return url;
-    if (window.__tidalOriginExtension) return url;
-    if (url.startsWith('blob:')) return url;
-    if (url.startsWith('https://audio-proxy.binimum.org/')) return url;
-    return `https://audio-proxy.binimum.org/proxy-audio?url=${url}`;
+    return url
+        .replace('openapi.tidal.com', 'tidal-api.geeked.wtf/openapi')
+        .replace('api.tidal.com', 'tidal-api.geeked.wtf/api');
 };

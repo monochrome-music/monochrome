@@ -8,6 +8,13 @@
         'Noto Sans Sinhala', 'Noto Sans Khmer', 'Noto Sans Lao', 'Noto Sans Myanmar', 'Noto Sans Georgian',
         'Noto Sans Armenian', 'Noto Sans Ethiopic', system-ui, -apple-system, blinkmacsystemfont, 'Segoe UI', roboto,
         sans-serif;
+    --font-family-ja:
+        'Inter', 'Noto Sans', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', meiryo, 'Noto Sans JP',
+        'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans HK', 'Noto Sans Hebrew', 'Noto Sans Arabic',
+        'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Thai', 'Noto Sans Tamil', 'Noto Sans Telugu',
+        'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Noto Sans Sinhala', 'Noto Sans Khmer',
+        'Noto Sans Lao', 'Noto Sans Myanmar', 'Noto Sans Georgian', 'Noto Sans Armenian', 'Noto Sans Ethiopic',
+        system-ui, -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, sans-serif;
     --font-size-scale: 100%;
     --text-xs: 0.75rem;
     --text-sm: 0.875rem;
@@ -133,6 +140,10 @@
     --color-warning-hover: #d97706;
     --color-info: #3b82f6;
     --color-info-hover: #2563eb;
+}
+
+:lang(ja) {
+    --font-family: var(--font-family-ja);
 }
 
 :root[data-theme='monochrome'] {
@@ -11631,4 +11642,39 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     letter-spacing: 0.05em;
     opacity: 0.8;
     vertical-align: middle;
+}
+
+img.cd {
+    border-radius: 50% !important;
+    box-shadow: none;
+    clip-path: url('#cd-hole-clip');
+}
+
+.fullscreen-artwork-card.cd {
+    position: relative;
+    border-radius: 50% !important;
+    border: 0.125vw solid #ccc;
+    animation: spin 200s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fullscreen-artwork-card.cd {
+        animation: none;
+    }
+}
+
+.cd-ring {
+    display: none;
+}
+
+.cd-ring.cd {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 23.5%;
+    height: 23.5%;
+    border-radius: 50%;
+    border: 0.125vw solid #ccc;
 }

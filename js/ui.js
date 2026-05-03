@@ -1355,6 +1355,14 @@ export class UIRenderer {
         const lyricsPane = document.getElementById('fullscreen-lyrics-pane');
         const lyricsContent = document.getElementById('fullscreen-lyrics-content');
         const lyricsToggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
+        const coverImage = document.getElementById('fullscreen-cover-image');
+        const coverCard = document.getElementById('fullscreen-artwork-card');
+        const cdRing = document.getElementById('cd-ring');
+        const isCdMode = visualizerSettings.isCdAlbumCoverEnabled();
+
+        coverImage?.classList.toggle('cd', isCdMode);
+        coverCard?.classList.toggle('cd', isCdMode);
+        cdRing?.classList.toggle('cd', isCdMode);
 
         await this.updateFullscreenMetadata(track, nextTrack);
 
@@ -1414,7 +1422,6 @@ export class UIRenderer {
             overlay.classList.remove('fullscreen-cover-no-round');
         }
 
-        const coverImage = document.getElementById('fullscreen-cover-image');
         if (coverImage?.vanillaTilt) {
             coverImage.vanillaTilt.destroy();
         }
@@ -2477,7 +2484,6 @@ export class UIRenderer {
         await this.showPage('library');
 
         const tracksContainer = document.getElementById('library-tracks-container');
-        const videosTabContent = document.getElementById('library-tab-videos');
         const albumsContainer = document.getElementById('library-albums-container');
         const artistsContainer = document.getElementById('library-artists-container');
         const playlistsContainer = document.getElementById('library-playlists-container');
@@ -2525,33 +2531,6 @@ export class UIRenderer {
             tracksContainer.classList.remove('card-grid');
             tracksContainer.classList.add('track-list');
             tracksContainer.innerHTML = createPlaceholder('No liked tracks yet.');
-        }
-
-        const likedVideos = await db.getFavorites('video');
-        if (videosTabContent) {
-            const grid = videosTabContent.querySelector('.card-grid');
-            if (likedVideos.length) {
-                grid.innerHTML = likedVideos.map((v) => this.createVideoCardHTML(v)).join('');
-                for (const video of likedVideos) {
-                    const el = grid.querySelector(`[data-video-id="${video.id}"]`);
-                    if (el) {
-                        trackDataStore.set(el, video);
-                        await this.updateLikeState(el, 'video', video.id);
-                        el.addEventListener('click', (e) => {
-                            if (e.target.closest('.like-btn')) {
-                                e.stopPropagation();
-                                return;
-                            }
-                            if (e.target.closest('.card-play-btn') || e.target.closest('.card-image-container')) {
-                                e.stopPropagation();
-                                this.player.playVideo(video);
-                            }
-                        });
-                    }
-                }
-            } else {
-                grid.innerHTML = createPlaceholder('No liked videos yet.');
-            }
         }
 
         const likedAlbums = await db.getFavorites('album');
@@ -3171,13 +3150,14 @@ export class UIRenderer {
         const qualityBadge = createQualityBadgeHTML(track);
         const isCompact = cardSettings.isCompactAlbum();
         const likeType = track.type === 'video' ? 'video' : 'track';
+        const yearDisplay = getTrackYearDisplay(track);
 
         return this.createBaseCardHTML({
             type: 'track',
             id: track.id,
             href: `/track/${track.id}`,
             title: `${escapeHtml(getTrackTitle(track))} ${explicitBadge} ${qualityBadge}`,
-            subtitle: escapeHtml(getTrackArtists(track)),
+            subtitle: `${escapeHtml(getTrackArtists(track))}${yearDisplay}`,
             imageHTML: this.getCoverHTML(
                 track.album?.cover,
                 escapeHtml(track.title),
@@ -3730,31 +3710,6 @@ export class UIRenderer {
                 await this.renderListWithTracks(tracksContainer, finalTracks, true, false, false, true);
             } else {
                 tracksContainer.innerHTML = createPlaceholder('No tracks found.');
-            }
-
-            const videosContainer = document.getElementById('search-videos-container');
-            if (videosContainer) {
-                videosContainer.innerHTML = finalVideos.length
-                    ? finalVideos.map((video) => this.createVideoCardHTML(video)).join('')
-                    : createPlaceholder('No videos found.');
-
-                for (const video of finalVideos) {
-                    const el = videosContainer.querySelector(`[data-video-id="${video.id}"]`);
-                    if (el) {
-                        trackDataStore.set(el, video);
-                        await this.updateLikeState(el, 'video', video.id);
-                        el.addEventListener('click', (e) => {
-                            if (e.target.closest('.like-btn')) {
-                                e.stopPropagation();
-                                return;
-                            }
-                            if (e.target.closest('.card-play-btn') || e.target.closest('.card-image-container')) {
-                                e.stopPropagation();
-                                this.player.playVideo(video);
-                            }
-                        });
-                    }
-                }
             }
 
             artistsContainer.innerHTML = finalArtists.length
@@ -6078,12 +6033,23 @@ export class UIRenderer {
 
     renderApiSettings() {
         const container = document.getElementById('api-instance-list');
-        Promise.all([this.api.settings.getInstances('api'), this.api.settings.getInstances('streaming')])
-            .then(([apiInstances, streamingInstances]) => {
+        Promise.allSettled([
+            this.api.settings.getInstances('api'),
+            this.api.settings.getInstances('streaming'),
+            this.api.settings.getInstances('qobuz'),
+        ])
+            .then((results) => {
+                const apiInstances = results[0].status === 'fulfilled' ? results[0].value : [];
+                const streamingInstances = results[1].status === 'fulfilled' ? results[1].value : [];
+                const qobuzInstances = results[2].status === 'fulfilled' ? results[2].value : [];
                 const renderGroup = (instances, type) => {
-                    if (!instances || instances.length === 0) return '';
+                    const groupLabels = {
+                        api: 'API Instances',
+                        streaming: 'Streaming Instances',
+                        qobuz: 'Qobuz Instances',
+                    };
 
-                    const listHtml = instances
+                    const listHtml = (instances || [])
                         .map((instance, index) => {
                             const isObject = instance && typeof instance === 'object';
                             const instanceUrl = isObject ? instance.url || '' : String(instance || '');
@@ -6120,7 +6086,7 @@ export class UIRenderer {
 
                     return `
                     <li class="group-header" style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; padding: 1rem 0 0.5rem; background: transparent; border: none;">
-                        <span>${type === 'api' ? 'API Instances' : 'Streaming Instances'}</span>
+                        <span>${groupLabels[type] || type + ' Instances'}</span>
                         <button class="add-instance" data-type="${type}" title="Add Custom Instance" style="background: var(--primary); color: var(--primary-foreground); border: none; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; pointer-events: auto;">
                             Add
                         </button>
@@ -6129,7 +6095,10 @@ export class UIRenderer {
                 `;
                 };
 
-                container.innerHTML = renderGroup(apiInstances, 'api') + renderGroup(streamingInstances, 'streaming');
+                container.innerHTML =
+                    renderGroup(apiInstances, 'api') +
+                    (streamingInstances && streamingInstances.length > 0 ? renderGroup(streamingInstances, 'streaming') : '') +
+                    renderGroup(qobuzInstances, 'qobuz');
 
                 const stats = this.api.getCacheStats();
                 const cacheInfo = document.getElementById('cache-info');
