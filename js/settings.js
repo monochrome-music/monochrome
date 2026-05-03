@@ -6246,6 +6246,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    const sidebarShowPartyToggle = document.getElementById('sidebar-show-party-toggle');
+    if (sidebarShowPartyToggle) {
+        sidebarShowPartyToggle.checked = sidebarSectionSettings.shouldShowParty();
+        sidebarShowPartyToggle.addEventListener('change', (e) => {
+            sidebarSectionSettings.setShowParty(e.target.checked);
+            sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
     const sidebarShowGithubToggle = document.getElementById('sidebar-show-githubbtn-toggle');
     if (sidebarShowGithubToggle) {
         sidebarShowGithubToggle.checked = sidebarSectionSettings.shouldShowGithub();
