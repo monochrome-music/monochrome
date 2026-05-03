@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { wrapTidalUrl } from './proxy-utils.js';
 import type { PlaybackInfo } from './container-classes';
 
 type Params = Record<string, string | number | undefined | null>;
@@ -1189,18 +1190,18 @@ class HiFiClient {
     }
 
     static #buildUrl(base: string, params?: Params | URLSearchParams) {
-        if (!params) return base;
+        if (!params) return wrapTidalUrl(base);
         if (params instanceof URLSearchParams) {
             const u = new URL(base);
             u.search = params.toString();
-            return u.toString();
+            return wrapTidalUrl(u.toString());
         }
 
         const u = new URL(base);
         Object.entries(params)
             .filter(([, v]) => v !== undefined && v !== null && v !== '')
             .forEach(([k, v]) => u.searchParams.set(k, String(v)));
-        return u.toString();
+        return wrapTidalUrl(u.toString());
     }
 
     /**
@@ -1345,7 +1346,7 @@ class HiFiClient {
             const headers: Record<string, string> = {
                 authorization: `Bearer ${token}`,
             };
-            if (final.includes('openapi.tidal.com')) {
+            if (url.includes('openapi.tidal.com')) {
                 // Prefer JSON:API for OpenAPI endpoints, but do not require it exclusively.
                 // Some endpoints/proxies can still return compatible JSON.
                 headers['Accept'] = 'application/vnd.api+json, application/json;q=0.9, */*;q=0.8';

@@ -14,7 +14,7 @@ import { preferDolbyAtmosSettings, trackDateSettings, devModeSettings } from './
 import { APICache } from './cache.js';
 import { DashDownloader } from './dash-downloader.ts';
 import { HlsDownloader } from './hls-downloader.js';
-import { getProxyUrl } from './proxy-utils.js';
+import { getProxyUrl, wrapTidalUrl } from './proxy-utils.js';
 import { loadFfmpeg, FfmpegError, ffmpeg } from './ffmpeg.js';
 import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
 import { isCustomFormat } from './ffmpegFormats.ts';
@@ -128,7 +128,7 @@ export class LosslessAPI {
                     : `${baseUrl}${relativePath}`;
 
                 const url = isTidal
-                    ? `https://api.funny-domain.lol/${targetUrl.replace(/^https?:\/\//, '')}`
+                    ? wrapTidalUrl(targetUrl)
                     : targetUrl;
 
                 try {

@@ -27,7 +27,8 @@ class TidalAPI {
         const token = await this.getToken();
         const u = new URL(url);
         Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, String(v)));
-        const res = await fetch(u.toString(), {
+        const finalUrl = u.toString().replace('//api.tidal.com', '//tidal-api.geeked.wtf/api');
+        const res = await fetch(finalUrl, {
             headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error(`Tidal API error: ${res.status}`);
