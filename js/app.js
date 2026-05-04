@@ -105,6 +105,38 @@ async function loadDownloadsModule() {
     return downloadsModule;
 }
 
+async function fetchDonors() {
+    try {
+        const response = await fetch('/api/donors');
+        if (!response.ok) return;
+        const donors = await response.json();
+        if (!Array.isArray(donors)) return;
+
+        const con = document.querySelector('.donate-donors-list');
+        if (!con) return;
+
+        donors.forEach((donor) => {
+            const div = document.createElement('div');
+            const icon = donor.type === 'monthly' ? '♥' : '☕';
+            const label = donor.type === 'monthly' ? 'Monthly Supporter' : 'One-time Donor';
+            div.innerHTML = `
+            <a href="https://ko-fi.com/monochrometf" target="_blank" rel="noopener noreferrer">
+            <span class="donor-icon">${icon}</span>
+            <span>${donor.name}</span>
+            <span class="contrib">${label}</span>
+            </a>
+            `;
+            con.appendChild(div);
+        });
+    } catch (e) {
+        const con = document.querySelector('.donate-donors-failed');
+        if (!con) return;
+        const div = document.createElement('div');
+        div.innerHTML = `<h4 style="text-align: center; color: var(--muted-foreground);">Failed to Fetch Donors List</h4>`;
+        con.appendChild(div);
+    }
+}
+
 async function fetchcontributors() {
     try {
         const response = await fetch('https://api.samidy.com/api/contributors');
@@ -482,6 +514,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTracker().catch(console.error);
 
     await fetchcontributors();
+    fetchDonors();
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
 
