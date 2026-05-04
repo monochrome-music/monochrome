@@ -3949,6 +3949,7 @@ input:checked + .slider::before {
 
 #context-menu,
 #sort-menu,
+#export-playlist-menu,
 #eq-node-context-menu,
 #eq-empty-context-menu {
     display: none;
@@ -3966,6 +3967,7 @@ input:checked + .slider::before {
 
 #context-menu ul,
 #sort-menu ul,
+#export-playlist-menu ul,
 #eq-node-context-menu ul,
 #eq-empty-context-menu ul {
     list-style: none;
@@ -3973,6 +3975,7 @@ input:checked + .slider::before {
 
 #context-menu li,
 #sort-menu li,
+#export-playlist-menu li,
 #eq-node-context-menu li,
 #eq-empty-context-menu li {
     padding: 0.5rem 0.75rem;
@@ -3997,6 +4000,7 @@ input:checked + .slider::before {
 
 #context-menu li:hover,
 #sort-menu li:hover,
+#export-playlist-menu li:hover,
 #eq-node-context-menu li:hover,
 #eq-empty-context-menu li:hover {
     background-color: var(--secondary);
