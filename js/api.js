@@ -127,9 +127,7 @@ export class LosslessAPI {
                     ? `${baseUrl}${relativePath.substring(1)}`
                     : `${baseUrl}${relativePath}`;
 
-                const url = isTidal
-                    ? wrapTidalUrl(targetUrl)
-                    : targetUrl;
+                const url = isTidal ? wrapTidalUrl(targetUrl) : targetUrl;
 
                 try {
                     const response = await fetch(url, { signal: options.signal });
@@ -1670,11 +1668,11 @@ export class LosslessAPI {
                     const qobuzTrackId = match.id;
                     const qobuzQualityMap = {
                         HI_RES_LOSSLESS: '27',
-                        LOSSLESS: '7',
-                        HIGH: '6',
+                        LOSSLESS: '6',
+                        HIGH: '5',
                         LOW: '5',
                     };
-                    const qobuzQuality = qobuzQualityMap[quality] || '7';
+                    const qobuzQuality = qobuzQualityMap[quality] || '6';
 
                     const streamController = new AbortController();
                     const streamTimeoutId = setTimeout(() => streamController.abort(), 8000);
