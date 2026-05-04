@@ -63,6 +63,9 @@ async function getButterchurnPresets(...args) {
 let _autoeqIndex = [];
 let _graphAbortController = null;
 let _graphResizeObserver = null;
+// Persisted across initializeSettings() re-runs so listeners from a previous
+// call can be torn down before fresh ones register.
+let _spectrumListenersAbort = null;
 
 export async function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
@@ -2019,6 +2022,324 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     };
 
+    // Spectrum overlay state (themed live analyser tinted by |EQ gain|)
+    let spectrumOverlayEnabled = false;
+    try {
+        spectrumOverlayEnabled = localStorage.getItem('autoeq-spectrum-overlay') === '1';
+    } catch {
+        /* ignore */
+    }
+    let _spectrumRafId = null;
+    let _spectrumData = null;
+    let _spectrumEma = null;
+    let _spectrumLastTs = 0;
+    // Display range after slope compensation. Hi is hard-fixed at -15 dBFS
+    // (never user-adjustable, never restored from storage). Only Lo is
+    // persisted so users can tune their display floor.
+    const spectrumRangeHi = -15;
+    let spectrumRangeLo = -103;
+    const SPECTRUM_RANGE_LO_MIN = -180;
+    const SPECTRUM_RANGE_LO_MAX = -40;
+    try {
+        const l = parseFloat(localStorage.getItem('autoeq-spectrum-range-lo'));
+        if (Number.isFinite(l)) spectrumRangeLo = Math.max(SPECTRUM_RANGE_LO_MIN, Math.min(SPECTRUM_RANGE_LO_MAX, l));
+    } catch {
+        /* ignore */
+    }
+    // SPAN-style display: pink-tilt compensation so a flat mix reads flat
+    const SPECTRUM_SLOPE_DB_PER_OCT = 4.0;
+    const SPECTRUM_SLOPE_PIVOT_HZ = 1000;
+    const SPECTRUM_OCTAVE_SMOOTH = 1 / 48; // minimal — keep FFT detail
+    // Mutable speed / FFT presets (configurable via in-graph pills)
+    const SPECTRUM_SPEED_PRESETS = {
+        Fast: 60,
+        Med: 110,
+        Slow: 260,
+    };
+    const SPECTRUM_FFT_PRESETS = {
+        '2K': 2048,
+        '4K': 4096,
+        '8K': 8192,
+        '16K': 16384,
+    };
+    let spectrumSpeedKey = 'Med';
+    let spectrumFftKey = '8K';
+    try {
+        const savedSpeed = localStorage.getItem('autoeq-spectrum-speed');
+        if (savedSpeed && SPECTRUM_SPEED_PRESETS[savedSpeed]) spectrumSpeedKey = savedSpeed;
+        const savedFft = localStorage.getItem('autoeq-spectrum-fft');
+        if (savedFft && SPECTRUM_FFT_PRESETS[savedFft]) spectrumFftKey = savedFft;
+    } catch {
+        /* ignore */
+    }
+    let spectrumTimeAvgMs = SPECTRUM_SPEED_PRESETS[spectrumSpeedKey];
+    let spectrumFrozen = false;
+
+    const shouldAnimateSpectrum = () =>
+        spectrumOverlayEnabled &&
+        !spectrumFrozen &&
+        equalizerSettings.isEnabled() &&
+        currentMode !== 'legacy' &&
+        eqContainer?.offsetParent !== null;
+
+    const startSpectrumLoop = () => {
+        if (_spectrumRafId) return;
+        const tick = () => {
+            if (!shouldAnimateSpectrum()) {
+                _spectrumRafId = null;
+                scheduleDrawAutoEQGraph();
+                return;
+            }
+            _spectrumRafId = requestAnimationFrame(tick);
+            scheduleDrawAutoEQGraph();
+        };
+        _spectrumRafId = requestAnimationFrame(tick);
+    };
+
+    const stopSpectrumLoop = () => {
+        if (_spectrumRafId) {
+            cancelAnimationFrame(_spectrumRafId);
+            _spectrumRafId = null;
+        }
+        scheduleDrawAutoEQGraph();
+    };
+
+    const drawSpectrumLayer = (ctx, padLeft, padTop, w, h, sampleRate) => {
+        // Only use the dedicated spectrum analyser. If unavailable, bail so we
+        // never mutate fftSize on the shared visualizer node.
+        let analyser = null;
+        try {
+            analyser = audioContextManager?.getSpectrumAnalyser?.() || null;
+        } catch {
+            return;
+        }
+        if (!analyser) return;
+        if (!_spectrumData || _spectrumData.length !== analyser.frequencyBinCount) {
+            _spectrumData = new Float32Array(analyser.frequencyBinCount);
+            _spectrumEma = null;
+        }
+        const binCount = _spectrumData.length;
+        const nyquist = (analyser.context?.sampleRate || 48000) / 2;
+        const dbRange = Math.max(1, spectrumRangeHi - spectrumRangeLo);
+
+        if (!_spectrumEma || _spectrumEma.length !== binCount) {
+            _spectrumEma = new Float32Array(binCount).fill(spectrumRangeLo);
+        }
+
+        // When held, skip sampling + EMA update so _spectrumEma stays at its
+        // last value — render below still draws it, so the last frame is frozen.
+        if (!spectrumFrozen) {
+            analyser.getFloatFrequencyData(_spectrumData);
+            const nowTs = performance.now();
+            const dtMs = _spectrumLastTs ? Math.max(1, Math.min(100, nowTs - _spectrumLastTs)) : 16;
+            _spectrumLastTs = nowTs;
+            const emaAlpha = 1 - Math.exp(-dtMs / spectrumTimeAvgMs);
+            for (let i = 0; i < binCount; i++) {
+                const raw = _spectrumData[i];
+                const v = Number.isFinite(raw) ? raw : spectrumRangeLo;
+                _spectrumEma[i] = _spectrumEma[i] * (1 - emaAlpha) + v * emaAlpha;
+            }
+        } else {
+            _spectrumLastTs = 0; // fresh dt on resume, so EMA doesn't jump
+        }
+
+        // Read themed RGB once per draw
+        const root = getComputedStyle(document.documentElement);
+        const rgbStr = (root.getPropertyValue('--highlight-rgb') || '236,72,153').trim();
+        const parts = rgbStr.split(',').map((v) => parseInt(v, 10));
+        const tr = Number.isFinite(parts[0]) ? parts[0] : 236;
+        const tg = Number.isFinite(parts[1]) ? parts[1] : 72;
+        const tb = Number.isFinite(parts[2]) ? parts[2] : 153;
+
+        // Downsample columns so neighboring points are close in freq → quadratic
+        // curves between them produce a silky outline without aliasing artefacts.
+        const cols = Math.max(96, Math.min(240, Math.floor(w / 2)));
+        const step = w / cols;
+
+        // 1/N-octave smoothing half-width (in octaves)
+        const halfOct = SPECTRUM_OCTAVE_SMOOTH / 2;
+        const fRatioLo = Math.pow(2, -halfOct);
+        const fRatioHi = Math.pow(2, halfOct);
+        const binHz = nyquist / binCount;
+
+        // Returns 0..1 with 1 = spectrumRangeHi after slope compensation,
+        // 0 = spectrumRangeLo. Applies octave smoothing + +4 dB/oct pink tilt.
+        // Below ~120 Hz the FFT window is wider than the octave window, so the
+        // raw bins show as stair-steps — we force a minimum-3-bin average there
+        // to soften the squared plateaus without affecting treble detail.
+        const magAt = (freq) => {
+            const fLo = freq * fRatioLo;
+            const fHi = freq * fRatioHi;
+            let iLo = Math.floor(fLo / binHz);
+            let iHi = Math.ceil(fHi / binHz);
+            if (iHi < 1) return 0;
+            // Minimum 3-bin window: prevents same-bin plateaus at low freqs
+            if (iHi - iLo < 2) {
+                const center = Math.round(freq / binHz);
+                iLo = center - 1;
+                iHi = center + 1;
+            }
+            iLo = Math.max(1, iLo);
+            iHi = Math.min(binCount - 1, iHi);
+            if (iLo > iHi) iLo = iHi;
+            let sum = 0;
+            let count = 0;
+            for (let i = iLo; i <= iHi; i++) {
+                const v = _spectrumEma[i];
+                if (Number.isFinite(v)) {
+                    sum += v;
+                    count++;
+                }
+            }
+            if (count === 0) return 0;
+            let db = sum / count;
+            // Slope compensation (pink-tilt): flat mixes display flat
+            db += SPECTRUM_SLOPE_DB_PER_OCT * Math.log2(freq / SPECTRUM_SLOPE_PIVOT_HZ);
+            const norm = (db - spectrumRangeLo) / dbRange;
+            return Math.max(0, Math.min(1, norm));
+        };
+
+        // Precompute smoothed heights — kernel width scales with how many pixels
+        // represent one FFT bin at the column's frequency. At low freqs one bin
+        // spans many pixel columns → wider kernel flattens the stair-steps.
+        const ys = new Float32Array(cols + 1);
+        const raw = new Float32Array(cols + 1);
+        const freqs = new Float32Array(cols + 1);
+        for (let i = 0; i <= cols; i++) {
+            const freq = Math.pow(10, ((i * step) / w) * LOG_RANGE + LOG_MIN);
+            freqs[i] = freq;
+            raw[i] = magAt(freq);
+        }
+        // Per-column kernel radius: if neighbour columns are closer in Hz than
+        // one FFT bin, multiple columns alias to the same bin → wider kernel
+        // smooths the plateau. Treble columns span many bins → radius 1.
+        for (let i = 0; i <= cols; i++) {
+            const df = Math.max(0.1, freqs[Math.min(cols, i + 1)] - freqs[Math.max(0, i - 1)]) / 2;
+            const radius = Math.max(1, Math.min(6, Math.round(binHz / df / 2)));
+            let sum = 0;
+            let wsum = 0;
+            const twoSigmaSq = 2 * Math.max(0.7, radius / 2) ** 2;
+            for (let j = -radius; j <= radius; j++) {
+                const idx = i + j;
+                if (idx < 0 || idx > cols) continue;
+                const kw = Math.exp(-(j * j) / twoSigmaSq);
+                sum += raw[idx] * kw;
+                wsum += kw;
+            }
+            ys[i] = padTop + h - (sum / wsum) * h;
+        }
+
+        // Trace the curve once via quadratic midpoints so the outline is smooth
+        const traceCurve = (closeToBaseline) => {
+            ctx.beginPath();
+            if (closeToBaseline) ctx.moveTo(padLeft, padTop + h);
+            ctx.lineTo(padLeft, ys[0]);
+            for (let i = 0; i < cols; i++) {
+                const x0 = padLeft + i * step;
+                const x1 = padLeft + (i + 1) * step;
+                const mx = (x0 + x1) / 2;
+                const my = (ys[i] + ys[i + 1]) / 2;
+                ctx.quadraticCurveTo(x0, ys[i], mx, my);
+            }
+            ctx.lineTo(padLeft + w, ys[cols]);
+            if (closeToBaseline) {
+                ctx.lineTo(padLeft + w, padTop + h);
+                ctx.closePath();
+            }
+        };
+
+        ctx.save();
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        // Body gradient — dense at bottom, dissolving at top
+        const bodyGrad = ctx.createLinearGradient(0, padTop, 0, padTop + h);
+        bodyGrad.addColorStop(0, `rgba(${tr},${tg},${tb},0.05)`);
+        bodyGrad.addColorStop(0.55, `rgba(${tr},${tg},${tb},0.22)`);
+        bodyGrad.addColorStop(1, `rgba(${tr},${tg},${tb},0.42)`);
+        traceCurve(true);
+        ctx.fillStyle = bodyGrad;
+        ctx.fill();
+
+        // EQ-response tint — two single-color gradients (white for boost, black
+        // for cut) so gradient interpolation never drifts through grey and
+        // muddies the themed colour. Clipped to the spectrum body so the tint
+        // reads as internal lighting on the waveform.
+        const bands = getActiveBands() || [];
+        const anyActive = bands.some((b) => b && b.enabled && Math.abs(b.gain || 0) > 0.2);
+        if (anyActive) {
+            const stops = 48;
+            const TINT_DB_SCALE = 8; // soft-knee saturation point (dB)
+            const BOOST_MAX_ALPHA = 0.4;
+            const CUT_MAX_ALPHA = 0.5;
+
+            // Sample EQ response once, split into boost / cut lanes
+            const boosts = new Float32Array(stops + 1);
+            const cuts = new Float32Array(stops + 1);
+            let hasBoost = false;
+            let hasCut = false;
+            for (let i = 0; i <= stops; i++) {
+                const t = i / stops;
+                const freq = Math.pow(10, t * LOG_RANGE + LOG_MIN);
+                let eqGain = 0;
+                for (const band of bands) {
+                    if (band && band.enabled) {
+                        eqGain += calculateBiquadResponse(freq, band, sampleRate);
+                    }
+                }
+                // Soft knee past saturation so >10 dB still reads as "more"
+                const abs = Math.abs(eqGain);
+                const soft =
+                    abs <= TINT_DB_SCALE
+                        ? abs / TINT_DB_SCALE
+                        : 1 - Math.exp(-(abs - TINT_DB_SCALE) / TINT_DB_SCALE) * 0.5 + 0.5;
+                const n = Math.min(1, soft);
+                if (eqGain > 0) {
+                    boosts[i] = n;
+                    hasBoost = true;
+                } else if (eqGain < 0) {
+                    cuts[i] = n;
+                    hasCut = true;
+                }
+            }
+
+            traceCurve(true);
+            ctx.save();
+            ctx.clip();
+
+            if (hasBoost) {
+                const bg = ctx.createLinearGradient(padLeft, 0, padLeft + w, 0);
+                for (let i = 0; i <= stops; i++) {
+                    const a = (boosts[i] * BOOST_MAX_ALPHA).toFixed(3);
+                    bg.addColorStop(i / stops, `rgba(255,255,255,${a})`);
+                }
+                ctx.fillStyle = bg;
+                ctx.fillRect(padLeft, padTop, w, h);
+            }
+            if (hasCut) {
+                const cg = ctx.createLinearGradient(padLeft, 0, padLeft + w, 0);
+                for (let i = 0; i <= stops; i++) {
+                    const a = (cuts[i] * CUT_MAX_ALPHA).toFixed(3);
+                    cg.addColorStop(i / stops, `rgba(0,0,0,${a})`);
+                }
+                ctx.fillStyle = cg;
+                ctx.fillRect(padLeft, padTop, w, h);
+            }
+            ctx.restore();
+        }
+
+        // Soft rim glow — +2 px stroke width
+        traceCurve(false);
+        ctx.shadowColor = `rgba(${tr},${tg},${tb},0.55)`;
+        ctx.shadowBlur = 10;
+        ctx.strokeStyle = `rgba(${tr},${tg},${tb},0.28)`;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.restore();
+    };
+
     const drawAutoEQGraph = () => {
         if (!autoeqCanvas) return;
         const activeBands = getActiveBands();
@@ -2039,6 +2360,19 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         const h = rect.height - padTop - padBottom;
 
         ctx.clearRect(0, 0, rect.width, rect.height);
+
+        // Spectrum overlay layer (below grid + curves)
+        if (spectrumOverlayEnabled) {
+            const spectrumSampleRate = autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000;
+            drawSpectrumLayer(
+                ctx,
+                40, // padLeft (matches below)
+                10, // padTop
+                rect.width - 40 - 10,
+                rect.height - 10 - 30,
+                spectrumSampleRate
+            );
+        }
 
         // dB scale: fixed 75dB center for AutoEQ, 0dB center for Parametric
         const isParametricMode = currentMode === 'parametric';
@@ -4240,6 +4574,275 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (howtoClose && howtoPanel) {
         howtoClose.addEventListener('click', () => {
             howtoPanel.style.display = 'none';
+        });
+    }
+
+    // Spectrum overlay toggle
+    const spectrumBtn = document.getElementById('eq-spectrum-toggle');
+    if (spectrumBtn) {
+        const shouldRunSpectrumLoop = () => {
+            return spectrumOverlayEnabled && !document.hidden && spectrumBtn.offsetParent !== null;
+        };
+        const applySpectrumState = () => {
+            spectrumBtn.classList.toggle('active', spectrumOverlayEnabled);
+            spectrumBtn.setAttribute('aria-pressed', String(spectrumOverlayEnabled));
+            if (shouldRunSpectrumLoop()) startSpectrumLoop();
+            else stopSpectrumLoop();
+        };
+        const onSpectrumVisibilityChange = () => {
+            applySpectrumState();
+        };
+        // Re-evaluate when EQ master toggle flips, when mode changes, or when
+        // the equalizer-container becomes visible again. Without this, the rAF
+        // loop self-stops via shouldAnimateSpectrum() and never restarts — the
+        // graph then only redraws from other triggers (~2 fps from stray events).
+        const reevalSpectrumLoop = () => {
+            // defer one frame so display:none transitions / mode swaps finish
+            requestAnimationFrame(applySpectrumState);
+        };
+
+        // Tear down listeners from a previous initializeSettings() call so we
+        // don't accumulate duplicate handlers across re-inits.
+        if (_spectrumListenersAbort) _spectrumListenersAbort.abort();
+        _spectrumListenersAbort = new AbortController();
+        const sigOpts = { signal: _spectrumListenersAbort.signal };
+
+        document.addEventListener('visibilitychange', onSpectrumVisibilityChange, sigOpts);
+        if (eqToggle) eqToggle.addEventListener('change', reevalSpectrumLoop, sigOpts);
+        window.addEventListener('equalizer-toggle', reevalSpectrumLoop, sigOpts);
+        document
+            .querySelectorAll('.autoeq-mode-btn')
+            .forEach((b) => b.addEventListener('click', reevalSpectrumLoop, sigOpts));
+
+        applySpectrumState();
+        spectrumBtn.addEventListener('click', () => {
+            spectrumOverlayEnabled = !spectrumOverlayEnabled;
+            try {
+                localStorage.setItem('autoeq-spectrum-overlay', spectrumOverlayEnabled ? '1' : '0');
+            } catch {
+                /* ignore */
+            }
+            applySpectrumState();
+        });
+    }
+
+    // Range Hi / Range Lo knob pills
+    const attachRangeKnob = (btn, valueEl, opts) => {
+        if (!btn || !valueEl) return;
+        const { min, max, defaultValue, storageKey, get, set } = opts;
+        const clamp = (v) => Math.max(min, Math.min(max, v));
+
+        // ARIA: expose as an accessible slider
+        btn.setAttribute('role', 'slider');
+        btn.setAttribute('aria-valuemin', String(min));
+        btn.setAttribute('aria-valuemax', String(max));
+        btn.setAttribute('tabindex', '0');
+
+        const render = () => {
+            const v = Math.round(get());
+            valueEl.textContent = String(v);
+            btn.setAttribute('aria-valuenow', String(v));
+            btn.setAttribute('aria-valuetext', `${v} dBFS`);
+        };
+        const persist = () => {
+            try {
+                localStorage.setItem(storageKey, String(get()));
+            } catch {
+                /* ignore */
+            }
+        };
+        render();
+
+        btn.addEventListener(
+            'wheel',
+            (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -1 : 1;
+                set(clamp(get() + delta));
+                render();
+                persist();
+            },
+            { passive: false }
+        );
+
+        btn.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            set(defaultValue);
+            render();
+            persist();
+        });
+
+        // Keyboard: arrows adjust, Home/End jump to bounds, Shift for coarse
+        btn.addEventListener('keydown', (e) => {
+            const coarse = e.shiftKey ? 6 : 1;
+            let handled = true;
+            switch (e.key) {
+                case 'ArrowUp':
+                case 'ArrowRight':
+                    set(clamp(get() + coarse));
+                    break;
+                case 'ArrowDown':
+                case 'ArrowLeft':
+                    set(clamp(get() - coarse));
+                    break;
+                case 'PageUp':
+                    set(clamp(get() + 10));
+                    break;
+                case 'PageDown':
+                    set(clamp(get() - 10));
+                    break;
+                case 'Home':
+                    set(min);
+                    break;
+                case 'End':
+                    set(max);
+                    break;
+                case 'Enter':
+                case ' ':
+                    set(defaultValue);
+                    break;
+                default:
+                    handled = false;
+            }
+            if (handled) {
+                e.preventDefault();
+                render();
+                persist();
+            }
+        });
+
+        btn.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            try {
+                btn.setPointerCapture(e.pointerId);
+            } catch {
+                /* capture may fail on synthetic events */
+            }
+            btn.classList.add('dragging');
+            const startY = e.clientY;
+            const startVal = get();
+            const onMove = (ev) => {
+                const dy = startY - ev.clientY;
+                set(clamp(startVal + dy * 0.4));
+                render();
+            };
+            const onUp = (ev) => {
+                // Guard releasePointerCapture: capture may already be lost
+                // (e.g. pointercancel fired before pointerup)
+                try {
+                    if (btn.hasPointerCapture?.(e.pointerId)) {
+                        btn.releasePointerCapture(e.pointerId);
+                    }
+                } catch {
+                    /* ignore */
+                }
+                btn.classList.remove('dragging');
+                btn.removeEventListener('pointermove', onMove);
+                btn.removeEventListener('pointerup', onUp);
+                btn.removeEventListener('pointercancel', onUp);
+                persist();
+                ev.preventDefault();
+            };
+            btn.addEventListener('pointermove', onMove);
+            btn.addEventListener('pointerup', onUp);
+            btn.addEventListener('pointercancel', onUp);
+        });
+    };
+
+    // Hi is hard-fixed — only wire the Lo knob
+    attachRangeKnob(
+        document.getElementById('eq-spectrum-range-lo'),
+        document.getElementById('eq-spectrum-range-lo-value'),
+        {
+            min: SPECTRUM_RANGE_LO_MIN,
+            max: SPECTRUM_RANGE_LO_MAX,
+            defaultValue: -103,
+            storageKey: 'autoeq-spectrum-range-lo',
+            get: () => spectrumRangeLo,
+            set: (v) => {
+                spectrumRangeLo = Math.min(spectrumRangeHi - 6, v);
+            },
+        }
+    );
+
+    // Hold (pause/play) pill
+    const holdBtn = document.getElementById('eq-spectrum-hold');
+    const holdIconEl = document.getElementById('eq-spectrum-hold-icon');
+    const holdValueEl = document.getElementById('eq-spectrum-hold-value');
+    const HOLD_ICON_PAUSE =
+        '<rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" />';
+    const HOLD_ICON_PLAY = '<path d="M7 4 L20 12 L7 20 Z" />';
+    if (holdBtn && holdIconEl && holdValueEl) {
+        const applyHold = () => {
+            holdBtn.classList.toggle('active', spectrumFrozen);
+            holdBtn.setAttribute('aria-pressed', String(spectrumFrozen));
+            holdIconEl.innerHTML = spectrumFrozen ? HOLD_ICON_PLAY : HOLD_ICON_PAUSE;
+            holdValueEl.textContent = spectrumFrozen ? 'Held' : 'Hold';
+        };
+        applyHold();
+        holdBtn.addEventListener('click', () => {
+            spectrumFrozen = !spectrumFrozen;
+            applyHold();
+            // Re-evaluate the rAF loop: pause when freezing, resume when
+            // unfreezing (shouldAnimateSpectrum will gate either way).
+            if (spectrumFrozen) stopSpectrumLoop();
+            else startSpectrumLoop();
+        });
+    }
+
+    // Speed cycle pill
+    const speedBtn = document.getElementById('eq-spectrum-speed');
+    const speedValueEl = document.getElementById('eq-spectrum-speed-value');
+    if (speedBtn && speedValueEl) {
+        const speedKeys = Object.keys(SPECTRUM_SPEED_PRESETS);
+        const applySpeed = () => {
+            spectrumTimeAvgMs = SPECTRUM_SPEED_PRESETS[spectrumSpeedKey];
+            speedValueEl.textContent = spectrumSpeedKey;
+        };
+        applySpeed();
+        speedBtn.addEventListener('click', () => {
+            const idx = speedKeys.indexOf(spectrumSpeedKey);
+            spectrumSpeedKey = speedKeys[(idx + 1) % speedKeys.length];
+            try {
+                localStorage.setItem('autoeq-spectrum-speed', spectrumSpeedKey);
+            } catch {
+                /* ignore */
+            }
+            applySpeed();
+        });
+    }
+
+    // FFT cycle pill
+    const fftBtn = document.getElementById('eq-spectrum-fft');
+    const fftValueEl = document.getElementById('eq-spectrum-fft-value');
+    if (fftBtn && fftValueEl) {
+        const fftKeys = Object.keys(SPECTRUM_FFT_PRESETS);
+        const applyFft = () => {
+            fftValueEl.textContent = spectrumFftKey;
+            const size = SPECTRUM_FFT_PRESETS[spectrumFftKey];
+            try {
+                const an = audioContextManager?.getSpectrumAnalyser?.();
+                if (an && an.fftSize !== size) {
+                    an.fftSize = size;
+                    // Force buffer reallocation on the next draw
+                    _spectrumData = null;
+                    _spectrumEma = null;
+                }
+            } catch {
+                /* ignore */
+            }
+        };
+        applyFft();
+        fftBtn.addEventListener('click', () => {
+            const idx = fftKeys.indexOf(spectrumFftKey);
+            spectrumFftKey = fftKeys[(idx + 1) % fftKeys.length];
+            try {
+                localStorage.setItem('autoeq-spectrum-fft', spectrumFftKey);
+            } catch {
+                /* ignore */
+            }
+            applyFft();
         });
     }
 

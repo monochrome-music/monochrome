@@ -3,7 +3,8 @@
 While the website works without the extension with the use of proxies, it is recommended to install it to prevent various annoying issues. The website works best with the extension on.
 
 ## What it does
-It makes your `requestHeaders` appear to come from Tidal, which can result in fewer blocked requests.  
+
+It makes your `requestHeaders` appear to come from Tidal, which can result in fewer blocked requests.
 
 ## Installation
 

@@ -6097,7 +6097,9 @@ export class UIRenderer {
 
                 container.innerHTML =
                     renderGroup(apiInstances, 'api') +
-                    (streamingInstances && streamingInstances.length > 0 ? renderGroup(streamingInstances, 'streaming') : '') +
+                    (streamingInstances && streamingInstances.length > 0
+                        ? renderGroup(streamingInstances, 'streaming')
+                        : '') +
                     renderGroup(qobuzInstances, 'qobuz');
 
                 const stats = this.api.getCacheStats();

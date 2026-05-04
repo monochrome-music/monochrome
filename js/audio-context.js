@@ -511,6 +511,31 @@ class AudioContextManager {
             this.analyser.fftSize = 1024;
             this.analyser.smoothingTimeConstant = 0.7;
 
+            // High-resolution spectrum analyser for EQ graph overlay.
+            // Large fftSize gives ~5.9 Hz/bin at 48 kHz — critical for bass detail.
+            // Settings.js does its own time-averaging, so smoothing is disabled here.
+            this.spectrumAnalyser = this.audioContext.createAnalyser();
+            try {
+                this.spectrumAnalyser.fftSize = 8192;
+            } catch {
+                // Older browsers cap fftSize — fall back gracefully
+                try {
+                    this.spectrumAnalyser.fftSize = 4096;
+                } catch {
+                    this.spectrumAnalyser.fftSize = 2048;
+                }
+            }
+            this.spectrumAnalyser.smoothingTimeConstant = 0;
+            // Widen decibel bounds to cover the overlay's Range Lo..Hi span so
+            // getFloatFrequencyData isn't clamped at ~[-100, -30] defaults and
+            // the Lo knob can reach -180 dBFS without silent saturation.
+            try {
+                this.spectrumAnalyser.minDecibels = -180;
+                this.spectrumAnalyser.maxDecibels = 0;
+            } catch {
+                /* some engines reject asymmetric ranges */
+            }
+
             this._createEQ();
             this._createGraphicEQ();
             this._createMSNodes();
@@ -609,6 +634,13 @@ class AudioContextManager {
             }
             this.analyser.connect(this.volumeNode);
             this.volumeNode.connect(this.audioContext.destination);
+            // Parallel tap for the hi-res EQ spectrum overlay (dead-end is fine
+            // for AnalyserNode — it only needs input to sample from).
+            try {
+                if (this.spectrumAnalyser) this.analyser.connect(this.spectrumAnalyser);
+            } catch {
+                /* ignore */
+            }
         };
 
         try {
@@ -656,6 +688,7 @@ class AudioContextManager {
             this.geqFilters.forEach(safeDisconnect);
             safeDisconnect(this.geqOutputNode);
             safeDisconnect(this.analyser);
+            safeDisconnect(this.spectrumAnalyser);
             safeDisconnect(this.volumeNode);
 
             let lastNode = this.source;
@@ -774,6 +807,15 @@ class AudioContextManager {
      */
     getAnalyser() {
         return this.analyser;
+    }
+
+    /**
+     * Get the dedicated high-resolution analyser for the EQ spectrum overlay.
+     * Returns null when no dedicated node exists so callers never mutate the
+     * shared visualizer analyser (which would desync its cached binCount).
+     */
+    getSpectrumAnalyser() {
+        return this.spectrumAnalyser || null;
     }
 
     /**
