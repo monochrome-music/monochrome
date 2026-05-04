@@ -90,6 +90,7 @@ import {
     SVG_MINUS,
     SVG_SQUARE_PEN,
     SVG_SHARE,
+    SVG_UPLOAD,
     SVG_SHUFFLE,
     SVG_VIDEO,
     SVG_LEFT_ARROW,
@@ -755,6 +756,9 @@ export class UIRenderer {
             actionButtonsHTML: `
                 <button class="edit-playlist-btn" data-action="edit-playlist" title="Edit Playlist">
                     ${SVG_SQUARE_PEN(20)}
+                </button>
+                <button class="export-playlist-btn" data-action="export-playlist" title="Export Playlist">
+                    ${SVG_UPLOAD(20)}
                 </button>
                 <button class="delete-playlist-btn" data-action="delete-playlist" title="Delete Playlist">
                     ${SVG_BIN(20)}
@@ -5753,6 +5757,7 @@ export class UIRenderer {
             'delete-playlist-btn',
             'share-playlist-btn',
             'sort-playlist-btn',
+            'export-playlist-btn',
         ].forEach((id) => {
             const btn = actionsDiv.querySelector(`#${id}`);
             if (btn) btn.remove();
@@ -5826,6 +5831,14 @@ export class UIRenderer {
             editBtn.className = 'btn-secondary';
             editBtn.innerHTML = `${SVG_SQUARE_PEN(24)}<span>Edit</span>`;
             fragment.appendChild(editBtn);
+
+            const exportBtn = document.createElement('button');
+            exportBtn.id = 'export-playlist-btn';
+            exportBtn.className = 'btn-secondary';
+            exportBtn.title = 'Export playlist as CSV or JSON';
+            exportBtn.dataset.userPlaylistId = playlist.id || playlist.uuid || '';
+            exportBtn.innerHTML = `${SVG_UPLOAD(20)}<span>Export</span>`;
+            fragment.appendChild(exportBtn);
 
             const deleteBtn = document.createElement('button');
             deleteBtn.id = 'delete-playlist-btn';
