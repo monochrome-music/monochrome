@@ -13,7 +13,7 @@ services:
                 - SESSION_MAX_AGE=${SESSION_MAX_AGE}
         container_name: monochrome
         ports:
-            - '${MONOCHROME_PORT:-3000}:4173'
+            - '${MONOCHROME_PORT:-4000}:4173'
         restart: unless-stopped
         networks:
             - monochrome-network
