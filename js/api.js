@@ -381,6 +381,82 @@ export class LosslessAPI {
         });
     }
 
+    async enrichTracksWithAlbumCover(tracks, maxRequests = 20) {
+        if (!Array.isArray(tracks) || tracks.length === 0) return tracks;
+
+        const albumIdsToFetch = [];
+        for (const track of tracks) {
+            if (!track?.album?.cover && track?.album?.id && !albumIdsToFetch.includes(track.album.id)) {
+                albumIdsToFetch.push(track.album.id);
+            }
+        }
+
+        if (albumIdsToFetch.length === 0) return tracks;
+
+        const limitedIds = albumIdsToFetch.slice(0, maxRequests);
+
+        const coverMap = new Map();
+        const chunkSize = 5;
+        for (let i = 0; i < limitedIds.length; i += chunkSize) {
+            const chunk = limitedIds.slice(i, i + chunkSize);
+            const results = await Promise.allSettled(chunk.map((id) => this.getAlbum(id)));
+            for (let j = 0; j < results.length; j++) {
+                const r = results[j];
+                if (r.status === 'fulfilled' && r.value?.album?.cover) {
+                    coverMap.set(chunk[j], r.value.album.cover);
+                }
+            }
+        }
+
+        if (coverMap.size === 0) return tracks;
+
+        return tracks.map((track) => {
+            if (!track?.album?.cover && track?.album?.id && coverMap.has(track.album.id)) {
+                return { ...track, album: { ...track.album, cover: coverMap.get(track.album.id) } };
+            }
+            return track;
+        });
+    }
+
+    async enrichArtistsWithPicture(artists, maxRequests = 10) {
+        if (!Array.isArray(artists) || artists.length === 0) return artists;
+
+        const idsToFetch = [];
+        for (const artist of artists) {
+            if (!artist?.picture && artist?.id && !idsToFetch.includes(artist.id)) {
+                idsToFetch.push(artist.id);
+            }
+        }
+
+        if (idsToFetch.length === 0) return artists;
+
+        const limitedIds = idsToFetch.slice(0, maxRequests);
+
+        const pictureMap = new Map();
+        const chunkSize = 5;
+        for (let i = 0; i < limitedIds.length; i += chunkSize) {
+            const chunk = limitedIds.slice(i, i + chunkSize);
+            const results = await Promise.allSettled(
+                chunk.map((id) => this.getArtist(id, { lightweight: true }))
+            );
+            for (let j = 0; j < results.length; j++) {
+                const r = results[j];
+                if (r.status === 'fulfilled' && r.value?.picture) {
+                    pictureMap.set(chunk[j], r.value.picture);
+                }
+            }
+        }
+
+        if (pictureMap.size === 0) return artists;
+
+        return artists.map((artist) => {
+            if (!artist?.picture && artist?.id && pictureMap.has(artist.id)) {
+                return { ...artist, picture: pictureMap.get(artist.id) };
+            }
+            return artist;
+        });
+    }
+
     parseTrackLookup(data) {
         const entries = Array.isArray(data) ? data : [data];
         let track, info, originalTrackUrl;
@@ -530,14 +606,22 @@ export class LosslessAPI {
             const playlistsData = extractSection('playlists');
             const videosData = extractSection('videos');
 
+            const preparedTracks = tracksData.items.map((t) => this.prepareTrack(t));
+            const preparedArtists = artistsData.items.map((a) => this.prepareArtist(a));
+
+            const [enrichedTracks, enrichedArtists] = await Promise.all([
+                this.enrichTracksWithAlbumCover(preparedTracks),
+                this.enrichArtistsWithPicture(preparedArtists),
+            ]);
+
             const results = {
                 tracks: {
                     ...tracksData,
-                    items: tracksData.items.map((t) => this.prepareTrack(t)),
+                    items: enrichedTracks,
                 },
                 artists: {
                     ...artistsData,
-                    items: artistsData.items.map((a) => this.prepareArtist(a)),
+                    items: enrichedArtists,
                 },
                 albums: {
                     ...albumsData,
@@ -591,7 +675,8 @@ export class LosslessAPI {
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'tracks');
             const preparedTracks = normalized.items.map((t) => this.prepareTrack(t));
-            const enrichedTracks = await this.enrichTracksWithAlbumDates(preparedTracks);
+            const dateEnriched = await this.enrichTracksWithAlbumDates(preparedTracks);
+            const enrichedTracks = await this.enrichTracksWithAlbumCover(dateEnriched);
             const result = {
                 ...normalized,
                 items: enrichedTracks,
@@ -616,9 +701,11 @@ export class LosslessAPI {
             const response = await this.fetchWithRetry(`/search/?a=${encodeURIComponent(query)}`, options);
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'artists');
+            const preparedArtists = normalized.items.map((a) => this.prepareArtist(a));
+            const enrichedArtists = await this.enrichArtistsWithPicture(preparedArtists);
             const result = {
                 ...normalized,
-                items: normalized.items.map((a) => this.prepareArtist(a)),
+                items: enrichedArtists,
             };
 
             if (!(response instanceof TidalResponse)) {
@@ -1442,7 +1529,8 @@ export class LosslessAPI {
         });
 
         const shuffled = recommendedTracks.sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, limit);
+        const sliced = shuffled.slice(0, limit);
+        return this.enrichTracksWithAlbumCover(sliced);
     }
 
     normalizeTrackResponse(apiResponse) {
