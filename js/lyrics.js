@@ -990,16 +990,17 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
     sidePanelManager.open('lyrics', 'Lyrics', renderControls, renderContent, forceOpen);
 }
 
-function getLyricsHighlightColor() {
-    // Check if the current theme is light
+function getLyricsHighlightColor(target) {
+    if (target?.closest?.('#fullscreen-cover-overlay')) {
+        return '#fff';
+    }
     const isLight = getComputedStyle(document.documentElement).colorScheme === 'light';
     return isLight ? '#000' : '#fff';
 }
 
 function updateLyricsTheme() {
-    const highlightColor = getLyricsHighlightColor();
     document.querySelectorAll('am-lyrics').forEach((el) => {
-        el.setAttribute('highlight-color', highlightColor);
+        el.setAttribute('highlight-color', getLyricsHighlightColor(el));
     });
 }
 
@@ -1123,7 +1124,7 @@ async function renderLyricsComponent(container, track, audioPlayer, lyricsManage
         amLyrics.setAttribute('query', `${queryTitle} ${queryArtist}`.trim());
         if (isrc) amLyrics.setAttribute('isrc', isrc);
 
-        amLyrics.setAttribute('highlight-color', getLyricsHighlightColor());
+        amLyrics.setAttribute('highlight-color', getLyricsHighlightColor(container));
         amLyrics.setAttribute('hover-background-color', 'color-mix(in srgb, var(--primary) 16%, transparent)');
         amLyrics.setAttribute('autoscroll', '');
         amLyrics.setAttribute('interpolate', '');
