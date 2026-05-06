@@ -111,6 +111,38 @@
                 href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Sans+HK:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Sans+Hebrew:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&family=Noto+Sans+Kannada:wght@400;500;600;700&family=Noto+Sans+Malayalam:wght@400;500;600;700&family=Noto+Sans+Sinhala:wght@400;500;600;700&family=Noto+Sans+Khmer:wght@400;500;600;700&family=Noto+Sans+Lao:wght@400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600;700&family=Noto+Sans+Georgian:wght@400;500;600;700&family=Noto+Sans+Armenian:wght@400;500;600;700&family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap"
             />
         </noscript>
+        <script>
+            (() => {
+                try {
+                    const theme = localStorage.getItem('monochrome-theme');
+                    const css = localStorage.getItem('custom_theme_css');
+                    const palette = localStorage.getItem('monochrome-custom-theme');
+                    if (!theme) return;
+
+                    document.documentElement.setAttribute('data-theme', theme);
+
+                    if (theme === 'custom') {
+                        if (css) {
+                            let styleEl = document.getElementById('custom-theme-style');
+                            if (!styleEl) {
+                                styleEl = document.createElement('style');
+                                styleEl.id = 'custom-theme-style';
+                                document.head.appendChild(styleEl);
+                            }
+                            styleEl.textContent = css;
+                        } else if (palette) {
+                            const colors = JSON.parse(palette);
+                            const root = document.documentElement;
+                            for (const [key, value] of Object.entries(colors)) {
+                                root.style.setProperty(`--${key}`, value);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('theme loading failed', e);
+                }
+            })();
+        </script>
         <link rel="stylesheet" href="/styles.css" />
     </head>
 
