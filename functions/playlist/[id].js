@@ -48,9 +48,7 @@ class TidalAPI {
 
 class ServerAPI {
     constructor() {
-        this.INSTANCES_URLS = [
-            'https://tidal-uptime.geeked.wtf',
-        ];
+        this.INSTANCES_URLS = ['https://tidal-uptime.geeked.wtf'];
         this.apiInstances = null;
     }
 

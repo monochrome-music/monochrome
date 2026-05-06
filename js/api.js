@@ -436,9 +436,7 @@ export class LosslessAPI {
         const chunkSize = 5;
         for (let i = 0; i < limitedIds.length; i += chunkSize) {
             const chunk = limitedIds.slice(i, i + chunkSize);
-            const results = await Promise.allSettled(
-                chunk.map((id) => this.getArtist(id, { lightweight: true }))
-            );
+            const results = await Promise.allSettled(chunk.map((id) => this.getArtist(id, { lightweight: true })));
             for (let j = 0; j < results.length; j++) {
                 const r = results[j];
                 if (r.status === 'fulfilled' && r.value?.picture) {
