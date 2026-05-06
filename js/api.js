@@ -1960,7 +1960,7 @@ export class LosslessAPI {
             });
         }
 
-        if (track.album?.id && (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null || !enrichedTrack.album?.cover)) {
+        if (track.album?.id && (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null || !track.album?.cover)) {
             try {
                 const albumData = await this.getAlbum(track.album.id);
                 enrichedTrack.album = new EnrichedAlbum({
