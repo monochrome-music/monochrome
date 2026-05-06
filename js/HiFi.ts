@@ -1789,7 +1789,7 @@ class HiFiClient {
                 if (!iso || typeof iso !== 'string') return undefined;
                 const m = iso.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
                 if (!m || (!m[1] && !m[2] && !m[3])) return undefined;
-                return (parseInt(m[1] || '0', 10) * 3600) + (parseInt(m[2] || '0', 10) * 60) + parseInt(m[3] || '0', 10);
+                return parseInt(m[1] || '0', 10) * 3600 + parseInt(m[2] || '0', 10) * 60 + parseInt(m[3] || '0', 10);
             };
 
             const albums: any[] = [];
@@ -1956,11 +1956,11 @@ class HiFiClient {
         }
 
         const bioRelData = payload?.data?.relationships?.biography?.data;
-        const bioRef = (Array.isArray(bioRelData) ? bioRelData[0] : bioRelData) as JsonApiRef | undefined;
+        const bioRef = Array.isArray(bioRelData) ? bioRelData[0] : bioRelData;
         const bioItem = bioRef
             ? (includedMap.get(`${bioRef.type}:${bioRef.id}`) ??
-               includedMap.get(`biographies:${bioRef.id}`) ??
-               includedMap.get(`biography:${bioRef.id}`))
+              includedMap.get(`biographies:${bioRef.id}`) ??
+              includedMap.get(`biography:${bioRef.id}`))
             : undefined;
 
         const data: ArtistBiography = {

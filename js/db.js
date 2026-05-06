@@ -469,7 +469,9 @@ export class MusicDatabase {
             ].every((arr) => !arr || (Array.isArray(arr) ? arr.length === 0 : Object.keys(arr).length === 0));
 
             if (allEmpty) {
-                console.warn('[importData] Aborting: clear=true but all import data is empty. Existing data preserved.');
+                console.warn(
+                    '[importData] Aborting: clear=true but all import data is empty. Existing data preserved.'
+                );
                 return false;
             }
         }

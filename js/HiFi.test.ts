@@ -129,7 +129,11 @@ test('Fetch artist info', async () => {
     await checkRoute(
         `/artist/?id=${ARTIST_ID}`,
         () => instance.getArtist(ARTIST_ID),
-        async (info: { cover: string; tracks: Array<{ duration?: number }>; albums: { items: Array<{ duration?: number }> } }) => {
+        async (info: {
+            cover: string;
+            tracks: Array<{ duration?: number }>;
+            albums: { items: Array<{ duration?: number }> };
+        }) => {
             expect(info).toHaveProperty('cover');
             expect(info.cover).not.toBeUndefined();
 

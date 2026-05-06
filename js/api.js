@@ -436,9 +436,7 @@ export class LosslessAPI {
         const chunkSize = 5;
         for (let i = 0; i < limitedIds.length; i += chunkSize) {
             const chunk = limitedIds.slice(i, i + chunkSize);
-            const results = await Promise.allSettled(
-                chunk.map((id) => this.getArtist(id, { lightweight: true }))
-            );
+            const results = await Promise.allSettled(chunk.map((id) => this.getArtist(id, { lightweight: true })));
             for (let j = 0; j < results.length; j++) {
                 const r = results[j];
                 if (r.status === 'fulfilled' && r.value?.picture) {
@@ -942,7 +940,12 @@ export class LosslessAPI {
 
         tracks = tracks.map((t) => {
             if (t.album) {
-                t.album = new TrackAlbum(t.album);
+                // Propagate the parent album's cover to each track's album sub-object when
+                // the API omits it in the per-track album object (common for album endpoints).
+                t.album = new TrackAlbum({
+                    ...t.album,
+                    cover: t.album.cover || album.cover,
+                });
             }
 
             return new Track(t);
@@ -1957,12 +1960,18 @@ export class LosslessAPI {
             });
         }
 
-        if (track.album?.id && (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)) {
+        if (
+            track.album?.id &&
+            (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null || !track.album?.cover)
+        ) {
             try {
                 const albumData = await this.getAlbum(track.album.id);
                 enrichedTrack.album = new EnrichedAlbum({
                     ...albumData.album,
                     ...enrichedTrack.album,
+                    // Preserve the full album's cover when the track's album cover is null/undefined,
+                    // since some API responses omit or null-out cover in the track's album sub-object.
+                    cover: enrichedTrack.album?.cover || albumData.album?.cover,
                 });
 
                 if (albumData.tracks?.length > 0) {
