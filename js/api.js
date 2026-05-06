@@ -940,7 +940,12 @@ export class LosslessAPI {
 
         tracks = tracks.map((t) => {
             if (t.album) {
-                t.album = new TrackAlbum(t.album);
+                // Propagate the parent album's cover to each track's album sub-object when
+                // the API omits it in the per-track album object (common for album endpoints).
+                t.album = new TrackAlbum({
+                    ...t.album,
+                    cover: t.album.cover || album.cover,
+                });
             }
 
             return new Track(t);
@@ -1955,7 +1960,7 @@ export class LosslessAPI {
             });
         }
 
-        if (track.album?.id && (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)) {
+        if (track.album?.id && (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null || !enrichedTrack.album?.cover)) {
             try {
                 const albumData = await this.getAlbum(track.album.id);
                 enrichedTrack.album = new EnrichedAlbum({
