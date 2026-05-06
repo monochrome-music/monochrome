@@ -1963,6 +1963,9 @@ export class LosslessAPI {
                 enrichedTrack.album = new EnrichedAlbum({
                     ...albumData.album,
                     ...enrichedTrack.album,
+                    // Preserve the full album's cover when the track's album cover is null/undefined,
+                    // since some API responses omit or null-out cover in the track's album sub-object.
+                    cover: enrichedTrack.album?.cover || albumData.album?.cover,
                 });
 
                 if (albumData.tracks?.length > 0) {
