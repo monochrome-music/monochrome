@@ -129,7 +129,9 @@ export const apiSettings = {
 
             // Ensure default Qobuz instance is always available
             if (groupedInstances.qobuz.length === 0) {
-                groupedInstances.qobuz = [{ url: 'https://trypt-hifi-dl-456461932686.us-west1.run.app', version: '1.0' }];
+                groupedInstances.qobuz = [
+                    { url: 'https://trypt-hifi-dl-456461932686.us-west1.run.app', version: '1.0' },
+                ];
             }
 
             this.defaultInstances = groupedInstances;
