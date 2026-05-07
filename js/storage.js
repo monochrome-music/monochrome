@@ -98,7 +98,7 @@ export const apiSettings = {
                     ],
                     qobuz: [
                         { url: 'https://qobuz.kennyy.com.br', version: '1.0' },
-                        { url: 'https://trypt-hifi-dl-456461932686.us-west1.run.app', version: '1.0' }
+                        { url: 'https://trypt-hifi-dl-456461932686.us-west1.run.app', version: '1.0' },
                     ],
                 };
                 this.instancesLoaded = true;
