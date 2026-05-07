@@ -96,7 +96,10 @@ export const apiSettings = {
                         { url: 'https://hund.qqdl.site', version: '2.6' },
                         { url: 'https://wolf.qqdl.site', version: '2.6' },
                     ],
-                    qobuz: [{ url: 'https://qobuz.kennyy.com.br', version: '1.0' }],
+                    qobuz: [
+                        { url: 'https://qobuz.kennyy.com.br', version: '1.0' },
+                        { url: 'https://trypt-hifi-dl-456461932686.us-west1.run.app', version: '1.0' }
+                    ],
                 };
                 this.instancesLoaded = true;
                 this._loadPromise = null;
