@@ -97,6 +97,7 @@ export const apiSettings = {
                         { url: 'https://wolf.qqdl.site', version: '2.6' },
                     ],
                     qobuz: [
+                        { url: 'https://qdl-api.monochrome.tf', version: '1.0' },
                         { url: 'https://trypt-hifi-dl-456461932686.us-west1.run.app', version: '1.0' },
                         { url: 'https://qobuz.kennyy.com.br', version: '1.0' },
                     ],
@@ -129,9 +130,7 @@ export const apiSettings = {
 
             // Ensure default Qobuz instance is always available
             if (groupedInstances.qobuz.length === 0) {
-                groupedInstances.qobuz = [
-                    { url: 'https://trypt-hifi-dl-456461932686.us-west1.run.app', version: '1.0' },
-                ];
+                groupedInstances.qobuz = [{ url: 'https://qdl-api.monochrome.tf', version: '1.0' }];
             }
 
             this.defaultInstances = groupedInstances;
