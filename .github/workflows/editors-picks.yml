@@ -109,7 +109,7 @@ jobs:
               run: |
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git pull --rebase origin main
+                  git pull --rebase --autostash origin main
                   git diff --staged --quiet && echo "No changes to commit." && exit 0
                   git commit -m "chore: update editors picks"
                   git push
