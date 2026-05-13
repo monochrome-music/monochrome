@@ -136,7 +136,7 @@
             "id": 25022,
             "name": "Kanye West"
         },
-        "releaseDate": "2026-03-20",
+        "releaseDate": "2026-03-28",
         "cover": "cf2f2c9c-ff67-44f6-83aa-a7622f8c6b64",
         "explicit": true,
         "audioQuality": "LOSSLESS",
@@ -280,7 +280,7 @@
         "title": "Freewave 3",
         "artist": {
             "id": 7923685,
-            "name": "LUCKI"
+            "name": "Lucki"
         },
         "releaseDate": "2019-02-15",
         "cover": "1d481a33-8b20-4ee3-b04b-5ac6e0fc5e78",
@@ -361,81 +361,6 @@
         "mediaMetadata": {
             "tags": [
                 "LOSSLESS"
-            ]
-        }
-    },
-    {
-        "type": "album",
-        "id": 18083938,
-        "title": "The Glow, Pt. 2",
-        "artist": {
-            "id": 3941394,
-            "name": "The Microphones"
-        },
-        "releaseDate": "2001-09-25",
-        "cover": "ec648c22-9140-41d3-a7ae-0ba69ef0420e",
-        "explicit": false,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": {
-            "tags": [
-                "LOSSLESS"
-            ]
-        }
-    },
-    {
-        "type": "album",
-        "id": 168462243,
-        "title": "Whole Lotta Red",
-        "artist": {
-            "id": 7663291,
-            "name": "Playboi Carti"
-        },
-        "releaseDate": "2020-12-25",
-        "cover": "d159d8e8-fe32-4c38-ba21-c06a5ba1f9dc",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": {
-            "tags": [
-                "LOSSLESS",
-                "HIRES_LOSSLESS"
-            ]
-        }
-    },
-    {
-        "type": "album",
-        "id": 465538710,
-        "title": "psykotic",
-        "artist": {
-            "id": 27836827,
-            "name": "Osamason"
-        },
-        "releaseDate": "2025-10-10",
-        "cover": "13c0033e-7258-4004-bc84-cd06a9847eb2",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": {
-            "tags": [
-                "LOSSLESS",
-                "HIRES_LOSSLESS"
-            ]
-        }
-    },
-    {
-        "type": "album",
-        "id": 322972991,
-        "title": "House Party",
-        "artist": {
-            "id": 17300439,
-            "name": "1oneam"
-        },
-        "releaseDate": "2023-10-21",
-        "cover": "e41c69db-a503-463c-a66f-86974645ba6a",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": {
-            "tags": [
-                "LOSSLESS",
-                "HIRES_LOSSLESS"
             ]
         }
     }
