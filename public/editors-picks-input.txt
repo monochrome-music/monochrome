@@ -3,7 +3,7 @@
 # Supported types: album, artist, track, playlist, userplaylist, podcast
 # Bare numbers (no prefix) are treated as albums for backwards compatibility.
 # Optional: set a label for this archived set with "# label: ..."
-# this is the file used for editing eidtors picks.
+# this is the file used for editing editors picks.
 # label: Spring 2026
 
 album:324660713
