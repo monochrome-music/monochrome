@@ -53,7 +53,7 @@ jobs:
 
                   # Read optional label from input file
                   label = iso_date
-                  with open("editors-picks-input.txt") as f:
+                  with open("public/editors-picks-input.txt") as f:
                       for line in f:
                           m = re.match(r"^#\s*label:\s*(.+)", line.strip())
                           if m:
