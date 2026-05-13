@@ -5,10 +5,8 @@ import authGatePlugin from './vite-plugin-auth-gate.js';
 import blobAssetPlugin from './vite-plugin-blob.js';
 import svgUse from './vite-plugin-svg-use.js';
 import uploadPlugin from './vite-plugin-upload.js';
-// import purgecss from 'vite-plugin-purgecss';
 import { playwright } from '@vitest/browser-playwright';
 import { execSync } from 'child_process';
-import purgecss from 'vite-plugin-purgecss';
 
 function proxyAudioPlugin() {
     return {
@@ -76,37 +74,15 @@ export default defineConfig((_options) => {
         build: {
             outDir: 'dist',
             emptyOutDir: true,
-            sourcemap: true,
-            minify: 'terser',
-            terserOptions: {
-                compress: {
-                    drop_console: true,
-                    drop_debugger: true,
-                },
-            },
+            sourcemap: false,
+            minify: 'esbuild',
+            reportCompressedSize: false,
             rollupOptions: {
                 treeshake: true,
             },
         },
         plugins: [
             proxyAudioPlugin(),
-            purgecss({
-                variables: false, // DO NOT REMOVE UNUSED VARIABLES (breaks web components like am-lyrics)
-                safelist: {
-                    standard: [
-                        /^am-lyrics/,
-                        /^lyplus-/,
-                        'sidepanel',
-                        'side-panel',
-                        'active',
-                        'show',
-                        /^data-/,
-                        /^modal-/,
-                    ],
-                    deep: [/^am-lyrics/],
-                    greedy: [/^lyplus-/, /sidepanel/, /side-panel/],
-                },
-            }),
             authGatePlugin(),
             uploadPlugin(),
             blobAssetPlugin(),
