@@ -24,7 +24,7 @@ import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.j
 import { createRouter, updateTabTitle, navigate } from './router.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
-import { debounce, getShareUrl } from './utils.js';
+import { debounce, getShareUrl, sanitizeForFilename } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { showNotification } from './downloads.js';
@@ -45,6 +45,7 @@ import {
     parseDynamicCSV,
     importToLibrary,
 } from './playlist-importer.js';
+import { generateFullCSV, generateFullJSON } from './playlist-generator.js';
 import { modernSettings } from './ModernSettings.js';
 import {
     SVG_OFFLINE,
@@ -2006,6 +2007,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        const libraryExportBtn = e.target.closest('.export-playlist-btn');
+        if (libraryExportBtn && libraryExportBtn.id !== 'export-playlist-btn') {
+            e.preventDefault();
+            e.stopPropagation();
+            const card = libraryExportBtn.closest('.user-playlist');
+            const playlistId = card?.dataset.userPlaylistId;
+            if (playlistId) {
+                showExportPlaylistMenu(libraryExportBtn, playlistId);
+            }
+        }
+
         if (e.target.closest('#edit-playlist-btn')) {
             const playlistId = window.location.pathname.split('/')[2];
             await db
@@ -2071,6 +2083,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await db.deletePlaylist(playlistId);
                 await syncManager.syncUserPlaylist({ id: playlistId }, 'delete');
                 navigate('/library');
+            }
+        }
+
+        const detailExportBtn = e.target.closest('#export-playlist-btn');
+        if (detailExportBtn) {
+            e.stopPropagation();
+            const playlistId = detailExportBtn.dataset.userPlaylistId || window.location.pathname.split('/')[2];
+            if (playlistId) {
+                showExportPlaylistMenu(detailExportBtn, playlistId);
             }
         }
 
@@ -2873,6 +2894,122 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function trackNeedsEnrichment(track) {
+    if (!track || !track.id) return false;
+    if (track.isPodcast || track.isTracker) return false;
+    return !track.isrc || !track.album?.title || !track.album?.artist?.name || track.trackNumber == null;
+}
+
+async function enrichTrack(track, api) {
+    try {
+        const full = await api.getTrackMetadata(track.id);
+        if (!full) return track;
+        return {
+            ...track,
+            title: track.title || full.title || null,
+            isrc: track.isrc || full.isrc || null,
+            trackNumber: track.trackNumber ?? full.trackNumber ?? null,
+            copyright: track.copyright || full.copyright || null,
+            version: track.version || full.version || null,
+            explicit: track.explicit || !!full.explicit,
+            duration: track.duration || full.duration || null,
+            artists: track.artists?.length ? track.artists : full.artists || [],
+            artist: track.artist || full.artist || null,
+            streamStartDate: track.streamStartDate || full.streamStartDate || null,
+            album:
+                track.album && track.album.title && track.album.artist?.name
+                    ? track.album
+                    : full.album
+                      ? {
+                            id: full.album.id ?? track.album?.id ?? null,
+                            title: full.album.title ?? track.album?.title ?? null,
+                            cover: full.album.cover ?? track.album?.cover ?? null,
+                            releaseDate: full.album.releaseDate ?? track.album?.releaseDate ?? null,
+                            artist: full.album.artist ?? track.album?.artist ?? null,
+                            numberOfTracks: full.album.numberOfTracks ?? track.album?.numberOfTracks ?? null,
+                        }
+                      : track.album || null,
+        };
+    } catch (err) {
+        console.warn(`Failed to enrich track ${track.id}:`, err);
+        return track;
+    }
+}
+
+async function exportUserPlaylist(playlistId, format) {
+    const playlist = await db.getPlaylist(playlistId);
+    if (!playlist) {
+        showNotification('Playlist not found.');
+        return;
+    }
+    const rawTracks = Array.isArray(playlist.tracks) ? playlist.tracks : [];
+    const safeName = sanitizeForFilename(playlist.name || playlist.title || 'playlist');
+
+    const api = MusicAPI.instance;
+    const needsEnrich = rawTracks.some(trackNeedsEnrichment);
+    if (needsEnrich) {
+        showNotification('Fetching track details for export…');
+    }
+    const tracks = api
+        ? await Promise.all(rawTracks.map((t) => (trackNeedsEnrichment(t) ? enrichTrack(t, api) : t)))
+        : rawTracks;
+
+    let content;
+    let mime;
+    let extension;
+    if (format === 'json') {
+        content = generateFullJSON(playlist, tracks);
+        mime = 'application/json;charset=utf-8;';
+        extension = 'json';
+    } else {
+        content = generateFullCSV(playlist, tracks);
+        mime = 'text/csv;charset=utf-8;';
+        extension = 'csv';
+    }
+
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${safeName}.${extension}`;
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function showExportPlaylistMenu(anchorEl, playlistId) {
+    const menu = document.getElementById('export-playlist-menu');
+    if (!menu) return;
+    const rect = anchorEl.getBoundingClientRect();
+    menu.style.top = `${rect.bottom + 5}px`;
+    menu.style.left = `${rect.left}px`;
+    menu.style.display = 'block';
+
+    const closeMenu = () => {
+        menu.style.display = 'none';
+        menu.onclick = null;
+        document.removeEventListener('click', closeMenu);
+    };
+
+    menu.onclick = async (ev) => {
+        const li = ev.target.closest('li');
+        if (li && li.dataset.exportFormat) {
+            ev.stopPropagation();
+            closeMenu();
+            try {
+                await exportUserPlaylist(playlistId, li.dataset.exportFormat);
+            } catch (err) {
+                console.error('Failed to export playlist:', err);
+                showNotification('Failed to export playlist.');
+            }
+        }
+    };
+
+    setTimeout(() => document.addEventListener('click', closeMenu), 0);
 }
 
 function showMissingTracksNotification(missingTracks, playlistName) {

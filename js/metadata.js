@@ -103,16 +103,14 @@ export async function addMetadataToAudio(audioBlob, track, _api, _quality, prefe
         }
 
         try {
-            if (track.album?.cover) {
-                const coverBlob = await coverFetch;
+            const coverBlob = await coverFetch;
 
-                if (coverBlob) {
-                    const coverBuffer = new Uint8Array(await coverBlob.arrayBuffer());
-                    data.cover = {
-                        data: coverBuffer,
-                        type: getMimeType(coverBuffer),
-                    };
-                }
+            if (coverBlob) {
+                const coverBuffer = new Uint8Array(await coverBlob.arrayBuffer());
+                data.cover = {
+                    data: coverBuffer,
+                    type: getMimeType(coverBuffer),
+                };
             }
         } catch (e) {
             console.warn('Error setting cover metadata.', track, e);

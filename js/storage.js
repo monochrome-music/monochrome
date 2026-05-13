@@ -96,7 +96,10 @@ export const apiSettings = {
                         { url: 'https://hund.qqdl.site', version: '2.6' },
                         { url: 'https://wolf.qqdl.site', version: '2.6' },
                     ],
-                    qobuz: [{ url: 'https://qobuz.kennyy.com.br', version: '1.0' }],
+                    qobuz: [
+                        { url: 'https://qdl-api.monochrome.tf', version: '1.0' },
+                        { url: 'https://qobuz.kennyy.com.br', version: '1.0' },
+                    ],
                 };
                 this.instancesLoaded = true;
                 this._loadPromise = null;
@@ -126,7 +129,7 @@ export const apiSettings = {
 
             // Ensure default Qobuz instance is always available
             if (groupedInstances.qobuz.length === 0) {
-                groupedInstances.qobuz = [{ url: 'https://qobuz.kennyy.com.br', version: '1.0' }];
+                groupedInstances.qobuz = [{ url: 'https://qdl-api.monochrome.tf', version: '1.0' }];
             }
 
             this.defaultInstances = groupedInstances;
