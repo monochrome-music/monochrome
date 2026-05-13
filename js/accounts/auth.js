@@ -1,5 +1,10 @@
 // js/accounts/auth.js
-import { auth } from './config.js';
+import { authClient } from './config.js';
+
+function normalizeUser(user) {
+    if (!user) return null;
+    return { ...user, $id: user.id };
+}
 
 export class AuthManager {
     constructor() {
@@ -10,30 +15,17 @@ export class AuthManager {
 
     async init() {
         const params = new URLSearchParams(window.location.search);
-        const userId = params.get('userId');
-        const secret = params.get('secret');
-        const isOAuthRedirect = params.get('oauth') === '1';
-
-        if (userId && secret && userId !== 'null' && secret !== 'null') {
-            if (window.location.pathname !== '/reset-password') {
-                try {
-                    await auth.createSession(userId, secret);
-                    window.history.replaceState({}, '', window.location.pathname);
-                } catch (error) {
-                    console.warn('OAuth session handoff failed:', error.message);
-                    window.history.replaceState({}, '', window.location.pathname);
-                }
-            }
-        } else if (isOAuthRedirect) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
+        if (params.has('oauth') || params.has('userId') || params.has('secret')) {
             window.history.replaceState({}, '', window.location.pathname);
         }
 
         try {
-            this.user = await auth.get();
+            const { data: session } = await authClient.getSession();
+            this.user = normalizeUser(session?.user);
             this.updateUI(this.user);
             this.authListeners.forEach((listener) => listener(this.user));
-        } catch {
+        } catch (err) {
+            console.warn('Session check failed:', err);
             this.user = null;
             this.updateUI(null);
         }
@@ -41,68 +33,43 @@ export class AuthManager {
 
     onAuthStateChanged(callback) {
         this.authListeners.push(callback);
-        // If we already have a user state, trigger immediately
         if (this.user !== null) {
             callback(this.user);
         }
     }
 
+    async _signInSocial(provider) {
+        try {
+            await authClient.signIn.social({
+                provider,
+                callbackURL: window.location.origin + '/index.html',
+                errorCallbackURL: window.location.origin + '/login.html',
+            });
+        } catch (error) {
+            console.error('Login failed:', error);
+            alert(`Login failed: ${error.message}`);
+        }
+    }
+
     async signInWithGoogle() {
-        try {
-            auth.createOAuth2Session(
-                'google',
-                window.location.origin + '/index.html?oauth=1',
-                window.location.origin + '/login.html'
-            );
-        } catch (error) {
-            console.error('Login failed:', error);
-            alert(`Login failed: ${error.message}`);
-        }
+        return this._signInSocial('google');
     }
-
     async signInWithGitHub() {
-        try {
-            auth.createOAuth2Session(
-                'github',
-                window.location.origin + '/index.html?oauth=1',
-                window.location.origin + '/login.html'
-            );
-        } catch (error) {
-            console.error('Login failed:', error);
-            alert(`Login failed: ${error.message}`);
-        }
+        return this._signInSocial('github');
     }
-
-    async signInWithSpotify() {
-        try {
-            auth.createOAuth2Session(
-                'spotify',
-                window.location.origin + '/index.html?oauth=1',
-                window.location.origin + '/login.html'
-            );
-        } catch (error) {
-            console.error('Login failed:', error);
-            alert(`Login failed: ${error.message}`);
-        }
-    }
-
     async signInWithDiscord() {
-        try {
-            auth.createOAuth2Session(
-                'discord',
-                window.location.origin + '/index.html?oauth=1',
-                window.location.origin + '/login.html'
-            );
-        } catch (error) {
-            console.error('Login failed:', error);
-            alert(`Login failed: ${error.message}`);
-        }
+        return this._signInSocial('discord');
+    }
+    async signInWithSpotify() {
+        return this._signInSocial('spotify');
     }
 
     async signInWithEmail(email, password) {
         try {
-            await auth.createEmailPasswordSession(email, password);
-            this.user = await auth.get();
+            const { data, error } = await authClient.signIn.email({ email, password });
+            if (error) throw new Error(error.message);
+
+            this.user = normalizeUser(data.user);
             this.updateUI(this.user);
             this.authListeners.forEach((listener) => listener(this.user));
             return this.user;
@@ -115,9 +82,14 @@ export class AuthManager {
 
     async signUpWithEmail(email, password) {
         try {
-            await auth.create('unique()', email, password);
-            await auth.createEmailPasswordSession(email, password);
-            this.user = await auth.get();
+            const { data, error } = await authClient.signUp.email({
+                email,
+                password,
+                name: email.split('@')[0],
+            });
+            if (error) throw new Error(error.message);
+
+            this.user = normalizeUser(data.user);
             this.updateUI(this.user);
             this.authListeners.forEach((listener) => listener(this.user));
             return this.user;
@@ -130,7 +102,11 @@ export class AuthManager {
 
     async sendPasswordReset(email) {
         try {
-            await auth.createRecovery(email, window.location.origin + '/reset-password');
+            const { error } = await authClient.requestPasswordReset({
+                email,
+                redirectTo: window.location.origin + '/reset-password',
+            });
+            if (error) throw new Error(error.message);
             alert(`Password reset email sent to ${email}`);
         } catch (error) {
             console.error('Password reset failed:', error);
@@ -139,12 +115,13 @@ export class AuthManager {
         }
     }
 
-    async resetPassword(userId, secret, password, confirmPassword) {
+    async resetPassword(token, password, confirmPassword) {
         if (password !== confirmPassword) {
             throw new Error('Passwords do not match');
         }
         try {
-            await auth.updateRecovery(userId, secret, password, password);
+            const { error } = await authClient.resetPassword({ newPassword: password, token });
+            if (error) throw new Error(error.message);
         } catch (error) {
             console.error('Password reset failed:', error);
             throw error;
@@ -153,7 +130,7 @@ export class AuthManager {
 
     async signOut() {
         try {
-            await auth.deleteSession('current');
+            await authClient.signOut();
             this.user = null;
             this.updateUI(null);
             this.authListeners.forEach((listener) => listener(null));

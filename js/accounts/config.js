@@ -1,28 +1,21 @@
-import { Client, Account } from 'appwrite';
+// js/accounts/config.js
+import { createAuthClient } from 'https://esm.sh/better-auth/client';
 
-const getEndpoint = () => {
-    const local = localStorage.getItem('monochrome-appwrite-endpoint');
+const getBaseURL = () => {
+    const local = localStorage.getItem('monochrome-auth-url');
     if (local) return local;
 
-    if (window.__APPWRITE_ENDPOINT__) return window.__APPWRITE_ENDPOINT__;
+    if (window.__AUTH_URL__) return window.__AUTH_URL__;
 
     const hostname = window.location.hostname;
     if (hostname.endsWith('monochrome.tf') || hostname === 'monochrome.tf') {
-        return 'https://auth.monochrome.tf/v1';
+        return 'https://auth.monochrome.tf';
     }
-    return 'https://auth.samidy.com/v1';
+    return 'https://auth.samidy.com';
 };
 
-const getProject = () => {
-    const local = localStorage.getItem('monochrome-appwrite-project');
-    if (local) return local;
+export const authClient = createAuthClient({
+    baseURL: getBaseURL(),
+});
 
-    if (window.__APPWRITE_PROJECT_ID__) return window.__APPWRITE_PROJECT_ID__;
-
-    return 'auth-for-monochrome';
-};
-
-const client = new Client().setEndpoint(getEndpoint()).setProject(getProject());
-
-const account = new Account(client);
-export { client, account as auth };
+export { authClient as auth };
