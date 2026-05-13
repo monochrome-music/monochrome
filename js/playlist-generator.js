@@ -262,6 +262,126 @@ export function generateJSON(playlist, tracks, type = 'playlist') {
     return JSON.stringify(data, null, 2);
 }
 
+export function generateFullCSV(_playlist, tracks) {
+    const headers = [
+        'Position',
+        'Track Name',
+        'Artist Name(s)',
+        'Album',
+        'Album Artist',
+        'Track Number',
+        'Duration (seconds)',
+        'Duration',
+        'ISRC',
+        'Release Date',
+        'Explicit',
+        'Copyright',
+        'Track ID',
+        'Album ID',
+        'Version',
+        'Added At',
+    ];
+
+    const lines = [headers.map(csvEscape).join(',')];
+
+    tracks.forEach((track, index) => {
+        const row = [
+            String(index + 1),
+            track.title || '',
+            getTrackArtists(track),
+            track.album?.title || '',
+            track.album?.artist?.name || '',
+            track.trackNumber != null ? String(track.trackNumber) : '',
+            track.duration != null ? String(Math.round(track.duration)) : '',
+            track.duration != null ? formatDurationMMSS(track.duration) : '',
+            track.isrc || '',
+            track.album?.releaseDate || track.streamStartDate || '',
+            track.explicit ? 'true' : 'false',
+            track.copyright || '',
+            track.id != null ? String(track.id) : '',
+            track.album?.id != null ? String(track.album.id) : '',
+            track.version || '',
+            track.addedAt ? new Date(track.addedAt).toISOString() : '',
+        ];
+        lines.push(row.map(csvEscape).join(','));
+    });
+
+    return lines.join('\n') + '\n';
+}
+
+export function generateFullJSON(playlist, tracks) {
+    const data = {
+        format: 'monochrome-playlist-full',
+        version: '1.0',
+        type: 'playlist',
+        generated: new Date().toISOString(),
+        playlist: {
+            id: playlist.id || playlist.uuid || null,
+            name: playlist.name || playlist.title || null,
+            description: playlist.description || null,
+            cover: playlist.cover || null,
+            isPublic: !!playlist.isPublic,
+            createdAt: playlist.createdAt
+                ? typeof playlist.createdAt === 'number'
+                    ? new Date(playlist.createdAt).toISOString()
+                    : playlist.createdAt
+                : null,
+            updatedAt: playlist.updatedAt
+                ? typeof playlist.updatedAt === 'number'
+                    ? new Date(playlist.updatedAt).toISOString()
+                    : playlist.updatedAt
+                : null,
+            numberOfTracks: tracks.length,
+        },
+        tracks: tracks.map((track, index) => ({
+            position: index + 1,
+            id: track.id || null,
+            title: track.title || null,
+            artist: getTrackArtists(track),
+            artists: track.artists?.map((a) => ({ id: a.id || null, name: a.name || null })) || [],
+            album: track.album
+                ? {
+                      id: track.album.id || null,
+                      title: track.album.title || null,
+                      artist: track.album.artist?.name || null,
+                      releaseDate: track.album.releaseDate || null,
+                      cover: track.album.cover || null,
+                      numberOfTracks: track.album.numberOfTracks || null,
+                  }
+                : null,
+            trackNumber: track.trackNumber || null,
+            duration: track.duration != null ? Math.round(track.duration) : null,
+            isrc: track.isrc || null,
+            explicit: !!track.explicit,
+            copyright: track.copyright || null,
+            version: track.version || null,
+            streamStartDate: track.streamStartDate || null,
+            addedAt: track.addedAt
+                ? typeof track.addedAt === 'number'
+                    ? new Date(track.addedAt).toISOString()
+                    : track.addedAt
+                : null,
+        })),
+    };
+
+    return JSON.stringify(data, null, 2);
+}
+
+function csvEscape(value) {
+    const str = value == null ? '' : String(value);
+    if (/[",\n\r]/.test(str)) {
+        return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+}
+
+function formatDurationMMSS(seconds) {
+    const total = Math.round(seconds);
+    const mins = Math.floor(total / 60);
+    const secs = total % 60;
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
 /**
  * Helper function to get track artists string
  */
