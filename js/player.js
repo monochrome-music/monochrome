@@ -592,21 +592,6 @@ export class Player {
 
                 if (this.preloadAbortController.signal.aborted) break;
 
-                // Also preload ReplayGain legacy metadata if the fast manifest endpoint failed to provide it
-                if (track.type !== 'video' && !streamInfo.rgInfo) {
-                    try {
-                        const trackData = await this.api.getTrack(track.id, this.quality);
-                        if (trackData && trackData.info) {
-                            streamInfo.rgInfoFallback = {
-                                trackReplayGain: trackData.info.trackReplayGain,
-                                trackPeakAmplitude: trackData.info.trackPeakAmplitude,
-                                albumReplayGain: trackData.info.albumReplayGain,
-                                albumPeakAmplitude: trackData.info.albumPeakAmplitude,
-                            };
-                        }
-                    } catch (_e) {} // Fail silently
-                }
-
                 this.preloadCache.set(track.id, streamInfo);
                 const streamUrl = streamInfo.url;
 
@@ -697,29 +682,7 @@ export class Player {
         }
     }
 
-    backfillReplayGainFromTrack(track, currentSequence) {
-        void this.api
-            .getTrack(track.id, this.quality)
-            .then((trackData) => {
-                if (this.playbackSequence !== currentSequence || this.currentTrack?.id !== track.id) {
-                    return;
-                }
-
-                if (trackData?.info) {
-                    this.currentRgValues = {
-                        trackReplayGain: trackData.info.trackReplayGain,
-                        trackPeakAmplitude: trackData.info.trackPeakAmplitude,
-                        albumReplayGain: trackData.info.albumReplayGain,
-                        albumPeakAmplitude: trackData.info.albumPeakAmplitude,
-                    };
-                } else {
-                    this.currentRgValues = null;
-                }
-
-                this.applyReplayGain();
-            })
-            .catch(() => {});
-    }
+    backfillReplayGainFromTrack(_track, _currentSequence) {}
 
     tryStartPreloadedTrackImmediately({
         track,
@@ -1373,27 +1336,12 @@ export class Player {
 
                 if (resolvedStreamInfo.rgInfo) {
                     this.currentRgValues = resolvedStreamInfo.rgInfo;
-                    this.applyReplayGain();
                 } else if (resolvedStreamInfo.rgInfoFallback) {
                     this.currentRgValues = resolvedStreamInfo.rgInfoFallback;
-                    this.applyReplayGain();
                 } else {
-                    // Fallback to legacy metadata if manifest lacked normalization data
-                    const trackData = await this.api.getTrack(track.id, this.quality).catch(() => null);
-                    if (this.playbackSequence !== currentSequence) return;
-
-                    if (trackData && trackData.info) {
-                        this.currentRgValues = {
-                            trackReplayGain: trackData.info.trackReplayGain,
-                            trackPeakAmplitude: trackData.info.trackPeakAmplitude,
-                            albumReplayGain: trackData.info.albumReplayGain,
-                            albumPeakAmplitude: trackData.info.albumPeakAmplitude,
-                        };
-                    } else {
-                        this.currentRgValues = null;
-                    }
-                    this.applyReplayGain();
+                    this.currentRgValues = null;
                 }
+                this.applyReplayGain();
 
                 if (this.playbackSequence !== currentSequence) return;
 
