@@ -3689,7 +3689,7 @@ export class UIRenderer {
                         });
                     }
                 });
-                finalArtists = await this.api.enrichArtistsWithPicture(Array.from(artistMap.values()));
+                finalArtists = await this.api.tidalAPI.enrichArtistsWithPicture(Array.from(artistMap.values()));
             }
 
             if (finalAlbums.length === 0 && finalTracks.length > 0) {
