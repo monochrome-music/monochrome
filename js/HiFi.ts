@@ -1728,15 +1728,28 @@ class HiFiClient {
 
         if (id) {
             const artist_url = `https://openapi.tidal.com/v2/artists/${id}`;
-            const payload = await this.#fetchJson<any>(
-                artist_url,
-                {
-                    countryCode: this.#countryCode,
-                    include: 'albums,albums.coverArt,tracks,tracks.albums,biography,profileArt',
-                    collapseBy: 'FINGERPRINT',
-                },
-                signal
-            );
+            const v1_albums_url = `https://api.tidal.com/v1/artists/${id}/albums`;
+            const v1_common_params: Params = { countryCode: this.#countryCode, limit: 50 };
+
+            const [payload, v1AlbumsRes, v1EpsSinglesRes] = await Promise.all([
+                this.#fetchJson<any>(
+                    artist_url,
+                    {
+                        countryCode: this.#countryCode,
+                        include: 'albums,albums.coverArt,tracks,tracks.albums,biography,profileArt',
+                        collapseBy: 'FINGERPRINT',
+                    },
+                    signal
+                ),
+                this.#fetchJson<TidalListResponse<TidalAlbum>>(v1_albums_url, v1_common_params, signal).catch(
+                    (): null => null
+                ),
+                this.#fetchJson<TidalListResponse<TidalAlbum>>(
+                    v1_albums_url,
+                    { ...v1_common_params, filter: 'EPSANDSINGLES' },
+                    signal
+                ).catch((): null => null),
+            ]);
 
             const includedMap = new Map<string, any>();
             if (Array.isArray(payload?.included)) {
@@ -1771,6 +1784,7 @@ class HiFiClient {
                 id: Number(data?.id || id),
                 name: data?.attributes?.name || '',
                 picture: getPic(data, 'profileArt') || data?.attributes?.selectedAlbumCoverFallback || null,
+                popularity: Math.round((data?.attributes?.popularity ?? 0) * 100),
                 biography: biography,
             };
 
@@ -1794,13 +1808,15 @@ class HiFiClient {
 
             const albums: any[] = [];
             const tracks: any[] = [];
+            const seenAlbumIds = new Set<number>();
 
             if (data?.relationships?.albums?.data) {
                 for (const ref of data.relationships.albums.data) {
                     const al = includedMap.get(`albums:${ref.id}`);
                     if (al) {
+                        const albumId = Number(al.id);
                         albums.push({
-                            id: Number(al.id),
+                            id: albumId,
                             title: al.attributes?.title,
                             duration: parseIsoDuration(al.attributes?.duration),
                             numberOfTracks: al.attributes?.numberOfItems,
@@ -1809,7 +1825,18 @@ class HiFiClient {
                             cover: getPic(al, 'coverArt'),
                             artist: { id: artist_data.id, name: artist_data.name },
                         });
+                        seenAlbumIds.add(albumId);
                     }
+                }
+            }
+
+            for (const res of [v1AlbumsRes, v1EpsSinglesRes]) {
+                const items = res?.items;
+                if (!Array.isArray(items)) continue;
+                for (const al of items) {
+                    if (!al || !al.id || seenAlbumIds.has(al.id)) continue;
+                    albums.push(al);
+                    seenAlbumIds.add(al.id);
                 }
             }
 

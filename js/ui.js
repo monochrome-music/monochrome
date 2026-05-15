@@ -5171,7 +5171,7 @@ export class UIRenderer {
             this.adjustTitleFontSize(nameEl, artist.name);
 
             metaEl.innerHTML = `
-                <span>${artist.popularity}% popularity</span>
+                <span>${artist.popularity}% Popularity</span>
                 <div class="artist-tags">
                     ${(artist.artistRoles || [])
                         .filter((role) => role.category)
