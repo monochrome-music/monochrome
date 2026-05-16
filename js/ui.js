@@ -2427,10 +2427,9 @@ export class UIRenderer {
         if (!form) return;
 
         const params = new URLSearchParams(window.location.search);
-        const userId = params.get('userId');
-        const secret = params.get('secret');
+        const token = params.get('token');
 
-        if (!userId || !secret) {
+        if (!token) {
             errorEl.textContent = 'Invalid or missing password reset link.';
             errorEl.style.display = 'block';
             form.style.display = 'none';
@@ -2456,7 +2455,7 @@ export class UIRenderer {
                 btnText.style.display = 'none';
                 spinner.style.display = 'block';
 
-                await authManager.resetPassword(userId, secret, password, confirm);
+                await authManager.resetPassword(token, password, confirm);
 
                 successEl.textContent = 'Password reset successfully. Opening login...';
                 successEl.style.display = 'block';
@@ -3690,7 +3689,7 @@ export class UIRenderer {
                         });
                     }
                 });
-                finalArtists = await this.api.enrichArtistsWithPicture(Array.from(artistMap.values()));
+                finalArtists = await this.api.tidalAPI.enrichArtistsWithPicture(Array.from(artistMap.values()));
             }
 
             if (finalAlbums.length === 0 && finalTracks.length > 0) {
@@ -5172,7 +5171,7 @@ export class UIRenderer {
             this.adjustTitleFontSize(nameEl, artist.name);
 
             metaEl.innerHTML = `
-                <span>${artist.popularity}% popularity</span>
+                <span>${artist.popularity}% Popularity</span>
                 <div class="artist-tags">
                     ${(artist.artistRoles || [])
                         .filter((role) => role.category)

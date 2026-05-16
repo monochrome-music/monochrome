@@ -343,6 +343,7 @@ async function bulkDownload({
 }) {
     const { abortController } = bulkDownloadTasks.get(notification);
     const signal = abortController.signal;
+    const stats = { failed: 0, total: tracks.length, firstError: null };
 
     async function* yieldFiles() {
         // Add cover if available and enabled
@@ -406,8 +407,15 @@ async function bulkDownload({
                     }
                 }
             } catch (err) {
-                if (err.name === 'AbortError') throw err;
+                if (err?.name === 'AbortError' || signal.aborted) throw err;
+                stats.failed += 1;
+                if (!stats.firstError) stats.firstError = err?.message || String(err);
                 console.error(`Failed to download track ${trackTitle}:`, err);
+                const statusEl = notification.querySelector('.download-status');
+                if (statusEl) {
+                    statusEl.textContent = `${Math.floor(i + 1)}/${tracks.length} · ${stats.failed} failed`;
+                    statusEl.style.color = '#f59e0b';
+                }
                 trackPaths.push(null);
             }
         }
@@ -492,6 +500,7 @@ async function bulkDownload({
     }
 
     await writer.write(yieldFiles());
+    return stats;
 }
 
 /**
@@ -641,8 +650,9 @@ async function startBulkDownload({
     try {
         const writer = single ? await createSingleTrackFolderWriter() : await createBulkWriter(folderName);
 
+        let stats = null;
         if (writer) {
-            await bulkDownload({
+            stats = await bulkDownload({
                 tracks,
                 folderName,
                 api,
@@ -656,19 +666,22 @@ async function startBulkDownload({
             });
         }
 
-        completeBulkDownload(notification, true);
+        completeBulkDownload(notification, true, null, {
+            failedTracks: stats?.failed || 0,
+            totalTracks: stats?.total || 0,
+        });
 
         // If the download went to the local media folder, refresh the local library.
         if (modernSettings.bulkDownloadMethod === BulkDownloadMethod.LocalMedia) {
             window.refreshLocalMediaFolder?.();
         }
     } catch (error) {
-        if (error.name === 'AbortError') {
+        if (error?.name === 'AbortError') {
             removeBulkDownloadTask(notification);
             return;
         }
         console.error('Bulk download failed:', error);
-        completeBulkDownload(notification, false, error.message);
+        completeBulkDownload(notification, false, error?.message);
     }
 }
 
@@ -738,6 +751,7 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
     const notification = createBulkDownloadNotification('discography', artist.name, selectedReleases.length);
     const { abortController } = bulkDownloadTasks.get(notification);
     const signal = abortController.signal;
+    const stats = { failed: 0, total: 0, firstError: null };
 
     async function* yieldDiscography() {
         for (let albumIndex = 0; albumIndex < selectedReleases.length; albumIndex++) {
@@ -772,6 +786,7 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
 
                 // Download tracks, yielding each immediately and collecting actual paths for playlist generation
                 const trackPaths = [];
+                stats.total += tracks.length;
                 for (let i = 0; i < tracks.length; i++) {
                     const track = tracks[i];
                     if (signal.aborted) break;
@@ -813,8 +828,15 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                             }
                         }
                     } catch (err) {
-                        if (err.name === 'AbortError') throw err;
+                        if (err?.name === 'AbortError' || signal.aborted) throw err;
+                        stats.failed += 1;
+                        if (!stats.firstError) stats.firstError = err?.message || String(err);
                         console.error(`Failed to download track ${track.title}:`, err);
+                        const statusEl = notification.querySelector('.download-status');
+                        if (statusEl) {
+                            statusEl.textContent = `${album.title} · ${stats.failed} failed`;
+                            statusEl.style.color = '#f59e0b';
+                        }
                         trackPaths.push(null);
                     }
                 }
@@ -865,8 +887,9 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                     };
                 }
             } catch (error) {
-                if (error.name === 'AbortError') throw error;
+                if (error?.name === 'AbortError' || signal.aborted) throw error;
                 console.error(`Failed to download album ${album.title}:`, error);
+                if (!stats.firstError) stats.firstError = error?.message || String(error);
             }
         }
     }
@@ -878,13 +901,16 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
             await writer.write(yieldDiscography());
         }
 
-        completeBulkDownload(notification, true);
+        completeBulkDownload(notification, true, null, {
+            failedTracks: stats.failed,
+            totalTracks: stats.total,
+        });
     } catch (error) {
-        if (error.name === 'AbortError') {
+        if (error?.name === 'AbortError' || signal.aborted) {
             removeBulkDownloadTask(notification);
             return;
         }
-        completeBulkDownload(notification, false, error.message);
+        completeBulkDownload(notification, false, error?.message);
     }
 }
 
@@ -987,11 +1013,24 @@ function updateBulkDownloadProgress(notifEl, current, total, currentItem, progre
     statusEl.textContent = `${Math.floor(current + 1)}/${total} - ${currentItem}`;
 }
 
-function completeBulkDownload(notifEl, success = true, message = null) {
+function completeBulkDownload(notifEl, success = true, message = null, { failedTracks = 0, totalTracks = 0 } = {}) {
     const progressFill = notifEl.querySelector('.download-progress-fill');
     const statusEl = notifEl.querySelector('.download-status');
 
-    if (success) {
+    const partial = success && failedTracks > 0;
+
+    if (partial) {
+        const succeeded = Math.max(0, totalTracks - failedTracks);
+        progressFill.style.width = '100%';
+        progressFill.style.background = '#f59e0b';
+        statusEl.textContent = `warning: ${succeeded}/${totalTracks} downloaded - ${failedTracks} failed`;
+        statusEl.style.color = '#f59e0b';
+
+        setTimeout(() => {
+            notifEl.style.animation = 'slide-out 0.3s ease forwards';
+            setTimeout(() => notifEl.remove(), 300);
+        }, 8000);
+    } else if (success) {
         progressFill.style.width = '100%';
         progressFill.style.background = '#10b981';
         statusEl.textContent = '✓ Download complete';

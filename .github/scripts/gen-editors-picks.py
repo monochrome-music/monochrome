@@ -11,7 +11,7 @@ import os
 import tempfile
 import base64
 
-INPUT_FILE = "editors-picks-input.txt"
+INPUT_FILE = "public/editors-picks-input.txt"
 COUNTRY = "US"
 
 TIDAL_CLIENT_ID = "txNoH4kkV41MfH25"

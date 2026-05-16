@@ -1,5 +1,6 @@
 import { AbortError } from './errorTypes';
 import { SegmentedDownloadProgress } from './progressEvents';
+import { getProxyUrl } from './proxy-utils';
 
 export interface DashDownloadOptions {
     onProgress?: MonochromeProgressListener<SegmentedDownloadProgress>;
