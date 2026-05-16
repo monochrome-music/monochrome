@@ -2401,16 +2401,25 @@ export const radioSettings = {
     },
 };
 
+// fuck you binimum for adding this bullshit
+
+try {
+    const RESET_FLAG = 'autoplay-enabled-reset-v1';
+    if (!localStorage.getItem(RESET_FLAG)) {
+        localStorage.removeItem('autoplay-enabled');
+        localStorage.setItem(RESET_FLAG, '1');
+    }
+} catch {}
+
 export const autoplaySettings = {
     ENABLED_KEY: 'autoplay-enabled',
     SMART_RECS_KEY: 'smart-recommendations-enabled',
 
     isEnabled() {
         try {
-            const val = localStorage.getItem(this.ENABLED_KEY);
-            return val === null ? true : val === 'true';
+            return localStorage.getItem(this.ENABLED_KEY) === 'true';
         } catch {
-            return true;
+            return false;
         }
     },
 

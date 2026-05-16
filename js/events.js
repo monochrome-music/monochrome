@@ -2179,7 +2179,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                         player.playVideo(clickedTrack);
                     } else {
                         player.setQueue([clickedTrack], 0);
-                        player.enableAutoplay();
                         document.getElementById('shuffle-btn').classList.remove('active');
                         player.playTrackFromQueue();
 
@@ -2213,7 +2212,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
 
                     player.setQueue(trackList, startIndex);
-                    player.enableAutoplay();
 
                     if (ui.currentPage === 'artist' && ui.currentArtistId) {
                         player.setArtistPopularTracksContext(ui.currentArtistId, trackList, trackList.length, true);
@@ -2264,7 +2262,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 if (trackList.length === 0) return;
                 const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
                 player.setQueue(trackList, startIndex);
-                player.enableAutoplay();
                 if (ui.currentPage === 'artist' && ui.currentArtistId) {
                     player.setArtistPopularTracksContext(ui.currentArtistId, trackList, trackList.length, true);
                 }

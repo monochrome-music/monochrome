@@ -6273,7 +6273,6 @@ export class UIRenderer {
 
             playBtn.onclick = () => {
                 this.player.setQueue([track], 0);
-                this.player.enableAutoplay();
                 this.player.playTrackFromQueue();
             };
 
