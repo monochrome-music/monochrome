@@ -37,6 +37,13 @@ import {
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 export { resolveDownloadTotalBytes };
+let lastAudioSourceMissingNotifyAt = 0;
+function notifyAudioSourceMissing() {
+    const now = Date.now();
+    if (now - lastAudioSourceMissingNotifyAt < 3000) return;
+    lastAudioSourceMissingNotifyAt = now;
+    import('./downloads.js').then((m) => m.showNotification('Could not find Audio Source')).catch(() => {});
+}
 
 export class LosslessAPI {
     constructor(settings) {
@@ -1699,6 +1706,30 @@ export class LosslessAPI {
         }
     }
 
+    async getTrackFromDevMode(id, quality = 'LOSSLESS') {
+        const devBaseUrl = devModeSettings.getUrl().replace(/\/+$/, '');
+        const requestedQuality = normalizeQualityToken(quality) || quality || 'LOSSLESS';
+        const params = new URLSearchParams({
+            id: String(id),
+            quality: requestedQuality,
+            adaptive: 'false',
+        });
+        for (const format of this.getTrackManifestFormats(quality)) {
+            params.append('formats', format);
+        }
+
+        const url = `${devBaseUrl}/trackManifests/?${params.toString()}`;
+        if (import.meta.env.DEV) {
+            console.log('[dev-mode]', url);
+        }
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Dev mode request failed: ${response.status} ${response.statusText}`);
+        }
+        const jsonResponse = await response.json();
+        return this.parseTrackLookup(await this.normalizeTrackManifestResponse(jsonResponse, quality));
+    }
+
     async getTrack(id, quality = 'LOSSLESS', { adaptive = false } = {}) {
         const cacheKey = `${id}_${quality}_${adaptive ? 'adaptive' : 'fixed'}`;
         const cached = await this.cache.get('track', cacheKey);
@@ -1803,13 +1834,33 @@ export class LosslessAPI {
         if (this.streamCache.has(cacheKey)) {
             return this.streamCache.get(cacheKey);
         }
-        let lastAudioSourceMissingNotifyAt = 0;
-        function notifyAudioSourceMissing() {
-            const now = Date.now();
-            if (now - lastAudioSourceMissingNotifyAt < 3000) return;
-            lastAudioSourceMissingNotifyAt = now;
-            import('./downloads.js').then((m) => m.showNotification('Could not find Audio Source')).catch(() => {});
+
+        if (devModeSettings.isEnabled()) {
+            const lookup = await this.getTrackFromDevMode(id, quality);
+            let streamUrl;
+            if (lookup.originalTrackUrl) {
+                streamUrl = lookup.originalTrackUrl;
+            } else if (lookup.info?.manifest) {
+                streamUrl = this.extractStreamUrlFromManifest(lookup.info.manifest);
+            }
+            if (!streamUrl) {
+                throw new Error('Could not resolve stream URL from dev mode');
+            }
+            const result = {
+                url: streamUrl,
+                rgInfo: lookup.info
+                    ? {
+                          trackReplayGain: lookup.info.trackReplayGain || lookup.info.replayGain,
+                          trackPeakAmplitude: lookup.info.trackPeakAmplitude || lookup.info.peakAmplitude,
+                          albumReplayGain: lookup.info.albumReplayGain,
+                          albumPeakAmplitude: lookup.info.albumPeakAmplitude,
+                      }
+                    : null,
+            };
+            this.streamCache.set(cacheKey, result);
+            return result;
         }
+
         const track = await this.getTrackMetadata(id);
         if (!track?.isrc) {
             notifyAudioSourceMissing();
@@ -1898,6 +1949,8 @@ export class LosslessAPI {
 
         if (isVideo) {
             lookup = await this.getVideo(id);
+        } else if (devModeSettings.isEnabled()) {
+            lookup = new PlaybackInfo(await this.getTrackFromDevMode(id, cleanQuality));
         } else {
             if (!track?.isrc) {
                 notifyAudioSourceMissing();
