@@ -98,9 +98,34 @@ export class ListeningPartyManager {
         document.getElementById('party-chat-input')?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.sendChatMessage().catch(console.error);
         });
+
+        const listen_party_down = true;
+        const message =
+            'Listening parties are temporarily disabled while we ship some backend improvements. Existing parties will keep running, new ones can be created again shortly (hopefully in a day or 2). Thanks for your patience!';
+        if (listen_party_down) {
+            this.maintenanceMode = true;
+            this.maintenanceMessage = message;
+            const createBtn = document.getElementById('create-party-btn');
+            const nameInput = document.getElementById('party-name-input');
+            if (createBtn) {
+                createBtn.textContent = 'Under Maintenance';
+                createBtn.disabled = true;
+                createBtn.style.opacity = '0.5';
+                createBtn.style.cursor = 'not-allowed';
+            }
+            if (nameInput) {
+                nameInput.disabled = true;
+                nameInput.placeholder = 'Hosting temporarily disabled';
+            }
+        }
     }
 
     async createParty() {
+        if (this.maintenanceMode) {
+            await Modal.alert('Under Maintenance', this.maintenanceMessage);
+            return;
+        }
+
         const nameInput = document.getElementById('party-name-input');
         const user = authManager.user;
         if (!user) {
