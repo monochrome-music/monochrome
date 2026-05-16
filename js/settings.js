@@ -877,8 +877,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         const staticCategories = {
             HI_RES_LOSSLESS: 'Lossless',
             LOSSLESS: 'Lossless',
-            HIGH: 'AAC',
-            LOW: 'AAC',
         };
 
         // Collect static options first (preserving their original order)
