@@ -1,4 +1,4 @@
-    import { syncManager } from './accounts/pocketbase.js';
+import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
 import { navigate } from './router.js';
 import { MusicAPI } from './music-api.js';
