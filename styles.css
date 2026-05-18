@@ -10362,6 +10362,10 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     margin: 0 auto;
 }
 
+#party-chat-messages > :first-child {
+    margin-top: auto;
+}
+
 .party-content-layout {
     display: grid;
     grid-template-columns: 1fr 350px;
@@ -10374,77 +10378,153 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     }
 }
 
-.party-indicator-card {
-    position: fixed;
-    bottom: calc(var(--player-bar-height-desktop) + 1.5rem);
-    right: 1.5rem;
+
+.party-now-playing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.5rem;
+    padding: 2rem;
     background: var(--card);
     border: 1px solid var(--border);
-    border-right: 4px solid var(--primary);
-    border-radius: var(--radius-md);
-    padding: 0.6rem 1rem;
+    border-radius: var(--radius);
+}
+
+.party-now-playing-cover {
+    width: 100%;
+    max-width: 250px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--radius);
+    object-fit: cover;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.party-now-playing-info {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.party-now-playing-title {
+    font-size: clamp(1.25rem, 4vw, 1.8rem);
+    font-weight: var(--font-bold);
+    line-height: var(--leading-tight);
+    margin-bottom: 0.35rem;
+    overflow-wrap: anywhere;
+}
+
+.party-now-playing-artist {
+    font-size: clamp(0.95rem, 3vw, 1.2rem);
+    color: var(--muted-foreground);
+    line-height: var(--leading-snug);
+    overflow-wrap: anywhere;
+}
+
+.party-now-playing-paused {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    z-index: 2000;
-    box-shadow: var(--shadow-lg);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    max-width: 280px;
-}
-
-.party-indicator-card:hover {
-    background: var(--secondary);
-}
-
-.party-indicator-content {
-    flex: 1;
-    min-width: 0;
-    text-align: right;
-}
-
-.party-indicator-label {
-    color: var(--muted-foreground);
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    display: block;
-    margin-bottom: 2px;
-}
-
-.party-indicator-name {
-    font-size: 0.85rem;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.party-indicator-count {
-    background: var(--secondary);
+    gap: 0.5rem;
     color: var(--primary);
-    font-size: 0.75rem;
-    font-weight: 800;
-    padding: 2px 8px;
-    border-radius: 10px;
-    min-width: 24px;
+    font-weight: var(--font-semibold);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+}
+
+.party-now-playing-empty {
+    padding: 4rem 2rem;
     text-align: center;
-    order: -1;
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px dashed var(--border);
+    color: var(--muted-foreground);
+    font-size: 1.2rem;
 }
 
 @media (max-width: 768px) {
-    .party-indicator-card {
-        bottom: calc(var(--player-bar-height-mobile) + 1rem);
-        left: 1rem;
-        right: 1rem;
-        max-width: none;
+    .party-container {
+        padding: 1rem;
+    }
+    .party-now-playing {
+        padding: 1.25rem;
+        gap: 1rem;
+    }
+    .party-now-playing-empty {
+        padding: 2.5rem 1rem;
+        font-size: 1rem;
     }
 }
+
 
 .chat-msg {
     margin-bottom: 0.5rem;
     animation: fade-in 0.2s ease-out;
+}
+
+
+.party-typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-md);
+    color: var(--muted-foreground);
+    font-size: var(--text-xs);
+    line-height: 1;
+    min-height: 22px;
+    animation: fade-in 0.15s ease-out;
+}
+
+.party-typing-indicator[hidden] {
+    display: none;
+}
+
+.party-typing-text {
+    font-style: italic;
+}
+
+.party-typing-dots {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 10px;
+}
+
+.party-typing-dots span {
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: var(--radius-full);
+    background: var(--muted-foreground);
+    animation: party-typing-bounce 1.2s var(--ease-in-out) infinite;
+}
+
+.party-typing-dots span:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.party-typing-dots span:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+@keyframes party-typing-bounce {
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-4px);
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .party-typing-dots span {
+        animation: none;
+        opacity: 0.7;
+    }
 }
 
 @keyframes fade-in {

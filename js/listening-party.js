@@ -84,6 +84,7 @@ export class ListeningPartyManager {
         this.syncInterval = null;
         this.heartbeatInterval = null;
         this.isJoining = false;
+        this.isLeaving = false;
         this.isInternalSync = false;
         this.originalSafePlay = null;
 
@@ -95,11 +96,14 @@ export class ListeningPartyManager {
         document.getElementById('leave-party-btn')?.addEventListener('click', () => this.leaveParty());
         document.getElementById('copy-party-link-btn')?.addEventListener('click', () => this.copyInviteLink());
         document.getElementById('party-chat-send-btn')?.addEventListener('click', () => this.sendChatMessage());
-        document.getElementById('party-chat-input')?.addEventListener('keypress', (e) => {
+        const chatInput = document.getElementById('party-chat-input');
+        chatInput?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.sendChatMessage().catch(console.error);
         });
+        chatInput?.addEventListener('input', () => this._pingTyping());
+        chatInput?.addEventListener('blur', () => this._clearTyping());
 
-        const listen_party_down = true;
+        const listen_party_down = false;
         const message =
             'Listening parties are temporarily disabled while we ship some backend improvements. Existing parties will keep running, new ones can be created again shortly (hopefully in a day or 2). Thanks for your patience!';
         if (listen_party_down) {
@@ -128,35 +132,42 @@ export class ListeningPartyManager {
 
         const nameInput = document.getElementById('party-name-input');
         const user = authManager.user;
-        if (!user) {
-            await Modal.alert('Login Required', 'You must be logged in to host a listening party.');
-            return;
+
+        let pbUser = null;
+        if (user) {
+            pbUser = await syncManager._getUserRecord(user.$id);
+            if (!pbUser) {
+                await Modal.alert('Sync Error', 'Failed to sync user data. Please try again.');
+                return;
+            }
         }
 
-        const pbUser = await syncManager._getUserRecord(user.$id);
-        if (!pbUser) {
-            await Modal.alert('Sync Error', 'Failed to sync user data. Please try again.');
-            return;
-        }
-
-        const name = nameInput.value.trim() || `${user.displayName || user.username || 'Member'}'s Party`;
+        const ownerName = pbUser?.display_name?.trim() || pbUser?.username?.trim();
+        const fallbackPartyName = ownerName ? `${ownerName}'s Party` : 'Listening Party';
+        const name = nameInput.value.trim() || fallbackPartyName;
         const player = Player.instance;
         const currentTrack = player.currentTrack ? syncManager._minifyItem('track', player.currentTrack) : null;
+        const guestHostToken = user ? null : this._generateHostToken();
         const partyData = {
             name: name,
-            host: pbUser.id,
             is_playing: player.currentTrack ? !player.activeElement.paused : false,
             playback_time: player.activeElement.currentTime || 0,
             playback_timestamp: Date.now(),
             queue: player.queue?.map((t) => syncManager._minifyItem('track', t)) || [],
         };
+        if (pbUser?.id) partyData.host = pbUser.id;
+        if (guestHostToken) partyData.guest_host_token = guestHostToken;
         if (currentTrack) partyData.current_track = currentTrack;
 
+        const f_id = user ? user.$id : guestHostToken;
+
         try {
-            const party = await pb.collection('parties').create(partyData, { f_id: user.$id });
+            const party = await pb.collection('parties').create(partyData, { f_id });
+            if (guestHostToken) this._rememberHostToken(party.id, guestHostToken);
             navigate(`/party/${party.id}`);
         } catch (e) {
             console.error('Create error:', e);
+            await Modal.alert('Error', 'Failed to create the party. Please try again.');
         }
     }
 
@@ -169,16 +180,26 @@ export class ListeningPartyManager {
             const f_id = user ? user.$id : 'guest';
             const party = await pb.collection('parties').getOne(partyId, { expand: 'host', f_id });
 
-            const confirmed = await this.showJoinModal(user);
-            if (!confirmed) {
-                this.isJoining = false;
-                navigate('/parties');
-                return;
+            const pbUser = user ? await syncManager._getUserRecord(user.$id) : null;
+            this.isHost = this._isPartyHost(party, pbUser);
+
+            const existingMember = await this.findExistingMember(partyId, pbUser);
+
+            let confirmed;
+            if (existingMember) {
+                confirmed = {
+                    profile: { name: existingMember.name, avatar_url: existingMember.avatar_url },
+                };
+            } else {
+                confirmed = await this.showJoinModal(user, pbUser);
+                if (!confirmed) {
+                    this.isJoining = false;
+                    navigate('/parties');
+                    return;
+                }
             }
 
             this.currentParty = party;
-            const pbUser = user ? await syncManager._getUserRecord(user.$id) : null;
-            this.isHost = pbUser && pbUser.id === party.host;
 
             const profile = confirmed.profile || (await this.getMemberProfile(pbUser));
             const memberData = {
@@ -190,8 +211,20 @@ export class ListeningPartyManager {
             };
             if (pbUser?.id) memberData.user = pbUser.id;
 
-            const member = await pb.collection('party_members').create(memberData, { f_id });
+            let member;
+            if (existingMember) {
+                try {
+                    member = await pb
+                        .collection('party_members')
+                        .update(existingMember.id, { last_seen: Date.now(), is_host: !!this.isHost }, { f_id });
+                } catch (_e) {
+                    member = await pb.collection('party_members').create(memberData, { f_id });
+                }
+            } else {
+                member = await pb.collection('party_members').create(memberData, { f_id });
+            }
             this.memberId = member.id;
+            if (!pbUser?.id) this._rememberGuestMember(partyId, member.id);
 
             this.setupSubscriptions(partyId);
             this.startHeartbeat();
@@ -215,46 +248,91 @@ export class ListeningPartyManager {
         }
     }
 
-    async showJoinModal(user) {
-        if (user) {
+    _hasProfileName(pbUser) {
+        return !!(pbUser?.display_name?.trim() || pbUser?.username?.trim());
+    }
+
+    _userProfileKey(userId) {
+        return `party_user_profile_${userId}`;
+    }
+
+    _getStoredUserProfile(userId) {
+        try {
+            const raw = localStorage.getItem(this._userProfileKey(userId));
+            return raw ? JSON.parse(raw) : null;
+        } catch (_e) {
+            return null;
+        }
+    }
+
+    async _promptNickname({ title, body, cached }) {
+        const defaultName = escapeHtml(cached || '');
+        return new Promise((resolve, reject) => {
+            Modal.show({
+                title,
+                content: `
+                    <p style="margin-bottom: 1rem;">${body}</p>
+                    <input type="text" id="guest-name-input" class="template-input" value="${defaultName}" placeholder="Your nickname" style="width: 100%; text-align: center;">
+                `,
+                actions: [
+                    {
+                        label: 'Join Party',
+                        type: 'primary',
+                        callback: (modal) => {
+                            const name = modal.querySelector('#guest-name-input').value.trim() || 'Guest';
+                            const profile = {
+                                name,
+                                avatar_url: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(name)}`,
+                            };
+                            return { profile };
+                        },
+                    },
+                    { label: 'Cancel', type: 'secondary', callback: () => false },
+                ],
+            })
+                .then(resolve)
+                .catch(reject);
+        });
+    }
+
+    async showJoinModal(user, pbUser = null) {
+        if (user && this._hasProfileName(pbUser)) {
             const confirmed = await Modal.confirm(
                 'Join Party',
                 `You are about to join a listening party. Everyone in the party will see your profile. Are you ready to listen together?`,
                 'Join Party'
             );
             return confirmed ? { profile: null } : false;
-        } else {
-            return new Promise((resolve, reject) => {
-                const cached = localStorage.getItem('party_guest_profile');
-                const defaultName = cached ? JSON.parse(cached).name : '';
-
-                Modal.show({
-                    title: 'Join as Guest',
-                    content: `
-                        <p style="margin-bottom: 1rem;">Enter a nickname to join the party!</p>
-                        <input type="text" id="guest-name-input" class="template-input" value="${defaultName}" placeholder="Your nickname" style="width: 100%; text-align: center;">
-                    `,
-                    actions: [
-                        {
-                            label: 'Join Party',
-                            type: 'primary',
-                            callback: (modal) => {
-                                const name = modal.querySelector('#guest-name-input').value.trim() || 'Guest';
-                                const profile = {
-                                    name,
-                                    avatar_url: `https://api.dicebear.com/9.x/identicon/svg?seed=${name}`,
-                                };
-                                localStorage.setItem('party_guest_profile', JSON.stringify(profile));
-                                return { profile };
-                            },
-                        },
-                        { label: 'Cancel', type: 'secondary', callback: () => false },
-                    ],
-                })
-                    .then(resolve)
-                    .catch(reject);
-            });
         }
+
+        if (user) {
+            const stored = this._getStoredUserProfile(user.$id);
+            const result = await this._promptNickname({
+                title: 'Pick a Nickname',
+                body: "You don't have a profile yet. Pick a nickname so other people in the party can see who you are.",
+                cached: stored?.name || '',
+            });
+            if (result && result.profile) {
+                try {
+                    localStorage.setItem(this._userProfileKey(user.$id), JSON.stringify(result.profile));
+                } catch (_e) {}
+            }
+            return result;
+        }
+
+        const cached = localStorage.getItem('party_guest_profile');
+        const cachedName = cached ? JSON.parse(cached).name : '';
+        const result = await this._promptNickname({
+            title: 'Join as Guest',
+            body: 'Enter a nickname to join the party!',
+            cached: cachedName,
+        });
+        if (result && result.profile) {
+            try {
+                localStorage.setItem('party_guest_profile', JSON.stringify(result.profile));
+            } catch (_e) {}
+        }
+        return result;
     }
 
     setupGuestSyncInterception() {
@@ -266,14 +344,120 @@ export class ListeningPartyManager {
         };
     }
 
+    _guestMemberKey(partyId) {
+        return `party_guest_member_${partyId}`;
+    }
+
+    _hostTokenKey(partyId) {
+        return `party_host_token_${partyId}`;
+    }
+
+    _getHostToken(partyId) {
+        try {
+            return localStorage.getItem(this._hostTokenKey(partyId)) || null;
+        } catch (_e) {
+            return null;
+        }
+    }
+
+    _rememberHostToken(partyId, token) {
+        try {
+            localStorage.setItem(this._hostTokenKey(partyId), token);
+        } catch (_e) {}
+    }
+
+    _forgetHostToken(partyId) {
+        try {
+            localStorage.removeItem(this._hostTokenKey(partyId));
+        } catch (_e) {}
+    }
+
+    _generateHostToken() {
+        const bytes = new Uint8Array(24);
+        crypto.getRandomValues(bytes);
+        return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    _hostFid(party) {
+        const user = authManager.user;
+        if (user) return user.$id;
+        const partyId = party?.id || this.currentParty?.id;
+        return (partyId && this._getHostToken(partyId)) || 'guest';
+    }
+
+    _isPartyHost(party, pbUser) {
+        if (pbUser && party?.host && pbUser.id === party.host) return true;
+        if (!party?.guest_host_token) return false;
+        const stored = this._getHostToken(party.id);
+        return !!stored && stored === party.guest_host_token;
+    }
+
+    _getGuestMemberId(partyId) {
+        try {
+            return localStorage.getItem(this._guestMemberKey(partyId)) || null;
+        } catch (_e) {
+            return null;
+        }
+    }
+
+    _rememberGuestMember(partyId, memberId) {
+        try {
+            localStorage.setItem(this._guestMemberKey(partyId), memberId);
+        } catch (_e) {}
+    }
+
+    _forgetGuestMember(partyId) {
+        try {
+            localStorage.removeItem(this._guestMemberKey(partyId));
+        } catch (_e) {}
+    }
+
+    async findExistingMember(partyId, pbUser) {
+        const f_id = authManager.user ? authManager.user.$id : 'guest';
+        try {
+            if (pbUser?.id) {
+                const rows = await pb.collection('party_members').getFullList({
+                    filter: `party = "${partyId}" && user = "${pbUser.id}"`,
+                    f_id,
+                });
+                return rows[0] || null;
+            }
+            const cachedId = this._getGuestMemberId(partyId);
+            if (!cachedId) return null;
+            try {
+                const row = await pb.collection('party_members').getOne(cachedId, { f_id });
+                if (row?.party === partyId) return row;
+                this._forgetGuestMember(partyId);
+                return null;
+            } catch (_e) {
+                this._forgetGuestMember(partyId);
+                return null;
+            }
+        } catch (_e) {
+            return null;
+        }
+    }
+
     async getMemberProfile(pbUser = null) {
+        if (this.memberId && Array.isArray(this.members)) {
+            const me = this.members.find((m) => m.id === this.memberId);
+            if (me?.name) return { name: me.name, avatar_url: me.avatar_url };
+        }
+
         const user = authManager.user;
         if (user) {
-            const name =
-                pbUser?.display_name || pbUser?.username || user.displayName || user.email?.split('@')[0] || 'Member';
-            const avatar =
-                pbUser?.avatar_url || user.photoURL || `https://api.dicebear.com/9.x/identicon/svg?seed=${name}`;
-            return { name, avatar_url: avatar };
+            if (this._hasProfileName(pbUser)) {
+                const name = pbUser.display_name?.trim() || pbUser.username?.trim();
+                const avatar =
+                    pbUser?.avatar_url || `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(name)}`;
+                return { name, avatar_url: avatar };
+            }
+            const stored = this._getStoredUserProfile(user.$id);
+            if (stored?.name) return stored;
+            return {
+                name: 'Member',
+                avatar_url: pbUser?.avatar_url || `https://api.dicebear.com/9.x/identicon/svg?seed=Member`,
+            };
         }
         const cached = localStorage.getItem('party_guest_profile');
         return cached
@@ -295,6 +479,7 @@ export class ListeningPartyManager {
                         if (!this.isHost) await this.syncWithHost(e.record);
                         this.updatePartyHeader();
                     } else if (e.action === 'delete') {
+                        if (this.isLeaving) return;
                         await Modal.alert('Party Ended', 'The host has ended the listening party.');
                         await this.leaveParty(false);
                     }
@@ -350,6 +535,60 @@ export class ListeningPartyManager {
             .collection('party_members')
             .getFullList({ filter: `party = "${this.currentParty.id}"`, sort: '-is_host,name', f_id });
         this.renderMembers();
+        this.renderTypingIndicator();
+        this.updatePartyHeader();
+    }
+
+    _pingTyping() {
+        if (!this.memberId || !this.currentParty) return;
+        const now = Date.now();
+        const lastPing = this._lastTypingPing || 0;
+        if (now - lastPing < 1500) return;
+        this._lastTypingPing = now;
+        const f_id = authManager.user?.$id || 'guest';
+        pb.collection('party_members')
+            .update(this.memberId, { typing_until: now + 3000 }, { f_id })
+            .catch(() => {});
+    }
+
+    _clearTyping() {
+        if (!this.memberId || !this.currentParty) return;
+        if ((this._lastTypingPing || 0) === 0) return;
+        this._lastTypingPing = 0;
+        const f_id = authManager.user?.$id || 'guest';
+        pb.collection('party_members')
+            .update(this.memberId, { typing_until: 0 }, { f_id })
+            .catch(() => {});
+    }
+
+    renderTypingIndicator() {
+        const el = document.getElementById('party-typing-indicator');
+        const textEl = el?.querySelector('.party-typing-text');
+        if (!el || !textEl) return;
+
+        const now = Date.now();
+        const typing = (this.members || []).filter(
+            (m) => m.id !== this.memberId && typeof m.typing_until === 'number' && m.typing_until > now
+        );
+
+        clearTimeout(this._typingExpireTimer);
+
+        if (!typing.length) {
+            el.hidden = true;
+            textEl.textContent = '';
+            return;
+        }
+
+        let text;
+        if (typing.length === 1) text = `${typing[0].name} is typing…`;
+        else if (typing.length === 2) text = `${typing[0].name} and ${typing[1].name} are typing…`;
+        else text = `${typing[0].name} and ${typing.length - 1} others are typing…`;
+        textEl.textContent = text;
+        el.hidden = false;
+
+        const earliestExpiry = Math.min(...typing.map((m) => m.typing_until));
+        const delay = Math.max(50, earliestExpiry - now + 50);
+        this._typingExpireTimer = setTimeout(() => this.renderTypingIndicator(), delay);
     }
 
     async loadMessages() {
@@ -402,8 +641,13 @@ export class ListeningPartyManager {
         if (countEl) countEl.textContent = this.members.length;
 
         if (metaEl) {
-            const host = this.currentParty.expand?.host;
-            const hostName = host?.display_name || host?.username || 'Unknown';
+            const hostMember = (this.members || []).find((m) => m.is_host);
+            const hostRecord = this.currentParty.expand?.host;
+            const hostName =
+                hostMember?.name?.trim() ||
+                hostRecord?.display_name?.trim() ||
+                hostRecord?.username?.trim() ||
+                'Unknown';
             metaEl.textContent = `Host: ${hostName}`;
         }
 
@@ -414,25 +658,25 @@ export class ListeningPartyManager {
                 const api = Player.instance.api;
                 const coverUrl = api.getCoverUrl(track.artwork || track.cover || track.album?.cover);
                 display.innerHTML = `
-                    <div class="track-item active" style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.5rem; padding: 2rem; background: var(--background-secondary); border: 1px solid var(--border); border-radius: var(--radius)">
-                        <img src="${coverUrl}" class="track-artwork" style="width: 250px; height: 250px; border-radius: var(--radius); object-fit: cover; box-shadow: 0 10px 30px rgba(0,0,0,0.3)">
-                        <div class="track-info">
-                            <div class="track-title" style="font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem">${track.title}</div>
-                            <div class="track-artist" style="font-size: 1.2rem; color: var(--muted-foreground)">${getTrackArtists(track)}</div>
+                    <div class="party-now-playing">
+                        <img src="${coverUrl}" class="party-now-playing-cover" alt="">
+                        <div class="party-now-playing-info">
+                            <div class="party-now-playing-title">${escapeHtml(track.title || '')}</div>
+                            <div class="party-now-playing-artist">${escapeHtml(getTrackArtists(track) || '')}</div>
                         </div>
                         ${
                             !this.currentParty.is_playing
-                                ? `
-                            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem">
-                                ${SVG_PAUSE(24)} Paused
-                            </div>
-                        `
+                                ? `<div class="party-now-playing-paused">${SVG_PAUSE(20)} Paused</div>`
                                 : ''
                         }
                     </div>
                 `;
             } else {
-                display.innerHTML = `<div style="padding: 4rem 2rem; text-align: center; background: var(--background-secondary); border-radius: var(--radius); border: 1px dashed var(--border)"><div style="color: var(--muted-foreground); font-size: 1.2rem">Waiting for host to play music...</div></div>`;
+                display.innerHTML = `
+                    <div class="party-now-playing-empty">
+                        <div>Waiting for host to play music...</div>
+                    </div>
+                `;
             }
         }
     }
@@ -535,6 +779,7 @@ export class ListeningPartyManager {
         if (!input || !input.value.trim()) return;
         const content = input.value.trim();
         input.value = '';
+        this._clearTyping();
         const profile = await this.getMemberProfile();
         const f_id = authManager.user ? authManager.user.$id : 'guest';
         try {
@@ -580,9 +825,11 @@ export class ListeningPartyManager {
 
             if (currentId !== targetId) {
                 const cleanedTrack = { ...party.current_track };
-                delete cleanedTrack.audioUrl;
-                delete cleanedTrack.streamUrl;
-                delete cleanedTrack.remoteUrl;
+                if (!cleanedTrack.isTracker) {
+                    delete cleanedTrack.audioUrl;
+                    delete cleanedTrack.streamUrl;
+                    delete cleanedTrack.remoteUrl;
+                }
                 player.setQueue([cleanedTrack], 0);
                 await player.playTrackFromQueue(party.playback_time);
                 if (!party.is_playing) el.pause();
@@ -669,7 +916,7 @@ export class ListeningPartyManager {
                         playback_timestamp: Date.now(),
                         queue: player.queue?.map((t) => syncManager._minifyItem('track', t)) || [],
                     },
-                    { f_id: authManager.user?.$id }
+                    { f_id: this._hostFid(this.currentParty) }
                 );
             } catch (_e) {}
         };
@@ -716,43 +963,82 @@ export class ListeningPartyManager {
     }
 
     async leaveParty(shouldCleanup = true) {
-        const f_id = authManager.user?.$id || 'guest';
-        if (this.isHost && shouldCleanup) {
-            const end = await Modal.confirm(
-                'End Party?',
-                'Leaving will end the party for everyone. Are you sure?',
-                'End Party',
-                'danger'
-            );
-            if (!end) return;
-            try {
-                const cleanup = async (coll) => {
-                    const items = await pb
-                        .collection(coll)
-                        .getFullList({ filter: `party = "${this.currentParty.id}"`, f_id });
-                    for (const i of items) await pb.collection(coll).delete(i.id, { f_id });
-                };
-                await cleanup('party_members');
-                await cleanup('party_messages');
-                await cleanup('party_requests');
-                await pb.collection('parties').delete(this.currentParty.id, { f_id });
-            } catch (_e) {}
-        } else if (this.memberId) {
-            try {
-                await pb.collection('party_members').delete(this.memberId, { f_id });
-            } catch (_e) {}
+        if (this.isLeaving) return;
+        this.isLeaving = true;
+
+        const partyIdForCleanup = this.currentParty?.id;
+        const memberIdForCleanup = this.memberId;
+        const f_id = this.isHost ? this._hostFid(this.currentParty) : authManager.user?.$id || 'guest';
+
+        try {
+            if (this.isHost && shouldCleanup) {
+                const end = await Modal.confirm(
+                    'End Party?',
+                    'Leaving will end the party for everyone. Are you sure?',
+                    'End Party',
+                    'danger'
+                );
+                if (!end) {
+                    this.isLeaving = false;
+                    return;
+                }
+                this.unsubscribeFunctions.forEach((unsub) => unsub());
+                this.unsubscribeFunctions = [];
+
+                try {
+                    const cleanup = async (coll) => {
+                        const items = await pb
+                            .collection(coll)
+                            .getFullList({ filter: `party = "${partyIdForCleanup}"`, f_id });
+                        for (const i of items) {
+                            try {
+                                await pb.collection(coll).delete(i.id, { f_id });
+                            } catch (e) {
+                                console.error(`Failed to delete ${coll}/${i.id}:`, e);
+                            }
+                        }
+                    };
+                    await cleanup('party_members');
+                    await cleanup('party_messages');
+                    await cleanup('party_requests');
+                    await pb.collection('parties').delete(partyIdForCleanup, { f_id });
+                } catch (e) {
+                    console.error('Failed to end party:', e);
+                    showNotification('Failed to end party. Please try again.');
+                }
+            } else if (memberIdForCleanup) {
+                try {
+                    await pb.collection('party_members').delete(memberIdForCleanup, { f_id });
+                } catch (e) {
+                    if (e?.status !== 404) {
+                        console.error('Failed to delete party member record:', e);
+                        showNotification('Could not leave properly, other members may still see you as on.');
+                    }
+                }
+            }
+        } finally {
+            this.restorePlayerMethods();
+            this.unlockControls();
+            this.unsubscribeFunctions.forEach((unsub) => unsub());
+            this.unsubscribeFunctions = [];
+            clearInterval(this.syncInterval);
+            clearInterval(this.heartbeatInterval);
+            clearTimeout(this._typingExpireTimer);
+            this._typingExpireTimer = null;
+            this._lastTypingPing = 0;
+            const typingEl = document.getElementById('party-typing-indicator');
+            if (typingEl) typingEl.hidden = true;
+            if (partyIdForCleanup) {
+                this._forgetGuestMember(partyIdForCleanup);
+                this._forgetHostToken(partyIdForCleanup);
+            }
+            this.currentParty = null;
+            this.isHost = false;
+            this.memberId = null;
+            this.hidePartyIndicator();
+            this.isLeaving = false;
+            navigate('/parties');
         }
-        this.restorePlayerMethods();
-        this.unlockControls();
-        this.unsubscribeFunctions.forEach((unsub) => unsub());
-        this.unsubscribeFunctions = [];
-        clearInterval(this.syncInterval);
-        clearInterval(this.heartbeatInterval);
-        this.currentParty = null;
-        this.isHost = false;
-        this.memberId = null;
-        document.getElementById('party-indicator')?.remove();
-        navigate('/parties');
     }
 
     restorePlayerMethods() {
@@ -769,22 +1055,28 @@ export class ListeningPartyManager {
     }
 
     showPartyIndicator() {
-        let indicator = document.getElementById('party-indicator');
-        if (!indicator) {
-            indicator = document.createElement('div');
-            indicator.id = 'party-indicator';
-            indicator.className = 'party-indicator-card';
-            document.body.appendChild(indicator);
-            indicator.onclick = () => navigate(`/party/${this.currentParty.id}`);
+        const btn = document.getElementById('now-playing-party-btn');
+        if (!btn || !this.currentParty) return;
+        btn.style.display = '';
+        const name = this.currentParty.name || 'Listening Party';
+        const count = this.members.length;
+        const tooltip = `${name} (${count} listener${count === 1 ? '' : 's'})`;
+        btn.title = tooltip;
+        btn.setAttribute('aria-label', `Open listening party: ${tooltip}`);
+        if (!btn.dataset.partyHandlerBound) {
+            btn.addEventListener('click', () => {
+                if (this.currentParty) navigate(`/party/${this.currentParty.id}`);
+            });
+            btn.dataset.partyHandlerBound = '1';
         }
+    }
 
-        indicator.innerHTML = `
-            <div class="party-indicator-content">
-                <span class="party-indicator-label">Listening Party</span>
-                <div class="party-indicator-name">${this.currentParty.name}</div>
-            </div>
-            <div class="party-indicator-count">${this.members.length}</div>
-        `;
+    hidePartyIndicator() {
+        const btn = document.getElementById('now-playing-party-btn');
+        if (!btn) return;
+        btn.style.display = 'none';
+        btn.removeAttribute('title');
+        btn.setAttribute('aria-label', 'Open listening party');
     }
 }
 
