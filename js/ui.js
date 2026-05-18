@@ -2403,12 +2403,11 @@ export class UIRenderer {
         const hostControls = document.getElementById('parties-host-controls');
         const loginBtn = document.getElementById('parties-login-btn');
 
+        hostControls.style.display = 'block';
         if (authManager.user) {
             authRequired.style.display = 'none';
-            hostControls.style.display = 'block';
         } else {
             authRequired.style.display = 'block';
-            hostControls.style.display = 'none';
             loginBtn.onclick = () => navigate('/account');
         }
     }
