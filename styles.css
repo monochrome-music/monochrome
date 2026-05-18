@@ -10378,7 +10378,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     }
 }
 
-
 .party-now-playing {
     display: flex;
     flex-direction: column;
@@ -10398,7 +10397,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     aspect-ratio: 1 / 1;
     border-radius: var(--radius);
     object-fit: cover;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 30px rgb(0, 0, 0, 0.3);
 }
 
 .party-now-playing-info {
@@ -10446,22 +10445,22 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     .party-container {
         padding: 1rem;
     }
+
     .party-now-playing {
         padding: 1.25rem;
         gap: 1rem;
     }
+
     .party-now-playing-empty {
         padding: 2.5rem 1rem;
         font-size: 1rem;
     }
 }
 
-
 .chat-msg {
     margin-bottom: 0.5rem;
     animation: fade-in 0.2s ease-out;
 }
-
 
 .party-typing-indicator {
     display: flex;
@@ -10514,6 +10513,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
         transform: translateY(0);
         opacity: 0.4;
     }
+
     30% {
         transform: translateY(-4px);
         opacity: 1;
