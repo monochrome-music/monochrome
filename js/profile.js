@@ -491,13 +491,18 @@ export async function loadProfile(username) {
             card.className = 'card';
             card.innerHTML = `
                 <div class="card-image-wrapper">
-                    <img src="${playlist.cover || '/assets/appicon.png'}" class="card-image" loading="lazy" alt="${playlist.name}">
+                    <img class="card-image" loading="lazy">
                 </div>
                 <div class="card-info">
-                    <div class="card-title">${playlist.name}</div>
-                    <div class="card-subtitle">${playlist.numberOfTracks || 0} tracks</div>
+                    <div class="card-title"></div>
+                    <div class="card-subtitle"></div>
                 </div>
             `;
+            const img = card.querySelector('.card-image');
+            img.src = playlist.cover || '/assets/appicon.png';
+            img.alt = playlist.name;
+            card.querySelector('.card-title').textContent = playlist.name;
+            card.querySelector('.card-subtitle').textContent = `${playlist.numberOfTracks || 0} tracks`;
             card.onclick = () => {
                 window.location.hash = `/userplaylist/${playlist.id}`;
             };
