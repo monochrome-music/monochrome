@@ -2,31 +2,77 @@ function isFuzzyMatch(str1, str2) {
     if (!str1 || !str2) return false;
     const s1 = str1.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
     const s2 = str2.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    if (s1 === s2) return true;
+    if (s1.length < 3 || s2.length < 3) return s1 === s2;
     return s1.includes(s2) || s2.includes(s1);
 }
 
-function findBestMatch(items, targetArtist, targetAlbum, importOptions) {
+function findBestMatch(items, targetArtist, targetAlbum, targetTitle, importOptions = {}) {
     if (!items || items.length === 0) return null;
-    if (!importOptions?.strictArtistMatch && !importOptions?.strictAlbumMatch) return items[0];
 
-    return (
-        items.find((item) => {
-            let artistOk = true;
-            let albumOk = true;
+    const targetTitleNorm = (targetTitle || '').toLowerCase().trim();
+    const targetArtistNorm = (targetArtist || '').toLowerCase().trim();
+    const targetAlbumNorm = (targetAlbum || '').toLowerCase().trim();
 
-            if (importOptions.strictArtistMatch && targetArtist) {
-                const itemArtist = item.artist?.name || item.artists?.[0]?.name;
-                if (!isFuzzyMatch(itemArtist, targetArtist)) artistOk = false;
+    const scoredItems = items.map((item) => {
+        let score = 0;
+        const itemTitle = (item.title || '').toLowerCase().trim();
+        const itemArtist = (item.artist?.name || item.artists?.[0]?.name || '').toLowerCase().trim();
+        const itemAlbum = (item.album?.title || '').toLowerCase().trim();
+
+        if (itemTitle === targetTitleNorm) {
+            score += 50;
+        } else if (isFuzzyMatch(itemTitle, targetTitleNorm)) {
+            score += 30;
+        }
+
+        if (itemArtist === targetArtistNorm) {
+            score += 40;
+        } else if (isFuzzyMatch(itemArtist, targetArtistNorm)) {
+            score += 20;
+        } else if (
+            targetArtistNorm &&
+            (itemArtist.includes(targetArtistNorm) || targetArtistNorm.includes(itemArtist))
+        ) {
+            score += 10;
+        }
+
+        if (targetAlbumNorm) {
+            if (itemAlbum === targetAlbumNorm) {
+                score += 10;
+            } else if (isFuzzyMatch(itemAlbum, targetAlbumNorm)) {
+                score += 5;
             }
+        }
 
-            if (importOptions.strictAlbumMatch && targetAlbum) {
-                const itemAlbum = item.album?.title;
-                if (itemAlbum && !isFuzzyMatch(itemAlbum, targetAlbum)) albumOk = false;
-            }
+        const lowTitle = itemTitle.toLowerCase();
+        const targetLowTitle = targetTitleNorm.toLowerCase();
 
-            return artistOk && albumOk;
-        }) || null
-    );
+        return { item, score };
+    });
+
+    scoredItems.sort((a, b) => b.score - a.score);
+    const best = scoredItems[0];
+
+    if (importOptions.strictArtistMatch || importOptions.strictAlbumMatch) {
+        let artistOk = true;
+        let albumOk = true;
+
+        if (importOptions.strictArtistMatch && targetArtist) {
+            const itemArtist = best.item.artist?.name || best.item.artists?.[0]?.name;
+            if (!isFuzzyMatch(itemArtist, targetArtist)) artistOk = false;
+        }
+
+        if (importOptions.strictAlbumMatch && targetAlbum) {
+            const itemAlbum = best.item.album?.title;
+            if (!isFuzzyMatch(itemAlbum, targetAlbum)) albumOk = false;
+        }
+
+        if (artistOk && albumOk && best.score >= 40) return best.item;
+        return null;
+    }
+
+    return best.score >= 50 ? best.item : null;
 }
 
 /**
@@ -137,14 +183,14 @@ export function generateXML(playlist, tracks) {
  * @returns {Promise<{tracks: Array, missingTracks: Array}>}
  */
 const HEADER_MAPPINGS = {
-    track: ['track name', 'title', 'song', 'name', 'track', 'track title'],
-    artist: ['artist name(s)', 'artist name', 'artist', 'artists', 'creator', 'artist names'],
-    album: ['album', 'album name'],
+    track: ['track name', 'title', 'song', 'name', 'track', 'track title', 'item name'],
+    artist: ['artist name(s)', 'artist name', 'artist', 'artists', 'creator', 'artist names', 'item artist'],
+    album: ['album', 'album name', 'item album'],
     type: ['type', 'category', 'kind'],
-    isrc: ['isrc', 'isrc code'],
-    spotifyId: ['spotify - id', 'spotify id', 'spotify_id', 'spotifyid'],
+    isrc: ['isrc', 'isrc code', 'track isrc', 'isrc/upc', 'id'],
+    spotifyId: ['spotify - id', 'spotify id', 'spotify_id', 'spotifyid', 'track spotify id'],
     playlistName: ['playlist name', 'playlist', 'playlist title'],
-    duration: ['duration', 'length', 'time'],
+    duration: ['duration', 'length', 'time', 'track duration (ms)'],
 };
 
 function normalizeHeader(header) {
@@ -153,7 +199,7 @@ function normalizeHeader(header) {
         .replace(/^\uFEFF/, '')
         .toLowerCase()
         .trim()
-        .replace(/[_\s]+/g, ' ');
+        .replace(/[_\s\-]+/g, ' ');
 }
 
 function mapHeaders(rawHeaders) {
@@ -315,7 +361,10 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
                 if (isrc) {
                     const searchResult = await api.searchTracks(`isrc:${isrc}`);
                     if (searchResult.items && searchResult.items.length > 0) {
-                        foundTrack = searchResult.items.find((t) => t.isrc === isrc) || searchResult.items[0];
+                        foundTrack = searchResult.items.find((t) => t.isrc === isrc);
+                        if (!foundTrack) {
+                            foundTrack = findBestMatch(searchResult.items, artistName, albumName, trackName, options);
+                        }
                     }
                 }
 
@@ -323,7 +372,22 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
                     const searchQuery = `"${trackName}" ${artistName}`.trim();
                     const searchResult = await api.searchTracks(searchQuery);
                     if (searchResult.items && searchResult.items.length > 0) {
-                        foundTrack = findBestMatch(searchResult.items, artistName, albumName, options);
+                        foundTrack = findBestMatch(searchResult.items, artistName, albumName, trackName, options);
+                    }
+
+                    if (!foundTrack) {
+                        const searchQuery2 = `${trackName} ${artistName}`.trim();
+                        const searchResult2 = await api.searchTracks(searchQuery2);
+                        if (searchResult2.items && searchResult2.items.length > 0) {
+                            foundTrack = findBestMatch(searchResult2.items, artistName, albumName, trackName, options);
+                        }
+                    }
+
+                    if (!foundTrack && trackName.length > 10) {
+                        const searchResult3 = await api.searchTracks(trackName);
+                        if (searchResult3.items && searchResult3.items.length > 0) {
+                            foundTrack = findBestMatch(searchResult3.items, artistName, albumName, trackName, options);
+                        }
                     }
                 }
 
@@ -581,13 +645,27 @@ export async function parseCSV(csvText, api, onProgress, importOptions = {}) {
                     const searchQuery = `"${trackTitle}" ${artistNames}`.trim();
                     const searchResult = await api.searchTracks(searchQuery);
 
+                    let match = null;
                     if (searchResult.items && searchResult.items.length > 0) {
-                        const match = findBestMatch(searchResult.items, artistNames, albumName, importOptions);
-                        if (match) tracks.push(match);
-                        else missingTracks.push({ title: trackTitle, artist: artistNames, album: albumName });
-                    } else {
-                        missingTracks.push({ title: trackTitle, artist: artistNames, album: albumName });
+                        match = findBestMatch(searchResult.items, artistNames, albumName, trackTitle, importOptions);
                     }
+
+                    if (!match) {
+                        const searchQuery2 = `${trackTitle} ${artistNames}`.trim();
+                        const searchResult2 = await api.searchTracks(searchQuery2);
+                        if (searchResult2.items && searchResult2.items.length > 0) {
+                            match = findBestMatch(
+                                searchResult2.items,
+                                artistNames,
+                                albumName,
+                                trackTitle,
+                                importOptions
+                            );
+                        }
+                    }
+
+                    if (match) tracks.push(match);
+                    else missingTracks.push({ title: trackTitle, artist: artistNames, album: albumName });
                 } catch {
                     missingTracks.push({ title: trackTitle, artist: artistNames, album: albumName });
                 }
@@ -637,11 +715,24 @@ export async function parseJSPF(jspfText, api, onProgress) {
                 await new Promise((resolve) => setTimeout(resolve, 300));
 
                 try {
-                    const searchQuery = `${trackTitle} ${trackCreator}`;
+                    const searchQuery = `"${trackTitle}" ${trackCreator}`;
                     const searchResults = await api.searchTracks(searchQuery);
 
+                    let match = null;
                     if (searchResults.items && searchResults.items.length > 0) {
-                        tracks.push(searchResults.items[0]);
+                        match = findBestMatch(searchResults.items, trackCreator, trackAlbum, trackTitle);
+                    }
+
+                    if (!match) {
+                        const searchQuery2 = `${trackTitle} ${trackCreator}`;
+                        const searchResults2 = await api.searchTracks(searchQuery2);
+                        if (searchResults2.items && searchResults2.items.length > 0) {
+                            match = findBestMatch(searchResults2.items, trackCreator, trackAlbum, trackTitle);
+                        }
+                    }
+
+                    if (match) {
+                        tracks.push(match);
                     } else {
                         missingTracks.push({ title: trackTitle, artist: trackCreator, album: trackAlbum });
                     }
@@ -682,7 +773,7 @@ export async function parseXSPF(xspfText, api, onProgress) {
     const missingTracks = [];
     const totalTracks = trackList.length;
 
-    for (let i = 0; i < trackList.length; i++) {
+    for (let i = 0; i < totalTracks; i++) {
         const trackEl = trackList[i];
         const title = trackEl.getElementsByTagName('title')[0]?.textContent || '';
         const creator = trackEl.getElementsByTagName('creator')[0]?.textContent || '';
@@ -701,11 +792,24 @@ export async function parseXSPF(xspfText, api, onProgress) {
             await new Promise((resolve) => setTimeout(resolve, 300));
 
             try {
-                const searchQuery = `${title} ${creator}`;
+                const searchQuery = `"${title}" ${creator}`;
                 const searchResults = await api.searchTracks(searchQuery);
 
+                let match = null;
                 if (searchResults.items && searchResults.items.length > 0) {
-                    tracks.push(searchResults.items[0]);
+                    match = findBestMatch(searchResults.items, creator, album, title);
+                }
+
+                if (!match) {
+                    const searchQuery2 = `${title} ${creator}`;
+                    const searchResults2 = await api.searchTracks(searchQuery2);
+                    if (searchResults2.items && searchResults2.items.length > 0) {
+                        match = findBestMatch(searchResults2.items, creator, album, title);
+                    }
+                }
+
+                if (match) {
+                    tracks.push(match);
                 } else {
                     missingTracks.push({ title, artist: creator, album });
                 }
@@ -751,7 +855,7 @@ export async function parseXML(xmlText, api, onProgress) {
     const missingTracks = [];
     const totalTracks = trackElements.length;
 
-    for (let i = 0; i < trackElements.length; i++) {
+    for (let i = 0; i < totalTracks; i++) {
         const trackEl = trackElements[i];
 
         // Try different element names for title/artist
@@ -779,11 +883,24 @@ export async function parseXML(xmlText, api, onProgress) {
             await new Promise((resolve) => setTimeout(resolve, 300));
 
             try {
-                const searchQuery = `${title} ${artist}`;
+                const searchQuery = `"${title}" ${artist}`;
                 const searchResults = await api.searchTracks(searchQuery);
 
+                let match = null;
                 if (searchResults.items && searchResults.items.length > 0) {
-                    tracks.push(searchResults.items[0]);
+                    match = findBestMatch(searchResults.items, artist, album, title);
+                }
+
+                if (!match) {
+                    const searchQuery2 = `${title} ${artist}`;
+                    const searchResults2 = await api.searchTracks(searchQuery2);
+                    if (searchResults2.items && searchResults2.items.length > 0) {
+                        match = findBestMatch(searchResults2.items, artist, album, title);
+                    }
+                }
+
+                if (match) {
+                    tracks.push(match);
                 } else {
                     missingTracks.push({ title, artist, album });
                 }
@@ -854,11 +971,24 @@ export async function parseM3U(m3uText, api, onProgress) {
             await new Promise((resolve) => setTimeout(resolve, 300));
 
             try {
-                const searchQuery = info.artist ? `${info.title} ${info.artist}` : info.title;
+                const searchQuery = info.artist ? `"${info.title}" ${info.artist}` : info.title;
                 const searchResults = await api.searchTracks(searchQuery);
 
+                let match = null;
                 if (searchResults.items && searchResults.items.length > 0) {
-                    tracks.push(searchResults.items[0]);
+                    match = findBestMatch(searchResults.items, info.artist, '', info.title);
+                }
+
+                if (!match && info.artist) {
+                    const searchQuery2 = `${info.title} ${info.artist}`;
+                    const searchResults2 = await api.searchTracks(searchQuery2);
+                    if (searchResults2.items && searchResults2.items.length > 0) {
+                        match = findBestMatch(searchResults2.items, info.artist, '', info.title);
+                    }
+                }
+
+                if (match) {
+                    tracks.push(match);
                 } else {
                     missingTracks.push({ title: info.title, artist: info.artist, album: '' });
                 }
