@@ -14,7 +14,7 @@
         "resolveJsonModule": true,
         "isolatedModules": true,
         "verbatimModuleSyntax": true,
-        "ignoreDeprecations": "5.0",
+        "ignoreDeprecations": "6.0",
         "skipLibCheck": true,
         "noEmit": true
     },
