@@ -3026,7 +3026,8 @@ export class UIRenderer {
             if (discover?.albums?.length) this.renderAOTYSection(container, 'Popular Right Now', discover.albums);
             if (singles?.albums?.length) this.renderAOTYSection(container, 'Popular Singles', singles.albums);
             if (underRadar?.albums?.length) this.renderAOTYSection(container, 'Under the Radar', underRadar.albums);
-            if (anticipated?.albums?.length) this.renderAOTYSection(container, 'Most Anticipated', anticipated.albums, { isUpcoming: true });
+            if (anticipated?.albums?.length)
+                this.renderAOTYSection(container, 'Most Anticipated', anticipated.albums, { isUpcoming: true });
             if (!container.children.length) container.innerHTML = createPlaceholder('No content available.');
         } catch (e) {
             console.error(e);
@@ -3073,7 +3074,9 @@ export class UIRenderer {
                 </select>
                 <span style="color:var(--border);user-select:none;font-size:1.1rem;">|</span>
                 <div id="aoty-mh-years" style="display:flex;flex-wrap:wrap;gap:0.35rem;">
-                    ${yearsInDecade(currentDecadeStart).map((y) => pill(y, y === currentYear)).join('')}
+                    ${yearsInDecade(currentDecadeStart)
+                        .map((y) => pill(y, y === currentYear))
+                        .join('')}
                 </div>
             </div>
             <div id="aoty-mh-content"></div>
@@ -3139,7 +3142,9 @@ export class UIRenderer {
 
         decadeSelect.addEventListener('change', async () => {
             const d = Number(decadeSelect.value);
-            yearsDiv.innerHTML = yearsInDecade(d).map((y) => pill(y, false)).join('');
+            yearsDiv.innerHTML = yearsInDecade(d)
+                .map((y) => pill(y, false))
+                .join('');
             attachYearHandlers();
             await loadDecade(d);
         });
@@ -3157,7 +3162,10 @@ export class UIRenderer {
         try {
             const data = await fetchAOTY('/news?type=newsworthy');
             container.innerHTML = '';
-            if (!data.items?.length) { container.innerHTML = createPlaceholder('No news available.'); return; }
+            if (!data.items?.length) {
+                container.innerHTML = createPlaceholder('No news available.');
+                return;
+            }
             const list = document.createElement('div');
             for (const item of data.items) {
                 const url = item.url?.startsWith('http') ? item.url : `https://www.albumoftheyear.org${item.url || ''}`;
@@ -3165,18 +3173,25 @@ export class UIRenderer {
                 el.href = url;
                 el.target = '_blank';
                 el.rel = 'noopener';
-                el.style.cssText = 'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;';
+                el.style.cssText =
+                    'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;';
                 const img = document.createElement('img');
                 img.src = item.image || 'assets/logo.svg';
-                img.width = 88; img.height = 56;
-                img.style.cssText = 'width:88px;height:56px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);';
+                img.width = 88;
+                img.height = 56;
+                img.style.cssText =
+                    'width:88px;height:56px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);';
                 img.loading = 'lazy';
-                img.onerror = () => { img.src = 'assets/logo.svg'; img.onerror = null; };
+                img.onerror = () => {
+                    img.src = 'assets/logo.svg';
+                    img.onerror = null;
+                };
                 el.appendChild(img);
                 const info = document.createElement('div');
                 info.style.cssText = 'flex:1;min-width:0;';
                 const t = document.createElement('div');
-                t.style.cssText = 'font-weight:500;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+                t.style.cssText =
+                    'font-weight:500;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
                 t.textContent = item.title || '';
                 const m = document.createElement('div');
                 m.style.cssText = 'font-size:0.75rem;color:var(--muted-foreground);margin-top:2px;';
@@ -3203,7 +3218,7 @@ export class UIRenderer {
         const currentYear = new Date().getFullYear();
         const years = Array.from({ length: currentYear - 1970 + 1 }, (_, i) => currentYear - i);
 
-        const yearOptions = years.map(y => `<option value="${y}">${y}</option>`).join('');
+        const yearOptions = years.map((y) => `<option value="${y}">${y}</option>`).join('');
 
         container.innerHTML = `
             <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;">
@@ -3227,28 +3242,38 @@ export class UIRenderer {
             try {
                 const data = await fetchAOTY(`/lists?year=${year}`);
                 contentDiv.innerHTML = '';
-                if (!data.lists?.length) { contentDiv.innerHTML = createPlaceholder('No critic lists found.'); return; }
+                if (!data.lists?.length) {
+                    contentDiv.innerHTML = createPlaceholder('No critic lists found.');
+                    return;
+                }
                 const list = document.createElement('div');
                 for (const entry of data.lists) {
                     const slug = (entry.url || '').split('/').filter(Boolean).pop() || '';
                     const el = document.createElement('div');
-                    el.style.cssText = 'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);cursor:pointer;';
+                    el.style.cssText =
+                        'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);cursor:pointer;';
                     const thumb = document.createElement('img');
                     thumb.src = entry.cover || 'assets/logo.svg';
-                    thumb.width = 44; thumb.height = 44;
+                    thumb.width = 44;
+                    thumb.height = 44;
                     thumb.loading = 'lazy';
-                    thumb.onerror = () => { thumb.src = 'assets/logo.svg'; thumb.onerror = null; };
-                    thumb.style.cssText = 'width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);';
+                    thumb.onerror = () => {
+                        thumb.src = 'assets/logo.svg';
+                        thumb.onerror = null;
+                    };
+                    thumb.style.cssText =
+                        'width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);';
                     el.appendChild(thumb);
                     const info = document.createElement('div');
                     info.style.cssText = 'flex:1;min-width:0;';
                     const t = document.createElement('div');
-                    t.style.cssText = 'font-weight:500;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+                    t.style.cssText =
+                        'font-weight:500;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
                     const displayName = entry.title || entry.publication || '';
                     t.textContent = displayName;
                     const p = document.createElement('div');
                     p.style.cssText = 'font-size:0.75rem;color:var(--muted-foreground);margin-top:2px;';
-                    p.textContent = entry.title ? (entry.publication || '') : '';
+                    p.textContent = entry.title ? entry.publication || '' : '';
                     info.appendChild(t);
                     info.appendChild(p);
                     el.appendChild(info);
@@ -3272,12 +3297,17 @@ export class UIRenderer {
     async showAOTYListModal(slug, listTitle) {
         const body = document.createElement('div');
         body.innerHTML = `<div style="display:flex;flex-direction:column;gap:0;">
-            ${Array(10).fill(0).map(() => `
+            ${Array(10)
+                .fill(0)
+                .map(
+                    () => `
                 <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);">
                     <div class="skeleton" style="width:2rem;height:1.2rem;border-radius:4px;flex-shrink:0;"></div>
                     <div class="skeleton" style="width:48px;height:48px;border-radius:6px;flex-shrink:0;"></div>
                     <div style="flex:1;"><div class="skeleton" style="height:13px;width:70%;margin-bottom:6px;"></div><div class="skeleton" style="height:11px;width:40%;"></div></div>
-                </div>`).join('')}
+                </div>`
+                )
+                .join('')}
         </div>`;
 
         const { modal } = createModal({ title: listTitle, content: body, className: 'extra-wide' });
@@ -3300,10 +3330,12 @@ export class UIRenderer {
 
             for (const item of items) {
                 const row = document.createElement('div');
-                row.style.cssText = 'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);cursor:pointer;';
+                row.style.cssText =
+                    'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);cursor:pointer;';
 
                 const scoreEl = document.createElement('div');
-                scoreEl.style.cssText = 'font-size:0.8rem;font-weight:700;color:var(--primary-foreground);background:var(--primary);padding:2px 7px;border-radius:5px;flex-shrink:0;display:none;';
+                scoreEl.style.cssText =
+                    'font-size:0.8rem;font-weight:700;color:var(--primary-foreground);background:var(--primary);padding:2px 7px;border-radius:5px;flex-shrink:0;display:none;';
 
                 row.innerHTML = `
                     <span style="font-size:0.8rem;font-weight:700;color:var(--primary);min-width:2rem;text-align:right;flex-shrink:0;">#${escapeHtml(item.rank || '')}</span>
@@ -3321,7 +3353,9 @@ export class UIRenderer {
                 row.appendChild(scoreEl);
                 scoreTargets.push({ item, scoreEl });
 
-                const aotyItemUrl = item.url?.startsWith('http') ? item.url : `https://www.albumoftheyear.org${item.url || ''}`;
+                const aotyItemUrl = item.url?.startsWith('http')
+                    ? item.url
+                    : `https://www.albumoftheyear.org${item.url || ''}`;
 
                 row.addEventListener('click', async () => {
                     row.style.opacity = '0.5';
@@ -3416,9 +3450,11 @@ export class UIRenderer {
             for (const album of result.items) {
                 const aTitle = aotyNorm(album.title);
                 const aArtist = aotyNorm(album.artist?.name || album.artists?.[0]?.name || '');
-                const titleMatch = aTitle === normTitle ||
+                const titleMatch =
+                    aTitle === normTitle ||
                     (normTitle.length > 2 && (aTitle.includes(normTitle) || normTitle.includes(aTitle)));
-                const artistMatch = !normArtist ||
+                const artistMatch =
+                    !normArtist ||
                     aArtist === normArtist ||
                     aArtist.includes(normArtist) ||
                     normArtist.includes(aArtist);
@@ -4571,64 +4607,70 @@ export class UIRenderer {
                 `By <a href="/artist/${album.artist.id}">${album.artist.name}</a>` +
                 (firstCopyright ? ` • ${firstCopyright}` : '');
 
-            fetchAOTY(
-                `/album?artist=${encodeURIComponent(album.artist.name)}&name=${encodeURIComponent(album.title)}`
-            ).then((data) => {
-                const aotyUrl = data.url
-                    ? data.url.startsWith('http') ? data.url : `https://www.albumoftheyear.org${data.url}`
-                    : null;
-
-                // Must Hear badge (from cached index built by the AOTY tab)
-                if (checkAOTYMustHear(album.artist.name, album.title)) {
-                    const badge = document.createElement('span');
-                    badge.textContent = 'MUST HEAR';
-                    badge.style.cssText = 'background:var(--primary);color:var(--primary-foreground);font-size:0.6rem;font-weight:700;padding:3px 8px;border-radius:3px;margin-left:10px;vertical-align:middle;letter-spacing:0.05em;cursor:pointer;';
-                    badge.title = 'View Must Hear albums on AOTY';
-                    badge.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        navigate('/');
-                        setTimeout(() => {
-                            document.querySelector('.home-tab[data-tab="aoty"]')?.click();
-                            setTimeout(() => {
-                                document.querySelector('.aoty-subnav-btn[data-aoty-tab="musthear"]')?.click();
-                            }, 80);
-                        }, 80);
-                    });
-                    titleEl.appendChild(badge);
-                }
-
-                // Label — append to producer line
-                if (data.label) {
-                    const labelUrl = data.labelUrl
-                        ? (data.labelUrl.startsWith('http') ? data.labelUrl : `https://www.albumoftheyear.org${data.labelUrl}`)
+            fetchAOTY(`/album?artist=${encodeURIComponent(album.artist.name)}&name=${encodeURIComponent(album.title)}`)
+                .then((data) => {
+                    const aotyUrl = data.url
+                        ? data.url.startsWith('http')
+                            ? data.url
+                            : `https://www.albumoftheyear.org${data.url}`
                         : null;
-                    const labelLink = labelUrl
-                        ? `<a href="${labelUrl}" target="_blank" rel="noopener">${escapeHtml(data.label)}</a>`
-                        : escapeHtml(data.label);
-                    prodEl.innerHTML += ` · ${labelLink}`;
-                }
 
-                // Critic score
-                const critScore = data.criticScore;
-                const critCount = data.criticCount;
-                const reviews = data.reviews || [];
-                if (!critScore || critScore === 'NR') {
-                    rateCriticsEl.innerHTML = `<span style="color:var(--muted-foreground);">Critic Score: NR</span>`;
-                } else {
-                    rateCriticsEl.innerHTML = `<a href="javascript:void(0)" style="color:var(--muted-foreground);cursor:pointer;">Critic Score: ${critScore}${critCount ? ` · <span style="text-decoration:underline;">${critCount} reviews</span>` : ''}</a>`;
-                    rateCriticsEl.querySelector('a').onclick = () => {
-                        const con = document.createElement('div');
-                        con.style.cssText = 'display:flex;flex-direction:column;gap:1.5rem;';
-                        if (reviews.length === 0) {
-                            con.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted-foreground);">No reviews found.</div>';
-                        }
-                        for (const review of reviews) {
-                            const reviewdiv = document.createElement('div');
-                            reviewdiv.style.cssText = 'display:flex;gap:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border);';
-                            const publication = decodeHtml(review.publication || 'Unknown Publication');
-                            const author = decodeHtml(review.author || '');
-                            const quote = decodeHtml(review.text || 'No review text available.');
-                            reviewdiv.innerHTML = `
+                    // Must Hear badge (from cached index built by the AOTY tab)
+                    if (checkAOTYMustHear(album.artist.name, album.title)) {
+                        const badge = document.createElement('span');
+                        badge.textContent = 'MUST HEAR';
+                        badge.style.cssText =
+                            'background:var(--primary);color:var(--primary-foreground);font-size:0.6rem;font-weight:700;padding:3px 8px;border-radius:3px;margin-left:10px;vertical-align:middle;letter-spacing:0.05em;cursor:pointer;';
+                        badge.title = 'View Must Hear albums on AOTY';
+                        badge.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            navigate('/');
+                            setTimeout(() => {
+                                document.querySelector('.home-tab[data-tab="aoty"]')?.click();
+                                setTimeout(() => {
+                                    document.querySelector('.aoty-subnav-btn[data-aoty-tab="musthear"]')?.click();
+                                }, 80);
+                            }, 80);
+                        });
+                        titleEl.appendChild(badge);
+                    }
+
+                    // Label — append to producer line
+                    if (data.label) {
+                        const labelUrl = data.labelUrl
+                            ? data.labelUrl.startsWith('http')
+                                ? data.labelUrl
+                                : `https://www.albumoftheyear.org${data.labelUrl}`
+                            : null;
+                        const labelLink = labelUrl
+                            ? `<a href="${labelUrl}" target="_blank" rel="noopener">${escapeHtml(data.label)}</a>`
+                            : escapeHtml(data.label);
+                        prodEl.innerHTML += ` · ${labelLink}`;
+                    }
+
+                    // Critic score
+                    const critScore = data.criticScore;
+                    const critCount = data.criticCount;
+                    const reviews = data.reviews || [];
+                    if (!critScore || critScore === 'NR') {
+                        rateCriticsEl.innerHTML = `<span style="color:var(--muted-foreground);">Critic Score: NR</span>`;
+                    } else {
+                        rateCriticsEl.innerHTML = `<a href="javascript:void(0)" style="color:var(--muted-foreground);cursor:pointer;">Critic Score: ${critScore}${critCount ? ` · <span style="text-decoration:underline;">${critCount} reviews</span>` : ''}</a>`;
+                        rateCriticsEl.querySelector('a').onclick = () => {
+                            const con = document.createElement('div');
+                            con.style.cssText = 'display:flex;flex-direction:column;gap:1.5rem;';
+                            if (reviews.length === 0) {
+                                con.innerHTML =
+                                    '<div style="text-align:center;padding:2rem;color:var(--muted-foreground);">No reviews found.</div>';
+                            }
+                            for (const review of reviews) {
+                                const reviewdiv = document.createElement('div');
+                                reviewdiv.style.cssText =
+                                    'display:flex;gap:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border);';
+                                const publication = decodeHtml(review.publication || 'Unknown Publication');
+                                const author = decodeHtml(review.author || '');
+                                const quote = decodeHtml(review.text || 'No review text available.');
+                                reviewdiv.innerHTML = `
                                 <img src="${review.image || ''}" width="50" height="50" style="border-radius:8px;object-fit:cover;background:var(--highlight);flex-shrink:0;"
                                      onerror="this.src='images/monochrome-logo.svg';this.onerror=null;" loading="lazy" referrerpolicy="no-referrer">
                                 <div style="flex:1;">
@@ -4639,30 +4681,34 @@ export class UIRenderer {
                                     <div class="author-name" style="font-size:0.8rem;color:var(--muted-foreground);margin-bottom:0.5rem;"></div>
                                     <div class="quote-text" style="font-size:0.95rem;line-height:1.5;color:var(--muted-foreground);font-style:italic;"></div>
                                 </div>`;
-                            reviewdiv.querySelector('.pub-name').textContent = publication;
-                            if (author) reviewdiv.querySelector('.author-name').textContent = `By ${author}`;
-                            else reviewdiv.querySelector('.author-name').remove();
-                            reviewdiv.querySelector('.quote-text').textContent = `"${quote}"`;
-                            con.appendChild(reviewdiv);
-                        }
-                        createModal({ title: `Critic Reviews · ${critScore}`, content: con, className: 'extra-wide' });
-                    };
-                }
+                                reviewdiv.querySelector('.pub-name').textContent = publication;
+                                if (author) reviewdiv.querySelector('.author-name').textContent = `By ${author}`;
+                                else reviewdiv.querySelector('.author-name').remove();
+                                reviewdiv.querySelector('.quote-text').textContent = `"${quote}"`;
+                                con.appendChild(reviewdiv);
+                            }
+                            createModal({
+                                title: `Critic Reviews · ${critScore}`,
+                                content: con,
+                                className: 'extra-wide',
+                            });
+                        };
+                    }
 
-                // User score
-                const userScore = data.userScore;
-                const userCount = data.userCount;
-                if (!userScore || userScore === 'NR') {
-                    rateUsersEl.innerHTML = `<span style="color:var(--muted-foreground);">User Score: NR</span>`;
-                } else {
-                    const userLink = aotyUrl ? `href="${aotyUrl}" target="_blank" rel="noopener"` : '';
-                    rateUsersEl.innerHTML = `<a ${userLink} style="color:var(--muted-foreground);">User Score: <span style="text-decoration:underline;">${userScore}</span>${userCount ? ` · ${userCount} ratings` : ''}</a>`;
-                }
-
-            }).catch(() => {
-                rateCriticsEl.innerHTML = `<span style="color:var(--muted-foreground);">Unable to fetch critic score</span>`;
-                rateUsersEl.innerHTML = `<span style="color:var(--muted-foreground);">Unable to fetch user score</span>`;
-            });
+                    // User score
+                    const userScore = data.userScore;
+                    const userCount = data.userCount;
+                    if (!userScore || userScore === 'NR') {
+                        rateUsersEl.innerHTML = `<span style="color:var(--muted-foreground);">User Score: NR</span>`;
+                    } else {
+                        const userLink = aotyUrl ? `href="${aotyUrl}" target="_blank" rel="noopener"` : '';
+                        rateUsersEl.innerHTML = `<a ${userLink} style="color:var(--muted-foreground);">User Score: <span style="text-decoration:underline;">${userScore}</span>${userCount ? ` · ${userCount} ratings` : ''}</a>`;
+                    }
+                })
+                .catch(() => {
+                    rateCriticsEl.innerHTML = `<span style="color:var(--muted-foreground);">Unable to fetch critic score</span>`;
+                    rateUsersEl.innerHTML = `<span style="color:var(--muted-foreground);">Unable to fetch user score</span>`;
+                });
 
             tracklistContainer.innerHTML = `
                 <div class="track-list-header">
