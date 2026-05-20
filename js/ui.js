@@ -99,6 +99,61 @@ import {
     SVG_CHECKBOX,
 } from './icons.js';
 
+const AOTY_BASE = 'https://aoty.prigoana.pw';
+const AOTY_CACHE_TTL = 86_400_000; // 24 hours
+
+async function fetchAOTY(path) {
+    const key = `aoty_cache_${path}`;
+    try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+            const { ts, data } = JSON.parse(raw);
+            if (Date.now() - ts < AOTY_CACHE_TTL) return data;
+        }
+    } catch {}
+    const res = await fetch(`${AOTY_BASE}${path}`);
+    if (!res.ok) throw new Error(`AOTY request failed: ${res.status}`);
+    const data = await res.json();
+    try {
+        localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
+    } catch {}
+    return data;
+}
+
+function aotyNorm(s) {
+    return (s || '')
+        .toLowerCase()
+        .replace(/\(.*?\)/g, '')
+        .replace(/\[.*?\]/g, '')
+        .replace(/\bdeluxe\b.*/i, '')
+        .replace(/\bexpanded\b.*/i, '')
+        .replace(/\banniversary\b.*/i, '')
+        .replace(/\bremastered\b.*/i, '')
+        .replace(/\bbonus\b.*/i, '')
+        .replace(/feat\..*$/i, '')
+        .replace(/ft\..*$/i, '')
+        .replace(/[^a-z0-9]/g, '');
+}
+
+function updateAOTYMustHearIndex(albums) {
+    if (!albums?.length) return;
+    try {
+        const index = JSON.parse(localStorage.getItem('aoty_musthear') || '{}');
+        for (const a of albums) {
+            if (a.mustHear) index[`${aotyNorm(a.artist)}\x00${aotyNorm(a.title)}`] = true;
+        }
+        localStorage.setItem('aoty_musthear', JSON.stringify(index));
+    } catch {}
+}
+
+function checkAOTYMustHear(artist, title) {
+    try {
+        const index = JSON.parse(localStorage.getItem('aoty_musthear') || '{}');
+        return index[`${aotyNorm(artist)}\x00${aotyNorm(title)}`] === true;
+    } catch {}
+    return false;
+}
+
 const setFullscreenUIToggleIcon = (button, visualizerOnlyMode) => {
     if (!button) return;
     button.innerHTML = visualizerOnlyMode ? SVG_EYE(24) : SVG_EYE_OFF(24);
@@ -2781,6 +2836,9 @@ export class UIRenderer {
                 if (tab.dataset.tab === 'explore') {
                     await this.renderExplorePage();
                 }
+                if (tab.dataset.tab === 'aoty') {
+                    await this.renderAOTYPage();
+                }
             });
         }
     }
@@ -2884,6 +2942,533 @@ export class UIRenderer {
             console.error(e);
             container.innerHTML = createPlaceholder('Failed to load explore content.');
         }
+    }
+
+    async renderAOTYPage() {
+        const container = document.getElementById('aoty-content');
+        if (!container) return;
+        if (container.children.length > 0) return;
+
+        const TABS = [
+            { id: 'discover', label: 'Discover' },
+            { id: 'releases', label: 'New Releases' },
+            { id: 'musthear', label: 'Must Hear' },
+            { id: 'news', label: 'News' },
+            { id: 'lists', label: 'Critic Lists' },
+        ];
+
+        const pill = (active) =>
+            `padding:0.32rem 0.9rem;border-radius:2rem;border:1px solid ${active ? 'var(--primary)' : 'var(--border)'};background:${active ? 'var(--primary)' : 'transparent'};color:${active ? 'var(--primary-foreground)' : 'var(--muted-foreground)'};cursor:pointer;font-size:0.82rem;font-weight:500;white-space:nowrap;`;
+
+        container.innerHTML = `
+            <div style="font-size:0.72rem;color:var(--muted-foreground);margin-bottom:0.9rem;">
+                Powered by <a href="https://aoty.prigoana.pw/" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:none;">aoty-api</a>
+                &nbsp;·&nbsp;
+                <a href="https://ko-fi.com/edideaur" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:none;">consider donating</a>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1.5rem;">
+                ${TABS.map(({ id, label }, i) => `<button class="aoty-subnav-btn" data-aoty-tab="${id}" style="${pill(i === 0)}">${label}</button>`).join('')}
+            </div>
+            ${TABS.map(({ id }, i) => `<div id="aoty-view-${id}" class="aoty-view"${i > 0 ? ' style="display:none"' : ''}></div>`).join('')}
+        `;
+
+        const setActive = (activeId) => {
+            for (const btn of container.querySelectorAll('.aoty-subnav-btn')) {
+                const on = btn.dataset.aotyTab === activeId;
+                btn.style.background = on ? 'var(--primary)' : 'transparent';
+                btn.style.color = on ? 'var(--primary-foreground)' : 'var(--muted-foreground)';
+                btn.style.borderColor = on ? 'var(--primary)' : 'var(--border)';
+            }
+            for (const view of container.querySelectorAll('.aoty-view')) {
+                view.style.display = view.id === `aoty-view-${activeId}` ? '' : 'none';
+            }
+        };
+
+        for (const btn of container.querySelectorAll('.aoty-subnav-btn')) {
+            btn.addEventListener('click', async () => {
+                setActive(btn.dataset.aotyTab);
+                await this.loadAOTYTab(btn.dataset.aotyTab);
+            });
+        }
+
+        await this.loadAOTYTab('discover');
+    }
+
+    async loadAOTYTab(tabId) {
+        const view = document.getElementById(`aoty-view-${tabId}`);
+        if (!view || view.dataset.aotyLoaded) return;
+        view.dataset.aotyLoaded = 'true';
+        const handlers = {
+            discover: () => this.renderAOTYDiscover(view),
+            releases: () => this.renderAOTYReleases(view),
+            musthear: () => this.renderAOTYMustHear(view),
+            news: () => this.renderAOTYNews(view),
+            lists: () => this.renderAOTYLists(view),
+        };
+        if (handlers[tabId]) await handlers[tabId]();
+    }
+
+    async renderAOTYDiscover(container) {
+        container.innerHTML = `<div class="card-grid">${this.createSkeletonCards(12)}</div>`;
+        try {
+            const [discover, singles, underRadar, anticipated] = await Promise.all([
+                fetchAOTY('/discover').catch(() => null),
+                fetchAOTY('/discover/singles').catch(() => null),
+                fetchAOTY('/discover/under-radar').catch(() => null),
+                fetchAOTY('/discover/anticipated').catch(() => null),
+            ]);
+            container.innerHTML = '';
+            updateAOTYMustHearIndex([
+                ...(discover?.albums || []),
+                ...(underRadar?.albums || []),
+                ...(anticipated?.albums || []),
+            ]);
+            if (discover?.albums?.length) this.renderAOTYSection(container, 'Popular Right Now', discover.albums);
+            if (singles?.albums?.length) this.renderAOTYSection(container, 'Popular Singles', singles.albums);
+            if (underRadar?.albums?.length) this.renderAOTYSection(container, 'Under the Radar', underRadar.albums);
+            if (anticipated?.albums?.length) this.renderAOTYSection(container, 'Most Anticipated', anticipated.albums, { isUpcoming: true });
+            if (!container.children.length) container.innerHTML = createPlaceholder('No content available.');
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = createPlaceholder('Failed to load AOTY content.');
+        }
+    }
+
+    async renderAOTYReleases(container) {
+        container.innerHTML = `<div class="card-grid">${this.createSkeletonCards(12)}</div>`;
+        try {
+            const [albums, singles] = await Promise.all([
+                fetchAOTY('/releases').catch(() => null),
+                fetchAOTY('/releases/singles').catch(() => null),
+            ]);
+            container.innerHTML = '';
+            if (albums?.albums?.length) this.renderAOTYSection(container, 'New Albums', albums.albums);
+            if (singles?.albums?.length) this.renderAOTYSection(container, 'New Singles', singles.albums);
+            if (!container.children.length) container.innerHTML = createPlaceholder('No new releases.');
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = createPlaceholder('Failed to load releases.');
+        }
+    }
+
+    async renderAOTYMustHear(container) {
+        const currentYear = new Date().getFullYear();
+        const currentDecadeStart = Math.floor(currentYear / 10) * 10;
+
+        const DECADES = [];
+        for (let d = currentDecadeStart; d >= 1950; d -= 10) DECADES.push(d);
+
+        const yearsInDecade = (d) => {
+            const end = Math.min(d + 9, currentYear);
+            return Array.from({ length: end - d + 1 }, (_, i) => d + i);
+        };
+
+        const pill = (y, active) =>
+            `<button class="aoty-mh-year-btn" data-year="${y}" style="padding:0.28rem 0.7rem;border-radius:2rem;border:1px solid ${active ? 'var(--primary)' : 'var(--border)'};background:${active ? 'var(--primary)' : 'transparent'};color:${active ? 'var(--primary-foreground)' : 'var(--muted-foreground)'};cursor:pointer;font-size:0.78rem;font-weight:500;">${y}</button>`;
+
+        container.innerHTML = `
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+                <select id="aoty-decade-select" style="padding:0.32rem 0.6rem;border-radius:var(--radius);border:1px solid var(--border);background:var(--background);color:var(--foreground);font-size:0.82rem;cursor:pointer;outline:none;">
+                    ${DECADES.map((d) => `<option value="${d}">${d}s</option>`).join('')}
+                </select>
+                <span style="color:var(--border);user-select:none;font-size:1.1rem;">|</span>
+                <div id="aoty-mh-years" style="display:flex;flex-wrap:wrap;gap:0.35rem;">
+                    ${yearsInDecade(currentDecadeStart).map((y) => pill(y, y === currentYear)).join('')}
+                </div>
+            </div>
+            <div id="aoty-mh-content"></div>
+        `;
+
+        const contentDiv = container.querySelector('#aoty-mh-content');
+        const yearsDiv = container.querySelector('#aoty-mh-years');
+        const decadeSelect = container.querySelector('#aoty-decade-select');
+
+        const loadYear = async (year) => {
+            contentDiv.innerHTML = `<div class="card-grid">${this.createSkeletonCards(12)}</div>`;
+            try {
+                const data = await fetchAOTY(`/must-hear?year=${year}`);
+                contentDiv.innerHTML = '';
+                if (data.albums?.length) {
+                    updateAOTYMustHearIndex(data.albums);
+                    this.renderAOTYSection(contentDiv, `Must Hear ${year}`, data.albums);
+                } else {
+                    contentDiv.innerHTML = createPlaceholder('No must-hear albums found.');
+                }
+            } catch {
+                contentDiv.innerHTML = createPlaceholder('Failed to load must-hear albums.');
+            }
+        };
+
+        const setActiveYear = (btn) => {
+            for (const b of yearsDiv.querySelectorAll('.aoty-mh-year-btn')) {
+                b.style.background = 'transparent';
+                b.style.color = 'var(--muted-foreground)';
+                b.style.borderColor = 'var(--border)';
+            }
+            btn.style.background = 'var(--primary)';
+            btn.style.color = 'var(--primary-foreground)';
+            btn.style.borderColor = 'var(--primary)';
+        };
+
+        const loadDecade = async (d) => {
+            contentDiv.innerHTML = `<div class="card-grid">${this.createSkeletonCards(12)}</div>`;
+            try {
+                const data = await fetchAOTY(`/must-hear?decade=${d}s`);
+                contentDiv.innerHTML = '';
+                if (data.albums?.length) {
+                    updateAOTYMustHearIndex(data.albums);
+                    this.renderAOTYSection(contentDiv, `Must Hear — ${d}s`, data.albums);
+                } else {
+                    contentDiv.innerHTML = createPlaceholder('No must-hear albums found.');
+                }
+            } catch {
+                contentDiv.innerHTML = createPlaceholder('Failed to load must-hear albums.');
+            }
+        };
+
+        const attachYearHandlers = () => {
+            for (const btn of yearsDiv.querySelectorAll('.aoty-mh-year-btn')) {
+                btn.addEventListener('click', async () => {
+                    setActiveYear(btn);
+                    await loadYear(Number(btn.dataset.year));
+                });
+            }
+        };
+
+        attachYearHandlers();
+
+        decadeSelect.addEventListener('change', async () => {
+            const d = Number(decadeSelect.value);
+            yearsDiv.innerHTML = yearsInDecade(d).map((y) => pill(y, false)).join('');
+            attachYearHandlers();
+            await loadDecade(d);
+        });
+
+        await loadDecade(currentDecadeStart);
+    }
+
+    async renderAOTYNews(container) {
+        const skeletonRow = () => `
+            <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+                <div class="skeleton" style="width:52px;height:52px;border-radius:6px;flex-shrink:0;"></div>
+                <div style="flex:1;"><div class="skeleton" style="height:13px;width:75%;margin-bottom:6px;"></div><div class="skeleton" style="height:11px;width:40%;"></div></div>
+            </div>`;
+        container.innerHTML = `<div>${Array(10).fill(0).map(skeletonRow).join('')}</div>`;
+        try {
+            const data = await fetchAOTY('/news?type=newsworthy');
+            container.innerHTML = '';
+            if (!data.items?.length) { container.innerHTML = createPlaceholder('No news available.'); return; }
+            const list = document.createElement('div');
+            for (const item of data.items) {
+                const url = item.url?.startsWith('http') ? item.url : `https://www.albumoftheyear.org${item.url || ''}`;
+                const el = document.createElement('a');
+                el.href = url;
+                el.target = '_blank';
+                el.rel = 'noopener';
+                el.style.cssText = 'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;';
+                const img = document.createElement('img');
+                img.src = item.image || 'assets/logo.svg';
+                img.width = 88; img.height = 56;
+                img.style.cssText = 'width:88px;height:56px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);';
+                img.loading = 'lazy';
+                img.onerror = () => { img.src = 'assets/logo.svg'; img.onerror = null; };
+                el.appendChild(img);
+                const info = document.createElement('div');
+                info.style.cssText = 'flex:1;min-width:0;';
+                const t = document.createElement('div');
+                t.style.cssText = 'font-weight:500;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+                t.textContent = item.title || '';
+                const m = document.createElement('div');
+                m.style.cssText = 'font-size:0.75rem;color:var(--muted-foreground);margin-top:2px;';
+                m.textContent = [item.source, item.date].filter(Boolean).join(' · ');
+                info.appendChild(t);
+                info.appendChild(m);
+                el.appendChild(info);
+                if (item.likes) {
+                    const lk = document.createElement('div');
+                    lk.style.cssText = 'font-size:0.72rem;color:var(--muted-foreground);flex-shrink:0;';
+                    lk.textContent = `♥ ${item.likes}`;
+                    el.appendChild(lk);
+                }
+                list.appendChild(el);
+            }
+            container.appendChild(list);
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = createPlaceholder('Failed to load news.');
+        }
+    }
+
+    async renderAOTYLists(container) {
+        const currentYear = new Date().getFullYear();
+        const years = Array.from({ length: currentYear - 1970 + 1 }, (_, i) => currentYear - i);
+
+        const yearOptions = years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+        container.innerHTML = `
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;">
+                <select id="aoty-lists-year" style="padding:0.3rem 0.6rem;border-radius:6px;border:1px solid var(--border);background:var(--background);color:var(--foreground);font-size:0.85rem;cursor:pointer;">
+                    ${yearOptions}
+                </select>
+            </div>
+            <div id="aoty-lists-content"></div>
+        `;
+
+        const contentDiv = container.querySelector('#aoty-lists-content');
+
+        const skeletonRow = () => `
+            <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+                <div class="skeleton" style="width:44px;height:44px;border-radius:6px;flex-shrink:0;"></div>
+                <div style="flex:1;"><div class="skeleton" style="height:13px;width:70%;margin-bottom:6px;"></div><div class="skeleton" style="height:11px;width:35%;"></div></div>
+            </div>`;
+
+        const loadLists = async (year) => {
+            contentDiv.innerHTML = `<div>${Array(8).fill(0).map(skeletonRow).join('')}</div>`;
+            try {
+                const data = await fetchAOTY(`/lists?year=${year}`);
+                contentDiv.innerHTML = '';
+                if (!data.lists?.length) { contentDiv.innerHTML = createPlaceholder('No critic lists found.'); return; }
+                const list = document.createElement('div');
+                for (const entry of data.lists) {
+                    const slug = (entry.url || '').split('/').filter(Boolean).pop() || '';
+                    const el = document.createElement('div');
+                    el.style.cssText = 'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);cursor:pointer;';
+                    const thumb = document.createElement('img');
+                    thumb.src = entry.cover || 'assets/logo.svg';
+                    thumb.width = 44; thumb.height = 44;
+                    thumb.loading = 'lazy';
+                    thumb.onerror = () => { thumb.src = 'assets/logo.svg'; thumb.onerror = null; };
+                    thumb.style.cssText = 'width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);';
+                    el.appendChild(thumb);
+                    const info = document.createElement('div');
+                    info.style.cssText = 'flex:1;min-width:0;';
+                    const t = document.createElement('div');
+                    t.style.cssText = 'font-weight:500;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+                    const displayName = entry.title || entry.publication || '';
+                    t.textContent = displayName;
+                    const p = document.createElement('div');
+                    p.style.cssText = 'font-size:0.75rem;color:var(--muted-foreground);margin-top:2px;';
+                    p.textContent = entry.title ? (entry.publication || '') : '';
+                    info.appendChild(t);
+                    info.appendChild(p);
+                    el.appendChild(info);
+                    el.addEventListener('click', () => this.showAOTYListModal(slug, displayName));
+                    list.appendChild(el);
+                }
+                contentDiv.appendChild(list);
+            } catch (e) {
+                console.error(e);
+                contentDiv.innerHTML = createPlaceholder('Failed to load critic lists.');
+            }
+        };
+
+        container.querySelector('#aoty-lists-year').addEventListener('change', async (e) => {
+            await loadLists(e.target.value);
+        });
+
+        await loadLists(currentYear);
+    }
+
+    async showAOTYListModal(slug, listTitle) {
+        const body = document.createElement('div');
+        body.innerHTML = `<div style="display:flex;flex-direction:column;gap:0;">
+            ${Array(10).fill(0).map(() => `
+                <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+                    <div class="skeleton" style="width:2rem;height:1.2rem;border-radius:4px;flex-shrink:0;"></div>
+                    <div class="skeleton" style="width:48px;height:48px;border-radius:6px;flex-shrink:0;"></div>
+                    <div style="flex:1;"><div class="skeleton" style="height:13px;width:70%;margin-bottom:6px;"></div><div class="skeleton" style="height:11px;width:40%;"></div></div>
+                </div>`).join('')}
+        </div>`;
+
+        const { modal } = createModal({ title: listTitle, content: body, className: 'extra-wide' });
+
+        try {
+            const data = await fetchAOTY(`/list/${slug}`);
+            const items = data.items || [];
+            const modalBody = modal.querySelector('.modal-body');
+            modalBody.innerHTML = '';
+
+            if (!items.length) {
+                modalBody.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted-foreground);">No items found.</div>`;
+                return;
+            }
+
+            const list = document.createElement('div');
+            list.style.cssText = 'display:flex;flex-direction:column;gap:0;';
+
+            const scoreTargets = []; // { item, scoreEl } — collected during loop for lazy fetch
+
+            for (const item of items) {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);cursor:pointer;';
+
+                const scoreEl = document.createElement('div');
+                scoreEl.style.cssText = 'font-size:0.8rem;font-weight:700;color:var(--primary-foreground);background:var(--primary);padding:2px 7px;border-radius:5px;flex-shrink:0;display:none;';
+
+                row.innerHTML = `
+                    <span style="font-size:0.8rem;font-weight:700;color:var(--primary);min-width:2rem;text-align:right;flex-shrink:0;">#${escapeHtml(item.rank || '')}</span>
+                    <img src="${item.cover || 'assets/logo.svg'}" width="48" height="48"
+                        style="border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);"
+                        loading="lazy" onerror="this.src='assets/logo.svg';this.onerror=null;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:500;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" class="row-title"></div>
+                        <div style="font-size:0.75rem;color:var(--muted-foreground);margin-top:2px;" class="row-meta"></div>
+                    </div>`;
+
+                row.querySelector('.row-title').textContent = item.title || '';
+                const metaParts = [item.date, ...(item.genres?.slice(0, 2) || [])].filter(Boolean);
+                row.querySelector('.row-meta').textContent = metaParts.join(' · ');
+                row.appendChild(scoreEl);
+                scoreTargets.push({ item, scoreEl });
+
+                const aotyItemUrl = item.url?.startsWith('http') ? item.url : `https://www.albumoftheyear.org${item.url || ''}`;
+
+                row.addEventListener('click', async () => {
+                    row.style.opacity = '0.5';
+                    row.style.pointerEvents = 'none';
+                    try {
+                        const found = await this.findAOTYAlbumInLibrary('', item.title || '');
+                        if (found) {
+                            modal.remove();
+                            navigate(`/album/${found.id}`);
+                        } else {
+                            window.open(aotyItemUrl, '_blank', 'noopener');
+                        }
+                    } finally {
+                        row.style.opacity = '';
+                        row.style.pointerEvents = '';
+                    }
+                });
+
+                list.appendChild(row);
+            }
+
+            modalBody.appendChild(list);
+
+            // Lazy-load scores — uses direct element refs collected above, no DOM querying
+            for (const { item, scoreEl } of scoreTargets) {
+                if (!item.title) continue;
+                fetchAOTY(`/album?name=${encodeURIComponent(item.title)}&minimal=true`)
+                    .then((d) => {
+                        if (d.criticScore && d.criticScore !== 'NR') {
+                            scoreEl.textContent = d.criticScore;
+                            scoreEl.style.display = '';
+                        }
+                    })
+                    .catch(() => {});
+            }
+        } catch (e) {
+            console.error(e);
+            modal.querySelector('.modal-body').innerHTML =
+                `<div style="text-align:center;padding:2rem;color:var(--muted-foreground);">Failed to load list.</div>`;
+        }
+    }
+
+    renderAOTYSection(container, title, albums, { isUpcoming = false } = {}) {
+        const section = document.createElement('section');
+        section.className = 'content-section';
+        section.innerHTML = `<h2 class="section-title">${escapeHtml(title)}</h2>`;
+        const grid = document.createElement('div');
+        grid.className = 'card-grid';
+        grid.innerHTML = albums.map((a) => this.createAOTYAlbumCardHTML(a, isUpcoming)).join('');
+        for (const card of grid.querySelectorAll('.aoty-card')) {
+            card.addEventListener('click', () => this.handleAOTYCardClick(card));
+        }
+        section.appendChild(grid);
+        container.appendChild(section);
+    }
+
+    async handleAOTYCardClick(card) {
+        const aotyUrl = card.dataset.aotyUrl;
+        const isUpcoming = card.dataset.aotyUpcoming === 'true';
+
+        if (isUpcoming) {
+            if (aotyUrl) window.open(aotyUrl, '_blank', 'noopener');
+            return;
+        }
+
+        const artist = card.dataset.aotyArtist;
+        const title = card.dataset.aotyTitle;
+
+        card.style.opacity = '0.6';
+        card.style.pointerEvents = 'none';
+        try {
+            const album = await this.findAOTYAlbumInLibrary(artist, title);
+            if (album) {
+                navigate(`/album/${album.id}`);
+            } else if (aotyUrl) {
+                window.open(aotyUrl, '_blank', 'noopener');
+            }
+        } finally {
+            card.style.opacity = '';
+            card.style.pointerEvents = '';
+        }
+    }
+
+    async findAOTYAlbumInLibrary(artist, title) {
+        const normTitle = aotyNorm(title);
+        const normArtist = artist ? aotyNorm(artist) : null;
+        const query = [artist, title].filter(Boolean).join(' ').trim();
+        if (!normTitle) return null;
+        try {
+            const result = await this.api.searchAlbums(query);
+            if (!result?.items?.length) return null;
+            for (const album of result.items) {
+                const aTitle = aotyNorm(album.title);
+                const aArtist = aotyNorm(album.artist?.name || album.artists?.[0]?.name || '');
+                const titleMatch = aTitle === normTitle ||
+                    (normTitle.length > 2 && (aTitle.includes(normTitle) || normTitle.includes(aTitle)));
+                const artistMatch = !normArtist ||
+                    aArtist === normArtist ||
+                    aArtist.includes(normArtist) ||
+                    normArtist.includes(aArtist);
+                if (titleMatch && artistMatch) return album;
+            }
+        } catch (e) {
+            console.error('AOTY match:', e);
+        }
+        return null;
+    }
+
+    createAOTYAlbumCardHTML(album, isUpcoming = false) {
+        const title = escapeHtml(album.title || 'Unknown Album');
+        const artist = escapeHtml(album.artist || '');
+        const cover = `<img src="${album.cover || 'assets/logo.svg'}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='assets/logo.svg'">`;
+
+        const scoreParts = [];
+        if (album.criticScore) scoreParts.push(`${album.criticScore} critic`);
+        if (album.userScore) scoreParts.push(`${album.userScore} user`);
+        const scores = scoreParts.join(' · ');
+
+        const subtitleParts = [artist, scores].filter(Boolean);
+        if (album.releaseDate) subtitleParts.push(album.releaseDate);
+        const subtitle = subtitleParts.join(' · ');
+
+        const mustHearBadge = album.mustHear
+            ? `<span style="background:var(--primary);color:var(--primary-foreground);font-size:0.6rem;font-weight:700;padding:2px 5px;border-radius:3px;margin-left:5px;vertical-align:middle;">MUST HEAR</span>`
+            : '';
+
+        const aotyUrl = album.url
+            ? album.url.startsWith('http')
+                ? album.url
+                : `https://www.albumoftheyear.org${album.url}`
+            : '';
+
+        return `
+            <div class="card aoty-card" style="cursor: pointer;"
+                data-aoty-url="${aotyUrl}"
+                data-aoty-artist="${escapeHtml(album.artist || '')}"
+                data-aoty-title="${escapeHtml(album.title || '')}"
+                data-aoty-upcoming="${isUpcoming}">
+                <div class="card-image-wrapper">
+                    ${cover}
+                </div>
+                <div class="card-info">
+                    <h3 class="card-title">${title}${mustHearBadge}</h3>
+                    ${subtitle ? `<p class="card-subtitle">${subtitle}</p>` : ''}
+                </div>
+            </div>
+        `;
     }
 
     async renderExploreSection(container, title, items, type) {
@@ -3986,86 +4571,98 @@ export class UIRenderer {
                 `By <a href="/artist/${album.artist.id}">${album.artist.name}</a>` +
                 (firstCopyright ? ` • ${firstCopyright}` : '');
 
-            async function fetchAotyWorker(album, artist) {
-                try {
-                    const response = await fetch(
-                        `https://aoty-api.hnh65483.workers.dev/?artist=${artist}&album=${album}`
-                    );
-                    const data = await response.json();
+            fetchAOTY(
+                `/album?artist=${encodeURIComponent(album.artist.name)}&name=${encodeURIComponent(album.title)}`
+            ).then((data) => {
+                const aotyUrl = data.url
+                    ? data.url.startsWith('http') ? data.url : `https://www.albumoftheyear.org${data.url}`
+                    : null;
 
-                    const critviews = data.critic.reviews || [];
-
-                    rateCriticsEl.innerHTML = `<a href="javascript:void(0)" style="color: var(--muted-foreground); cursor: pointer;">Critic Score: ${data.critic.score}, Based on <span style="text-decoration: underline;">${data.critic.count} reviews</span></a>`;
-
-                    if (data.critic.score == 'NR') {
-                        rateCriticsEl.innerHTML = `<a style="color: var(--muted-foreground);">Critic Score Not Available Yet</a>`;
-                    } else {
-                        rateCriticsEl.querySelector('a').onclick = () => {
-                            const con = document.createElement('div');
-                            con.style.display = 'flex';
-                            con.style.flexDirection = 'column';
-                            con.style.gap = '1.5rem';
-
-                            critviews.forEach((review) => {
-                                const reviewdiv = document.createElement('div');
-                                reviewdiv.style.display = 'flex';
-                                reviewdiv.style.gap = '1rem';
-                                reviewdiv.style.paddingBottom = '1rem';
-                                reviewdiv.style.borderBottom = '1px solid var(--border)';
-
-                                const publication = decodeHtml(
-                                    review.publication || review.source || 'Unknown Publication'
-                                );
-                                const author = decodeHtml(review.author || '');
-                                const quote = decodeHtml(review.text || review.quote || 'No review text available.');
-
-                                reviewdiv.innerHTML = `
-                                    <img src="${review.image}" width="50" height="50" style="border-radius: 8px; object-fit: cover; background: var(--highlight);"
-                                         onerror="this.src='images/monochrome-logo.svg'; this.onerror=null;"
-                                         loading="lazy"
-                                         referrerpolicy="no-referrer">
-                                    <div style="flex: 1;">
-                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
-                                            <div class="pub-name" style="font-weight: 600; color: var(--foreground);"></div>
-                                            <div style="font-weight: bold; color: var(--primary-foreground); background: var(--primary); padding: 2px 10px; border-radius: 6px; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${review.score}</div>
-                                        </div>
-                                        <div class="author-name" style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem;"></div>
-                                        <div class="quote-text" style="font-size: 0.95rem; line-height: 1.5; color: var(--muted-foreground); font-style: italic;"></div>
-                                    </div>
-                                `;
-
-                                reviewdiv.querySelector('.pub-name').textContent = publication;
-                                if (author) {
-                                    reviewdiv.querySelector('.author-name').textContent = `By ${author}`;
-                                } else {
-                                    reviewdiv.querySelector('.author-name').remove();
-                                }
-                                reviewdiv.querySelector('.quote-text').textContent = `"${quote}"`;
-
-                                con.appendChild(reviewdiv);
-                            });
-
-                            if (critviews.length === 0) {
-                                con.innerHTML =
-                                    '<div style="text-align: center; padding: 2rem; color: var(--muted-foreground);">No reviews found.</div>';
-                            }
-
-                            createModal({
-                                title: 'Critics Reviews',
-                                content: con,
-                                className: 'extra-wide',
-                            });
-                        };
-                    }
-
-                    rateUsersEl.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--muted-foreground);">User Score: <span style="text-decoration: underline;">${data.user.score}</span>, Based on ${data.user.count} reviews</a>`;
-                } catch (e) {
-                    rateCriticsEl.innerHTML = `<a style="color: var(--muted-foreground);">Unable to Fetch Critic Score</a>`;
-                    rateUsersEl.innerHTML = `<a style="color: var(--muted-foreground);">Unable to Fetch User Score</a>`;
+                // Must Hear badge (from cached index built by the AOTY tab)
+                if (checkAOTYMustHear(album.artist.name, album.title)) {
+                    const badge = document.createElement('span');
+                    badge.textContent = 'MUST HEAR';
+                    badge.style.cssText = 'background:var(--primary);color:var(--primary-foreground);font-size:0.6rem;font-weight:700;padding:3px 8px;border-radius:3px;margin-left:10px;vertical-align:middle;letter-spacing:0.05em;cursor:pointer;';
+                    badge.title = 'View Must Hear albums on AOTY';
+                    badge.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        navigate('/');
+                        setTimeout(() => {
+                            document.querySelector('.home-tab[data-tab="aoty"]')?.click();
+                            setTimeout(() => {
+                                document.querySelector('.aoty-subnav-btn[data-aoty-tab="musthear"]')?.click();
+                            }, 80);
+                        }, 80);
+                    });
+                    titleEl.appendChild(badge);
                 }
-            }
 
-            fetchAotyWorker(album.title, album.artist.name);
+                // Label — append to producer line
+                if (data.label) {
+                    const labelUrl = data.labelUrl
+                        ? (data.labelUrl.startsWith('http') ? data.labelUrl : `https://www.albumoftheyear.org${data.labelUrl}`)
+                        : null;
+                    const labelLink = labelUrl
+                        ? `<a href="${labelUrl}" target="_blank" rel="noopener">${escapeHtml(data.label)}</a>`
+                        : escapeHtml(data.label);
+                    prodEl.innerHTML += ` · ${labelLink}`;
+                }
+
+                // Critic score
+                const critScore = data.criticScore;
+                const critCount = data.criticCount;
+                const reviews = data.reviews || [];
+                if (!critScore || critScore === 'NR') {
+                    rateCriticsEl.innerHTML = `<span style="color:var(--muted-foreground);">Critic Score: NR</span>`;
+                } else {
+                    rateCriticsEl.innerHTML = `<a href="javascript:void(0)" style="color:var(--muted-foreground);cursor:pointer;">Critic Score: ${critScore}${critCount ? ` · <span style="text-decoration:underline;">${critCount} reviews</span>` : ''}</a>`;
+                    rateCriticsEl.querySelector('a').onclick = () => {
+                        const con = document.createElement('div');
+                        con.style.cssText = 'display:flex;flex-direction:column;gap:1.5rem;';
+                        if (reviews.length === 0) {
+                            con.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted-foreground);">No reviews found.</div>';
+                        }
+                        for (const review of reviews) {
+                            const reviewdiv = document.createElement('div');
+                            reviewdiv.style.cssText = 'display:flex;gap:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border);';
+                            const publication = decodeHtml(review.publication || 'Unknown Publication');
+                            const author = decodeHtml(review.author || '');
+                            const quote = decodeHtml(review.text || 'No review text available.');
+                            reviewdiv.innerHTML = `
+                                <img src="${review.image || ''}" width="50" height="50" style="border-radius:8px;object-fit:cover;background:var(--highlight);flex-shrink:0;"
+                                     onerror="this.src='images/monochrome-logo.svg';this.onerror=null;" loading="lazy" referrerpolicy="no-referrer">
+                                <div style="flex:1;">
+                                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.25rem;">
+                                        <div class="pub-name" style="font-weight:600;color:var(--foreground);"></div>
+                                        <div style="font-weight:bold;color:var(--primary-foreground);background:var(--primary);padding:2px 10px;border-radius:6px;font-size:0.85rem;">${review.score || ''}</div>
+                                    </div>
+                                    <div class="author-name" style="font-size:0.8rem;color:var(--muted-foreground);margin-bottom:0.5rem;"></div>
+                                    <div class="quote-text" style="font-size:0.95rem;line-height:1.5;color:var(--muted-foreground);font-style:italic;"></div>
+                                </div>`;
+                            reviewdiv.querySelector('.pub-name').textContent = publication;
+                            if (author) reviewdiv.querySelector('.author-name').textContent = `By ${author}`;
+                            else reviewdiv.querySelector('.author-name').remove();
+                            reviewdiv.querySelector('.quote-text').textContent = `"${quote}"`;
+                            con.appendChild(reviewdiv);
+                        }
+                        createModal({ title: `Critic Reviews · ${critScore}`, content: con, className: 'extra-wide' });
+                    };
+                }
+
+                // User score
+                const userScore = data.userScore;
+                const userCount = data.userCount;
+                if (!userScore || userScore === 'NR') {
+                    rateUsersEl.innerHTML = `<span style="color:var(--muted-foreground);">User Score: NR</span>`;
+                } else {
+                    const userLink = aotyUrl ? `href="${aotyUrl}" target="_blank" rel="noopener"` : '';
+                    rateUsersEl.innerHTML = `<a ${userLink} style="color:var(--muted-foreground);">User Score: <span style="text-decoration:underline;">${userScore}</span>${userCount ? ` · ${userCount} ratings` : ''}</a>`;
+                }
+
+            }).catch(() => {
+                rateCriticsEl.innerHTML = `<span style="color:var(--muted-foreground);">Unable to fetch critic score</span>`;
+                rateUsersEl.innerHTML = `<span style="color:var(--muted-foreground);">Unable to fetch user score</span>`;
+            });
 
             tracklistContainer.innerHTML = `
                 <div class="track-list-header">
