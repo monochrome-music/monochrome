@@ -306,7 +306,10 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
             });
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        const rowDelayMs = Number.isFinite(options?.rowDelayMs) ? Math.max(0, options.rowDelayMs) : 300;
+        if (rowDelayMs > 0) {
+            await new Promise((resolve) => setTimeout(resolve, rowDelayMs));
+        }
 
         try {
             if (itemType === 'track') {
