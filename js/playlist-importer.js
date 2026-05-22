@@ -227,7 +227,12 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
             const char = text[i];
 
             if (char === '"') {
-                inQuote = !inQuote;
+                if (inQuote && text[i + 1] === '"') {
+                    current += '"';
+                    i++;
+                } else {
+                    inQuote = !inQuote;
+                }
             } else if (char === ',' && !inQuote) {
                 values.push(current);
                 current = '';
