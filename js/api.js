@@ -1203,15 +1203,14 @@ export class LosslessAPI {
             name: rawArtist.name || 'Unknown Artist',
         };
 
-        const entries = [];
-
         const albumMap = new Map();
         const trackMap = new Map();
         const videoMap = new Map();
 
-        const isTrack = (v) => v?.id && v.duration;
-        const isAlbum = (v) => v?.id && 'numberOfTracks' in v;
-        const isVideo = (v) => v?.id && !!v.type?.toLowerCase().includes('video');
+        const isTrack = (v) => v?.id && (v.duration || v.trackNumber != null || v.type === 'track');
+        const isAlbum = (v) =>
+            v?.id && ('numberOfTracks' in v || 'numberOfItems' in v || v.type === 'album' || v.type === 'ALBUM');
+        const isVideo = (v) => v?.id && (!!v.type?.toLowerCase().includes('video') || v.type === 'VIDEO');
 
         const scan = (value, visited) => {
             if (!value || typeof value !== 'object' || visited.has(value)) return;
@@ -1223,25 +1222,47 @@ export class LosslessAPI {
             }
 
             const item = value.item || value;
-            if (isAlbum(item)) albumMap.set(item.id, this.prepareAlbum(item));
-            if (isTrack(item) && !isAlbum(item) && !isVideo(item)) {
+            const type = (item.type || '').toLowerCase();
+
+            if (isAlbum(item) || type === 'album') albumMap.set(item.id, this.prepareAlbum(item));
+            if ((isTrack(item) || type === 'track') && !isAlbum(item) && !isVideo(item)) {
                 trackMap.set(item.id, this.prepareTrack(item));
             }
-            if (isVideo(item)) videoMap.set(item.id, this.prepareVideo(item));
+            if (isVideo(item) || type === 'video') videoMap.set(item.id, this.prepareVideo(item));
 
             Object.values(value).forEach((nested) => scan(nested, visited));
         };
 
         const visited = new Set();
-        entries.forEach((entry) => scan(entry, visited));
         scan(primaryData, visited);
+
+        if (albumMap.size === 0) {
+            try {
+                if (import.meta.env.DEV) {
+                    console.log('No albums in primary response, trying fallback fetch');
+                }
+                const albumsResponse = await this.fetchWithRetry(`/artist/?f=${artistId}&skip_tracks=true`);
+                const albumsData = await albumsResponse.json();
+                scan(albumsData, visited);
+            } catch (e) {
+                console.warn('Fallback album fetch failed:', e);
+            }
+        }
 
         const matchesArtistId = (item) => {
             const candidateIds = [
+                item.artistId,
+                item.artist_id,
                 item.artist?.id,
                 ...(Array.isArray(item.artists) ? item.artists.map((a) => a.id) : []),
+                ...(Array.isArray(item.artistRoles) ? item.artistRoles.map((r) => r.artist?.id) : []),
             ].filter((id) => id != null);
-            return candidateIds.some((id) => Number(id) === Number(artistId));
+
+            if (item.artist && (typeof item.artist === 'number' || typeof item.artist === 'string')) {
+                candidateIds.push(item.artist);
+            }
+
+            return candidateIds.some((id) => Number(id) === Number(artist.id) || Number(id) === Number(artistId));
         };
 
         if (!options.lightweight) {
