@@ -805,10 +805,12 @@ class AudioContextManager {
         this.currentVolume = Math.max(0, Math.min(1, value));
         if (this.volumeNode && this.audioContext) {
             const maximum = 1000;
+            const minimum = 1 / maximum;
             const now = this.audioContext.currentTime;
 
             const logVolume = Math.pow(maximum, this.currentVolume - 1);
-            this.volumeNode.gain.setTargetAtTime(logVolume, now, 0.01);
+            const normalized = (logVolume - minimum) / (1 - minimum);
+            this.volumeNode.gain.setTargetAtTime(normalized, now, 0.01);
             window.dispatchEvent(new CustomEvent('volume-change'));
         }
     }
