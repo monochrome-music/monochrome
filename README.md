@@ -154,6 +154,7 @@ For development mode and advanced setups, see [DOCKER.md](DOCKER.md).
 #### Prerequisites
 
 - [Bun](https://bun.sh/) (Preferred) or [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
+- [Git](https://git-scm.com/)
 
 #### Local Development
 
