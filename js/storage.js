@@ -99,6 +99,7 @@ export const apiSettings = {
                     qobuz: [
                         { url: 'https://qdl-api.monochrome.tf', version: '1.0' },
                         { url: 'https://qobuz.kennyy.com.br', version: '1.0' },
+                        { url: 'https://mono.scavengerfurs.net', version: '1.0' },
                     ],
                 };
                 this.instancesLoaded = true;
