@@ -95,7 +95,6 @@ bun run lint:css
 
 ---
 
-
 ### Key Directories
 
 - **`/js`** - All JavaScript source code
