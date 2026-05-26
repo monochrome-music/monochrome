@@ -187,18 +187,24 @@ const syncManager = {
     _playlistFingerprint(playlist) {
         const tracks = Array.isArray(playlist?.tracks) ? playlist.tracks : [];
         return JSON.stringify({
-            name: String(playlist?.name || playlist?.title || '').trim().toLowerCase(),
+            name: String(playlist?.name || playlist?.title || '')
+                .trim()
+                .toLowerCase(),
             description: String(playlist?.description || ''),
             cover: String(playlist?.cover || playlist?.image || playlist?.cover_url || ''),
             isPublic: playlist?.isPublic === true || playlist?.is_public === true,
-            tracks: tracks.map((track) => `${track?.type || track?.item_type || 'track'}:${track?.id || track?.item_id || ''}`),
+            tracks: tracks.map(
+                (track) => `${track?.type || track?.item_type || 'track'}:${track?.id || track?.item_id || ''}`
+            ),
         });
     },
 
     _folderFingerprint(folder) {
         const playlists = Array.isArray(folder?.playlists) ? folder.playlists : [];
         return JSON.stringify({
-            name: String(folder?.name || '').trim().toLowerCase(),
+            name: String(folder?.name || '')
+                .trim()
+                .toLowerCase(),
             cover: String(folder?.cover || folder?.image || folder?.cover_url || ''),
             playlists: playlists.map(String).sort(),
         });
@@ -213,9 +219,13 @@ const syncManager = {
             const record = { ...value, id: value.id || key };
             const identity = record.canonicalId ? `canonical:${record.canonicalId}` : `id:${record.id}`;
             const existing = byIdentity.get(identity);
-            const recordTime = this._recordTimestamp(record.updatedAt || record.updated || record.createdAt || record.created);
+            const recordTime = this._recordTimestamp(
+                record.updatedAt || record.updated || record.createdAt || record.created
+            );
             const existingTime = existing
-                ? this._recordTimestamp(existing.updatedAt || existing.updated || existing.createdAt || existing.created)
+                ? this._recordTimestamp(
+                      existing.updatedAt || existing.updated || existing.createdAt || existing.created
+                  )
                 : -1;
             if (!existing || recordTime >= existingTime) {
                 byIdentity.set(identity, record);

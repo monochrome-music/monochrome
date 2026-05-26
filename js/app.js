@@ -2777,11 +2777,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <button class="btn-secondary" id="header-email-auth">Connect with Email</button>
                 `;
 
-                for (const id of [
-                    'header-discord-auth',
-                    'header-google-auth',
-                    'header-github-auth',
-                ]) {
+                for (const id of ['header-discord-auth', 'header-google-auth', 'header-github-auth']) {
                     const btn = document.getElementById(id);
                     const svg = btn.querySelector('svg');
                     svg.style.display = 'block';

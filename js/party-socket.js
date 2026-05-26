@@ -40,10 +40,7 @@ export class PartySocketClient {
                 this.socket = null;
                 reject(new Error(message));
             };
-            const connectTimeout = setTimeout(
-                () => fail('Could not connect to the listening party server.'),
-                8000
-            );
+            const connectTimeout = setTimeout(() => fail('Could not connect to the listening party server.'), 8000);
 
             socket.onopen = () => {
                 if (settled) return;
@@ -132,10 +129,7 @@ export class PartySocketClient {
 
     close() {
         if (!this.socket) return;
-        if (
-            this.socket.readyState === WebSocket.OPEN ||
-            this.socket.readyState === WebSocket.CONNECTING
-        ) {
+        if (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING) {
             this.socket.close();
         }
         this.socket = null;
