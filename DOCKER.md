@@ -116,7 +116,7 @@ docker compose --profile pocketbase up -d
 
 #### PocketBase Schema Note
 
-If you are setting up a new PocketBase collection for user data, ensure it has a field named `firebase_id` (this is a legacy name we use when we first started the accounts system, we used firebase. and im too lazy to change it so yea fuck you).
+The current PocketBase collection schema is committed at [`database/pb_schema.json`](database/pb_schema.json). Import that schema into a fresh PocketBase instance when setting up account data storage.
 
 ---
 
