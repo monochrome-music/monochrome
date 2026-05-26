@@ -1,8 +1,5 @@
 // functions/userplaylist/[id].js
 
-const POCKETBASE_URL = 'https://data.samidy.xyz';
-const PUBLIC_COLLECTION = 'public_playlists';
-
 function safeParseTracks(tracksData) {
     if (!tracksData) return [];
     if (Array.isArray(tracksData)) return tracksData;
@@ -62,45 +59,27 @@ export async function onRequest(context) {
 
     if (isBot && playlistId) {
         try {
-            const filter = `uuid="${playlistId}"`;
-            const apiUrl = `${POCKETBASE_URL}/api/collections/${PUBLIC_COLLECTION}/records?filter=${encodeURIComponent(filter)}&perPage=1`;
+            const AUTH_SERVER_URL = env.AUTH_SERVER_URL || 'https://auth.monochrome.tf';
+            const apiUrl = `${AUTH_SERVER_URL}/api/public/playlists/${encodeURIComponent(playlistId)}`;
 
             const response = await fetch(apiUrl);
-            if (!response.ok) throw new Error(`PocketBase error: ${response.status}`);
+            if (!response.ok) throw new Error(`Auth server error: ${response.status}`);
 
-            const result = await response.json();
-            const record = result.items && result.items.length > 0 ? result.items[0] : null;
+            const record = await response.json();
 
             if (record) {
-                let extraData = {};
-                try {
-                    extraData = record.data ? JSON.parse(record.data) : {};
-                } catch {
-                    extraData = {};
-                }
+                const title = record.name || 'Untitled Playlist';
 
-                const title =
-                    record.title ||
-                    record.name ||
-                    (extraData && (extraData.title || extraData.name)) ||
-                    'Untitled Playlist';
-
-                let tracks = safeParseTracks(record.tracks);
+                let tracks = safeParseTracks(record.tracks).map((track) => ({
+                    id: track.item_id,
+                    ...(track.metadata || {}),
+                    type: track.item_type,
+                }));
                 const trackCount = tracks.length;
                 const totalDuration = calculatePlaylistDuration(tracks);
                 const durationStr = formatDuration(totalDuration);
 
-                let rawCover = record.image || record.cover || record.playlist_cover || '';
-                if (!rawCover && extraData && typeof extraData === 'object') {
-                    rawCover = extraData.cover || extraData.image || '';
-                }
-
-                let imageUrl = '';
-                if (rawCover && (rawCover.startsWith('http') || rawCover.startsWith('data:'))) {
-                    imageUrl = rawCover;
-                } else if (rawCover) {
-                    imageUrl = `${POCKETBASE_URL}/api/files/${PUBLIC_COLLECTION}/${record.id}/${rawCover}`;
-                }
+                let imageUrl = record.cover_url || '';
 
                 if (!imageUrl && tracks.length > 0) {
                     const firstCover = tracks.find((t) => t.album?.cover)?.album?.cover;
