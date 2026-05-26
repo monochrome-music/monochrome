@@ -1,7 +1,8 @@
 // js/accounts/auth.js
-import { authClient } from './config.js';
+import { AUTH_BASE_URL, authClient } from './config.js';
 
-const AUTH_TOKEN_KEY = 'monochrome-auth-token';
+const LEGACY_AUTH_TOKEN_KEY = 'monochrome-auth-token';
+let authToken = '';
 
 function normalizeUser(user) {
     if (!user) return null;
@@ -9,15 +10,33 @@ function normalizeUser(user) {
 }
 
 export function getAuthToken() {
-    return localStorage.getItem(AUTH_TOKEN_KEY) || '';
+    return authToken;
 }
 
 function storeAuthToken(token) {
-    if (token) localStorage.setItem(AUTH_TOKEN_KEY, token);
+    authToken = token || '';
+    localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
 }
 
 function clearAuthToken() {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
+    authToken = '';
+    localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+}
+
+async function getSessionFromBearerToken() {
+    const token = getAuthToken();
+    if (!token) return null;
+
+    const response = await fetch(`${AUTH_BASE_URL}/api/me`, {
+        credentials: 'include',
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    if (response.status === 401) {
+        clearAuthToken();
+        return null;
+    }
+    if (!response.ok) throw new Error(`Session check failed: ${response.status}`);
+    return response.json();
 }
 
 export class AuthManager {
@@ -35,13 +54,21 @@ export class AuthManager {
 
         try {
             const { data: session } = await authClient.getSession();
-            this.user = normalizeUser(session?.user);
+            const resolvedSession = session?.user ? session : await getSessionFromBearerToken();
+            this.user = normalizeUser(resolvedSession?.user);
             this.updateUI(this.user);
             this.authListeners.forEach((listener) => listener(this.user));
         } catch (err) {
-            console.warn('Session check failed:', err);
-            this.user = null;
-            this.updateUI(null);
+            try {
+                const session = await getSessionFromBearerToken();
+                this.user = normalizeUser(session?.user);
+                this.updateUI(this.user);
+                this.authListeners.forEach((listener) => listener(this.user));
+            } catch (fallbackErr) {
+                console.warn('Session check failed:', fallbackErr || err);
+                this.user = null;
+                this.updateUI(null);
+            }
         }
     }
 
@@ -83,7 +110,7 @@ export class AuthManager {
             const { data, error } = await authClient.signIn.email({ email, password });
             if (error) throw new Error(error.message);
 
-            storeAuthToken(data.token);
+            storeAuthToken(data?.token);
             this.user = normalizeUser(data.user);
             this.updateUI(this.user);
             this.authListeners.forEach((listener) => listener(this.user));
@@ -104,7 +131,7 @@ export class AuthManager {
             });
             if (error) throw new Error(error.message);
 
-            storeAuthToken(data.token);
+            storeAuthToken(data?.token);
             this.user = normalizeUser(data.user);
             this.updateUI(this.user);
             this.authListeners.forEach((listener) => listener(this.user));
@@ -147,6 +174,9 @@ export class AuthManager {
     async signOut() {
         try {
             await authClient.signOut();
+        } catch (error) {
+            console.error('Remote logout failed:', error);
+        } finally {
             clearAuthToken();
             this.user = null;
             this.updateUI(null);
@@ -157,9 +187,6 @@ export class AuthManager {
             } else {
                 window.location.reload();
             }
-        } catch (error) {
-            console.error('Logout failed:', error);
-            throw error;
         }
     }
 
