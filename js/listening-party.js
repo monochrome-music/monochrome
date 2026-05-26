@@ -99,6 +99,8 @@ export class ListeningPartyManager {
         this.isLeaving = false;
         this.isInternalSync = false;
         this.originalSafePlay = null;
+        this.maintenanceMode = false;
+        this.maintenanceMessage = null;
 
         this.setupEventListeners();
     }

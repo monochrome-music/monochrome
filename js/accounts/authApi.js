@@ -12,8 +12,19 @@ export async function authApi(path, options = {}) {
 
     if (!response.ok) {
         const text = await response.text();
-        const error = new Error(text || `Auth server error: ${response.status}`);
+        let data = text;
+        try {
+            data = text ? JSON.parse(text) : null;
+        } catch {
+            data = text;
+        }
+        const message =
+            (data && typeof data === 'object' && (data.message || data.error)) ||
+            text ||
+            `Auth server error: ${response.status}`;
+        const error = new Error(message);
         error.status = response.status;
+        error.data = data;
         throw error;
     }
 
