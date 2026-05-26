@@ -14,8 +14,10 @@ const getBaseURL = () => {
     return 'https://auth.samidy.com';
 };
 
+export const AUTH_BASE_URL = getBaseURL();
+
 export const authClient = createAuthClient({
-    baseURL: getBaseURL(),
+    baseURL: AUTH_BASE_URL,
 });
 
 export { authClient as auth };

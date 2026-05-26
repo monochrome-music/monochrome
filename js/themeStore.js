@@ -1,5 +1,6 @@
 import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
+import { authApi } from './accounts/authApi.js';
 import { navigate } from './router.js';
 import { SVG_BIN, SVG_SQUARE_PEN } from './icons.js';
 
@@ -33,7 +34,6 @@ const GENERIC_FONT_FAMILIES = [
 ];
 
 export class ThemeStore {
-    static EXPECTED_USER_ID_LENGTH = 15;
     constructor() {
         this.pb = syncManager.pb;
         this.modal = document.getElementById('theme-store-modal');
@@ -134,6 +134,14 @@ export class ThemeStore {
         }
     }
 
+    normalizeTheme(theme) {
+        return {
+            ...theme,
+            authorName: theme.authorName || theme.author_name_snapshot,
+            authorUrl: theme.authorUrl || theme.author_url,
+        };
+    }
+
     async loadThemes(query = '') {
         if (!this.grid) return;
         this.grid.innerHTML = '';
@@ -150,17 +158,22 @@ export class ThemeStore {
         }
 
         try {
-            const result = await this.pb.collection('themes').getList(1, THEMES_PER_PAGE, {
-                sort: '-created',
-                filter: query ? `name ~ "${query}" || description ~ "${query}"` : '',
-                expand: 'author',
-            });
+            const params = new URLSearchParams({ perPage: String(THEMES_PER_PAGE) });
+            const queryLower = query.trim().toLowerCase();
+            if (queryLower) params.set('q', queryLower);
+            const result = await authApi(`/api/themes?${params.toString()}`);
             this.loadingIndicator.style.display = 'none';
-            if (result.items.length === 0) {
+            const items = (result.items || []).map((theme) => this.normalizeTheme(theme));
+            const filteredItems = queryLower
+                ? items.filter((theme) =>
+                      `${theme.name || ''} ${theme.description || ''}`.toLowerCase().includes(queryLower)
+                  )
+                : items;
+            if (filteredItems.length === 0) {
                 this.grid.innerHTML = '<div class="empty-state">No themes found.</div>';
                 return;
             }
-            result.items.forEach((theme) => {
+            filteredItems.forEach((theme) => {
                 this.grid.appendChild(this.createThemeCard(theme, currentUserId));
             });
         } catch (err) {
@@ -264,7 +277,7 @@ export class ThemeStore {
             const fbUser = authManager.user;
             if (!fbUser) throw new Error('Not authenticated');
 
-            await this.pb.collection('themes').delete(themeId, { f_id: fbUser.$id });
+            await authApi(`/api/themes/${encodeURIComponent(themeId)}`, { method: 'DELETE' });
             alert('Theme deleted successfully.');
             await this.loadThemes();
         } catch (err) {
@@ -305,10 +318,7 @@ export class ThemeStore {
             this.modal.classList.remove('active');
 
             try {
-                const latest = await this.pb.collection('themes').getOne(theme.id);
-                await this.pb.collection('themes').update(theme.id, {
-                    installs: (latest.installs || 0) + 1,
-                });
+                // Install counts are now server-owned; applying a theme must not require write access.
             } catch (e) {
                 console.warn('Failed to update theme installs:', e);
             }
@@ -541,32 +551,31 @@ export class ThemeStore {
             userId = dbUser.id;
             userName = dbUser.username || dbUser.display_name || fbUser.email;
 
-            if (userId.length !== ThemeStore.EXPECTED_USER_ID_LENGTH) {
-                throw new Error(
-                    `Your user ID is corrupted (${userId.length} chars, expected ${ThemeStore.EXPECTED_USER_ID_LENGTH}). ` +
-                        `Please go to Settings > System > Clear Cloud Data, then log out and back in.`
-                );
-            }
-
             console.log(this.editingThemeId ? 'Updating theme:' : 'Uploading theme:', {
                 name,
                 author: userId,
                 authorName: userName,
             });
 
-            const formData = new FormData();
-            formData.append('name', name);
-            formData.append('description', desc);
-            formData.append('css', css);
-            formData.append('authorName', userName);
-            formData.append('authorUrl', website || '');
+            const formData = {
+                name,
+                description: desc,
+                css,
+                author_name_snapshot: userName,
+                author_url: website || '',
+            };
 
             if (this.editingThemeId) {
-                await this.pb.collection('themes').update(this.editingThemeId, formData, { f_id: fbUser.$id });
+                await authApi(`/api/themes/${encodeURIComponent(this.editingThemeId)}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(formData),
+                });
                 alert('Theme updated successfully!');
             } else {
-                formData.append('author', userId);
-                await this.pb.collection('themes').create(formData, { f_id: fbUser.$id });
+                await authApi('/api/themes', {
+                    method: 'POST',
+                    body: JSON.stringify(formData),
+                });
                 alert('Theme uploaded successfully!');
             }
 

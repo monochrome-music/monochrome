@@ -2,8 +2,8 @@
 import PocketBase from 'pocketbase';
 import { db } from '../db.js';
 import { authManager } from './auth.js';
+import { authApi } from './authApi.js';
 
-const PUBLIC_COLLECTION = 'public_playlists';
 const DEFAULT_POCKETBASE_URL = 'https://data.samidy.xyz';
 const POCKETBASE_URL =
     window.__POCKETBASE_URL__ || localStorage.getItem('monochrome-pocketbase-url') || DEFAULT_POCKETBASE_URL;
@@ -32,45 +32,30 @@ const syncManager = {
 
         const promise = (async () => {
             try {
-                const result = await this.pb.collection('DB_users').getList(1, 1, {
-                    filter: `firebase_id="${uid}"`,
-                    sort: '-username',
-                    f_id: uid,
-                });
-
-                if (result.items.length > 0) {
-                    const record = result.items[0];
-                    this._userRecordCache = record;
-                    return record;
-                }
-
-                try {
-                    const newRecord = await this.pb.collection('DB_users').create(
-                        {
-                            firebase_id: uid,
-                            library: {},
-                            history: [],
-                            user_playlists: {},
-                            user_folders: {},
-                        },
-                        { f_id: uid }
-                    );
-                    this._userRecordCache = newRecord;
-                    return newRecord;
-                } catch (createError) {
-                    const retryResult = await this.pb.collection('DB_users').getList(1, 1, {
-                        filter: `firebase_id="${uid}"`,
-                        f_id: uid,
-                    });
-                    if (retryResult.items.length > 0) {
-                        this._userRecordCache = retryResult.items[0];
-                        return this._userRecordCache;
-                    }
-                    console.error('[PocketBase] Failed to create user:', createError);
-                    return null;
-                }
+                const data = await authApi('/api/sync');
+                const record = {
+                    id: data.appUserId,
+                    firebase_id: uid,
+                    username: data.profile?.username,
+                    display_name: data.profile?.display_name,
+                    avatar_url: data.profile?.avatar_url,
+                    banner: data.profile?.banner,
+                    status: data.profile?.status,
+                    about: data.profile?.about,
+                    website: data.profile?.website,
+                    privacy: data.profile?.privacy || { playlists: 'public', lastfm: 'public' },
+                    lastfm_username: data.profile?.lastfm_username,
+                    librefm_username: data.profile?.librefm_username,
+                    favorite_albums: data.profile?.favorite_albums || [],
+                    library: data.library || {},
+                    history: data.history || [],
+                    user_playlists: data.userPlaylists || {},
+                    user_folders: data.userFolders || {},
+                };
+                this._userRecordCache = record;
+                return record;
             } catch (error) {
-                console.error('[PocketBase] Failed to get user:', error);
+                console.error('[CloudSync] Failed to get user sync data:', error);
                 return null;
             } finally {
                 this._getUserRecordPromise = null;
@@ -90,8 +75,14 @@ const syncManager = {
 
         const library = this.safeParseInternal(record.library, 'library', {});
         const history = this.safeParseInternal(record.history, 'history', []);
-        const userPlaylists = this.safeParseInternal(record.user_playlists, 'user_playlists', {});
-        const userFolders = this.safeParseInternal(record.user_folders, 'user_folders', {});
+        const userPlaylists = this._dedupeRecordMap(
+            this.safeParseInternal(record.user_playlists, 'user_playlists', {}),
+            'playlist'
+        );
+        const userFolders = this._dedupeRecordMap(
+            this.safeParseInternal(record.user_folders, 'user_folders', {}),
+            'folder'
+        );
         const favoriteAlbums = this.safeParseInternal(record.favorite_albums, 'favorite_albums', []);
 
         const profile = {
@@ -118,13 +109,30 @@ const syncManager = {
         }
 
         try {
-            const stringifiedData = typeof data === 'string' ? data : JSON.stringify(data);
-            const updated = await this.pb
-                .collection('DB_users')
-                .update(record.id, { [field]: stringifiedData }, { f_id: uid });
-            this._userRecordCache = updated;
+            const syncFieldMap = {
+                library: 'library',
+                history: 'history',
+                user_playlists: 'userPlaylists',
+                user_folders: 'userFolders',
+            };
+            const syncField = syncFieldMap[field];
+            if (!syncField) return;
+            let payload = data;
+            if (field === 'user_playlists') payload = this._dedupeRecordMap(data, 'playlist');
+            if (field === 'user_folders') payload = this._dedupeRecordMap(data, 'folder');
+            const updated = await authApi('/api/sync', {
+                method: 'PATCH',
+                body: JSON.stringify({ [syncField]: payload }),
+            });
+            this._userRecordCache = {
+                ...record,
+                library: updated.library || record.library,
+                history: updated.history || record.history,
+                user_playlists: updated.userPlaylists || record.user_playlists,
+                user_folders: updated.userFolders || record.user_folders,
+            };
         } catch (error) {
-            console.error(`Failed to sync ${field} to PocketBase:`, error);
+            console.error(`Failed to sync ${field} to auth server:`, error);
         }
     },
 
@@ -167,6 +175,58 @@ const syncManager = {
                 return fallback;
             }
         }
+    },
+
+    _recordTimestamp(value) {
+        const parsed = Number(value || 0);
+        if (Number.isFinite(parsed) && parsed > 0) return parsed;
+        const date = Date.parse(value || '');
+        return Number.isFinite(date) ? date : 0;
+    },
+
+    _playlistFingerprint(playlist) {
+        const tracks = Array.isArray(playlist?.tracks) ? playlist.tracks : [];
+        return JSON.stringify({
+            name: String(playlist?.name || playlist?.title || '').trim().toLowerCase(),
+            description: String(playlist?.description || ''),
+            cover: String(playlist?.cover || playlist?.image || playlist?.cover_url || ''),
+            isPublic: playlist?.isPublic === true || playlist?.is_public === true,
+            tracks: tracks.map((track) => `${track?.type || track?.item_type || 'track'}:${track?.id || track?.item_id || ''}`),
+        });
+    },
+
+    _folderFingerprint(folder) {
+        const playlists = Array.isArray(folder?.playlists) ? folder.playlists : [];
+        return JSON.stringify({
+            name: String(folder?.name || '').trim().toLowerCase(),
+            cover: String(folder?.cover || folder?.image || folder?.cover_url || ''),
+            playlists: playlists.map(String).sort(),
+        });
+    },
+
+    _dedupeRecordMap(records, _type) {
+        const source = records && typeof records === 'object' && !Array.isArray(records) ? records : {};
+        const byIdentity = new Map();
+
+        for (const [key, value] of Object.entries(source)) {
+            if (!value || typeof value !== 'object') continue;
+            const record = { ...value, id: value.id || key };
+            const identity = record.canonicalId ? `canonical:${record.canonicalId}` : `id:${record.id}`;
+            const existing = byIdentity.get(identity);
+            const recordTime = this._recordTimestamp(record.updatedAt || record.updated || record.createdAt || record.created);
+            const existingTime = existing
+                ? this._recordTimestamp(existing.updatedAt || existing.updated || existing.createdAt || existing.created)
+                : -1;
+            if (!existing || recordTime >= existingTime) {
+                byIdentity.set(identity, record);
+            }
+        }
+
+        const deduped = {};
+        for (const record of byIdentity.values()) {
+            if (record.id) deduped[record.id] = record;
+        }
+        return deduped;
     },
 
     async syncLibraryItem(type, item, added) {
@@ -377,24 +437,14 @@ const syncManager = {
 
     async getPublicPlaylist(uuid) {
         try {
-            const record = await this.pb
-                .collection(PUBLIC_COLLECTION)
-                .getFirstListItem(`uuid="${uuid}"`, { p_id: uuid });
-
-            let rawCover = record.image || record.cover || record.playlist_cover || '';
-            let extraData = this.safeParseInternal(record.data, 'data', {});
-
-            if (!rawCover && extraData && typeof extraData === 'object') {
-                rawCover = extraData.cover || extraData.image || '';
-            }
-
-            let finalCover = rawCover;
-            if (rawCover && !rawCover.startsWith('http') && !rawCover.startsWith('data:')) {
-                finalCover = this.pb.files.getUrl(record, rawCover);
-            }
-
+            const record = await authApi(`/api/public/playlists/${encodeURIComponent(uuid)}`);
+            const tracks = (record.tracks || []).map((track) => ({
+                ...(track.metadata || {}),
+                id: track.item_id,
+                type: track.item_type,
+            }));
+            const finalCover = record.cover_url || '';
             let images = [];
-            let tracks = this.safeParseInternal(record.tracks, 'tracks', []);
 
             if (!finalCover && tracks && tracks.length > 0) {
                 const uniqueCovers = [];
@@ -410,20 +460,15 @@ const syncManager = {
                 images = uniqueCovers;
             }
 
-            let finalTitle = record.title || record.name || record.playlist_name;
-            if (!finalTitle && extraData && typeof extraData === 'object') {
-                finalTitle = extraData.title || extraData.name;
-            }
+            let finalTitle = record.name;
             if (!finalTitle) finalTitle = 'Untitled Playlist';
 
             let finalDescription = record.description || '';
-            if (!finalDescription && extraData && typeof extraData === 'object') {
-                finalDescription = extraData.description || '';
-            }
 
             return {
                 ...record,
-                id: record.uuid,
+                id: record.client_id || record.id,
+                serverId: record.id,
                 name: finalTitle,
                 title: finalTitle,
                 description: finalDescription,
@@ -447,71 +492,27 @@ const syncManager = {
         if (!playlist || !playlist.id) return;
         const uid = authManager.user?.$id;
         if (!uid) return;
-
-        const data = {
-            uuid: playlist.id,
-            uid: uid,
-            firebase_id: uid,
-            title: playlist.name,
-            name: playlist.name,
-            playlist_name: playlist.name,
-            image: playlist.cover,
-            cover: playlist.cover,
-            playlist_cover: playlist.cover,
-            description: playlist.description || '',
-            tracks: JSON.stringify(playlist.tracks || []),
-            isPublic: true,
-            data: {
-                title: playlist.name,
-                cover: playlist.cover,
-                description: playlist.description || '',
-            },
-        };
-
-        try {
-            const existing = await this.pb.collection(PUBLIC_COLLECTION).getList(1, 1, {
-                filter: `uuid="${playlist.id}"`,
-                p_id: playlist.id,
-            });
-
-            if (existing.items.length > 0) {
-                await this.pb.collection(PUBLIC_COLLECTION).update(existing.items[0].id, data, { f_id: uid });
-            } else {
-                await this.pb.collection(PUBLIC_COLLECTION).create(data, { f_id: uid });
-            }
-        } catch (error) {
-            console.error('Failed to publish playlist:', error);
-        }
+        // Public state is now stored on the normalized playlist row by syncUserPlaylist().
     },
 
-    async unpublishPlaylist(uuid) {
+    async unpublishPlaylist(_uuid) {
         const uid = authManager.user?.$id;
         if (!uid) return;
-
-        try {
-            const existing = await this.pb.collection(PUBLIC_COLLECTION).getList(1, 1, {
-                filter: `uuid="${uuid}"`,
-                p_id: uuid,
-            });
-
-            if (existing.items && existing.items.length > 0) {
-                await this.pb.collection(PUBLIC_COLLECTION).delete(existing.items[0].id, { p_id: uuid, f_id: uid });
-            }
-        } catch (error) {
-            console.error('Failed to unpublish playlist:', error);
-        }
+        // Public state is now stored on the normalized playlist row by syncUserPlaylist().
     },
 
     async getProfile(username) {
         try {
-            const record = await this.pb.collection('DB_users').getFirstListItem(`username="${username}"`, {
-                fields: 'username,display_name,avatar_url,banner,status,about,website,lastfm_username,privacy,user_playlists,favorite_albums',
-            });
+            const record = await authApi(`/api/users/${encodeURIComponent(username)}`);
             return {
                 ...record,
-                privacy: this.safeParseInternal(record.privacy, 'privacy', { playlists: 'public', lastfm: 'public' }),
-                user_playlists: this.safeParseInternal(record.user_playlists, 'user_playlists', {}),
-                favorite_albums: this.safeParseInternal(record.favorite_albums, 'favorite_albums', []),
+                banner: record.banner_url,
+                privacy: {
+                    playlists: record.privacy_playlists || 'public',
+                    lastfm: record.privacy_lastfm || 'public',
+                },
+                user_playlists: record.user_playlists || {},
+                favorite_albums: record.favorite_albums || [],
             };
         } catch {
             return null;
@@ -525,17 +526,38 @@ const syncManager = {
         if (!record) return;
 
         const updateData = { ...data };
+        if ('banner' in updateData) {
+            updateData.banner_url = updateData.banner;
+            delete updateData.banner;
+        }
+        if (updateData.privacy) {
+            updateData.privacy_playlists = updateData.privacy.playlists || 'public';
+            updateData.privacy_lastfm = updateData.privacy.lastfm || 'public';
+            delete updateData.privacy;
+        }
 
-        const updated = await this.pb.collection('DB_users').update(record.id, updateData, { f_id: user.$id });
-        this._userRecordCache = updated;
+        const updated = await authApi('/api/me/profile', {
+            method: 'PATCH',
+            body: JSON.stringify(updateData),
+        });
+        this._userRecordCache = {
+            ...record,
+            ...updated,
+            banner: updated.banner_url,
+            privacy: {
+                playlists: updated.privacy_playlists || record.privacy?.playlists || 'public',
+                lastfm: updated.privacy_lastfm || record.privacy?.lastfm || 'public',
+            },
+        };
     },
 
     async isUsernameTaken(username) {
         try {
-            const list = await this.pb.collection('DB_users').getList(1, 1, { filter: `username="${username}"` });
-            return list.totalItems > 0;
-        } catch {
-            return false;
+            await authApi(`/api/users/${encodeURIComponent(username)}`);
+            return true;
+        } catch (error) {
+            if (error.response?.status === 404 || error.status === 404) return false;
+            throw error;
         }
     },
 
@@ -544,12 +566,17 @@ const syncManager = {
         if (!user) return;
 
         try {
-            const record = await this._getUserRecord(user.$id);
-            if (record) {
-                await this.pb.collection('DB_users').delete(record.id, { f_id: user.$id });
-                this._userRecordCache = null;
-                alert('Cloud data cleared successfully.');
-            }
+            await authApi('/api/sync', {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    library: {},
+                    history: [],
+                    userPlaylists: {},
+                    userFolders: {},
+                }),
+            });
+            this._userRecordCache = null;
+            alert('Cloud data cleared successfully.');
         } catch (error) {
             console.error('Failed to clear cloud data!', error);
             alert('Failed to clear cloud data! :( Check console for details.');
@@ -591,6 +618,8 @@ const syncManager = {
                     if (!userPlaylists) userPlaylists = {};
                     if (!userFolders) userFolders = {};
                     if (!history) history = [];
+                    userPlaylists = this._dedupeRecordMap(userPlaylists, 'playlist');
+                    userFolders = this._dedupeRecordMap(userFolders, 'folder');
 
                     const mergeItem = (collection, item, type) => {
                         const id = type === 'playlist' ? item.uuid || item.id : item.id;
@@ -624,6 +653,7 @@ const syncManager = {
                             needsUpdate = true;
                         }
                     });
+                    userPlaylists = this._dedupeRecordMap(userPlaylists, 'playlist');
 
                     localData.userFolders.forEach((folder) => {
                         if (!userFolders[folder.id]) {
@@ -638,6 +668,7 @@ const syncManager = {
                             needsUpdate = true;
                         }
                     });
+                    userFolders = this._dedupeRecordMap(userFolders, 'folder');
 
                     const combinedHistory = [...history, ...localData.history];
                     combinedHistory.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));

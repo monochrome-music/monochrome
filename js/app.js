@@ -2,7 +2,6 @@
 import discordSvg from '../images/discord.svg?svg&size=22';
 import googleSvg from '../images/google.svg?svg&size=22';
 import githubSvg from '../images/github.svg?svg&size=22';
-import spotifySvg from '../images/spotify.svg?svg&size=22';
 import { isIos, isSafari } from './platform-detection.js';
 import { hapticLight } from './haptics.js';
 import { MusicAPI } from './music-api.js';
@@ -2766,14 +2765,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (!user) {
                 const iconBtnStyle =
-                    'background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;transition:opacity 0.15s';
+                    'background:none;border:none;cursor:pointer;width:32px;height:32px;padding:0;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;transition:opacity 0.15s';
                 headerAccountDropdown.innerHTML = `
                     <span style="font-size:0.75rem;color:var(--muted-foreground);padding:0.25rem 0.5rem">Connect with</span>
-                    <div style="display:flex;gap:0.5rem;padding:0.25rem 0.5rem;align-items:center">
+                    <div style="display:flex;width:100%;justify-content:space-evenly;padding:0.25rem 0.5rem;align-items:center">
                         <button id="header-discord-auth" title="Discord" style="${iconBtnStyle}">${discordSvg}</button>
                         <button id="header-google-auth" title="Google" style="${iconBtnStyle}">${googleSvg}</button>
                         <button id="header-github-auth" title="GitHub" style="${iconBtnStyle}">${githubSvg}</button>
-                        <button id="header-spotify-auth" title="Spotify" style="${iconBtnStyle}">${spotifySvg}</button>
                     </div>
                     <hr style="border:none;border-top:1px solid var(--border);margin:0.25rem 0">
                     <button class="btn-secondary" id="header-email-auth">Connect with Email</button>
@@ -2783,10 +2781,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     'header-discord-auth',
                     'header-google-auth',
                     'header-github-auth',
-                    'header-spotify-auth',
                 ]) {
                     const btn = document.getElementById(id);
                     const svg = btn.querySelector('svg');
+                    svg.style.display = 'block';
                     svg.style.filter = 'brightness(0) invert(1)';
                     svg.style.transition = 'filter 0.15s';
                     btn.addEventListener('mouseenter', () => {
@@ -2800,7 +2798,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('header-google-auth').onclick = () => authManager.signInWithGoogle();
                 document.getElementById('header-github-auth').onclick = () => authManager.signInWithGitHub();
                 document.getElementById('header-discord-auth').onclick = () => authManager.signInWithDiscord();
-                document.getElementById('header-spotify-auth').onclick = () => authManager.signInWithSpotify();
                 document.getElementById('header-email-auth').onclick = () => {
                     document.getElementById('email-auth-modal').classList.add('active');
                     headerAccountDropdown.classList.remove('active');
