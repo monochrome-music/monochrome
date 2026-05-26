@@ -34,7 +34,6 @@ const GENERIC_FONT_FAMILIES = [
 ];
 
 export class ThemeStore {
-    static EXPECTED_USER_ID_LENGTH = 15;
     constructor() {
         this.pb = syncManager.pb;
         this.modal = document.getElementById('theme-store-modal');
@@ -161,7 +160,7 @@ export class ThemeStore {
         try {
             const params = new URLSearchParams({ perPage: String(THEMES_PER_PAGE) });
             const queryLower = query.trim().toLowerCase();
-            if (queryLower) params.set('query', queryLower);
+            if (queryLower) params.set('q', queryLower);
             const result = await authApi(`/api/themes?${params.toString()}`);
             this.loadingIndicator.style.display = 'none';
             const items = (result.items || []).map((theme) => this.normalizeTheme(theme));
@@ -551,13 +550,6 @@ export class ThemeStore {
 
             userId = dbUser.id;
             userName = dbUser.username || dbUser.display_name || fbUser.email;
-
-            if (userId.length !== ThemeStore.EXPECTED_USER_ID_LENGTH) {
-                throw new Error(
-                    `Your user ID is corrupted (${userId.length} chars, expected ${ThemeStore.EXPECTED_USER_ID_LENGTH}). ` +
-                        `Please go to Settings > System > Clear Cloud Data, then log out and back in.`
-                );
-            }
 
             console.log(this.editingThemeId ? 'Updating theme:' : 'Uploading theme:', {
                 name,

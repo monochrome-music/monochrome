@@ -1,5 +1,14 @@
 // functions/user/@[username].js
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 export async function onRequest(context) {
     const { request, params, env } = context;
     const userAgent = request.headers.get('User-Agent') || '';
@@ -11,7 +20,10 @@ export async function onRequest(context) {
 
     if (isBot && username) {
         try {
-            const AUTH_SERVER_URL = env.AUTH_SERVER_URL || 'https://auth.monochrome.tf';
+            const AUTH_SERVER_URL = env.AUTH_SERVER_URL;
+            if (!AUTH_SERVER_URL) {
+                throw new Error('Missing AUTH_SERVER_URL configuration');
+            }
             const profileUrl = `${AUTH_SERVER_URL}/api/users/${encodeURIComponent(username)}`;
 
             const response = await fetch(profileUrl);
@@ -20,22 +32,24 @@ export async function onRequest(context) {
             const profile = await response.json();
 
             if (profile) {
-                const displayName = profile.display_name || profile.username;
-                const title = `${displayName} (@${profile.username})`;
-                let description = profile.about || `View ${displayName}'s profile on Monochrome.`;
+                const rawDisplayName = profile.display_name || profile.username;
+                const displayName = escapeHtml(rawDisplayName);
+                const profileUsername = escapeHtml(profile.username);
+                const title = `${displayName} (@${profileUsername})`;
+                let description = escapeHtml(profile.about || `View ${rawDisplayName}'s profile on Monochrome.`);
 
                 if (profile.status) {
                     try {
                         const statusObj = JSON.parse(profile.status);
-                        description = `Listening to: ${statusObj.text}\n\n${description}`;
+                        description = `Listening to: ${escapeHtml(statusObj.text)}\n\n${description}`;
                     } catch {
-                        description = `Listening to: ${profile.status}\n\n${description}`;
+                        description = `Listening to: ${escapeHtml(profile.status)}\n\n${description}`;
                     }
                 }
 
-                const imageUrl = profile.avatar_url || 'https://monochrome.tf/assets/appicon.png';
-                const bannerUrl = profile.banner_url || '';
-                const pageUrl = new URL(request.url).href;
+                const imageUrl = escapeHtml(profile.avatar_url || 'https://monochrome.tf/assets/appicon.png');
+                const bannerUrl = escapeHtml(profile.banner_url || '');
+                const pageUrl = escapeHtml(new URL(request.url).href);
 
                 const metaHtml = `
                     <!DOCTYPE html>

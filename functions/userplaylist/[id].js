@@ -59,7 +59,10 @@ export async function onRequest(context) {
 
     if (isBot && playlistId) {
         try {
-            const AUTH_SERVER_URL = env.AUTH_SERVER_URL || 'https://auth.monochrome.tf';
+            const AUTH_SERVER_URL = env.AUTH_SERVER_URL;
+            if (!AUTH_SERVER_URL) {
+                throw new Error('Missing AUTH_SERVER_URL configuration');
+            }
             const apiUrl = `${AUTH_SERVER_URL}/api/public/playlists/${encodeURIComponent(playlistId)}`;
 
             const response = await fetch(apiUrl);

@@ -204,27 +204,26 @@ const syncManager = {
         });
     },
 
-    _dedupeRecordMap(records, type) {
+    _dedupeRecordMap(records, _type) {
         const source = records && typeof records === 'object' && !Array.isArray(records) ? records : {};
-        const byFingerprint = new Map();
-        const fingerprintFor = type === 'folder' ? this._folderFingerprint : this._playlistFingerprint;
+        const byIdentity = new Map();
 
         for (const [key, value] of Object.entries(source)) {
             if (!value || typeof value !== 'object') continue;
             const record = { ...value, id: value.id || key };
-            const fingerprint = fingerprintFor.call(this, record);
-            const existing = byFingerprint.get(fingerprint);
+            const identity = record.canonicalId ? `canonical:${record.canonicalId}` : `id:${record.id}`;
+            const existing = byIdentity.get(identity);
             const recordTime = this._recordTimestamp(record.updatedAt || record.updated || record.createdAt || record.created);
             const existingTime = existing
                 ? this._recordTimestamp(existing.updatedAt || existing.updated || existing.createdAt || existing.created)
                 : -1;
             if (!existing || recordTime >= existingTime) {
-                byFingerprint.set(fingerprint, record);
+                byIdentity.set(identity, record);
             }
         }
 
         const deduped = {};
-        for (const record of byFingerprint.values()) {
+        for (const record of byIdentity.values()) {
             if (record.id) deduped[record.id] = record;
         }
         return deduped;
@@ -545,6 +544,10 @@ const syncManager = {
             ...record,
             ...updated,
             banner: updated.banner_url,
+            privacy: {
+                playlists: updated.privacy_playlists || record.privacy?.playlists || 'public',
+                lastfm: updated.privacy_lastfm || record.privacy?.lastfm || 'public',
+            },
         };
     },
 
@@ -552,8 +555,9 @@ const syncManager = {
         try {
             await authApi(`/api/users/${encodeURIComponent(username)}`);
             return true;
-        } catch {
-            return false;
+        } catch (error) {
+            if (error.response?.status === 404 || error.status === 404) return false;
+            throw error;
         }
     },
 
