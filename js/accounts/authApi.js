@@ -1,11 +1,14 @@
 import { AUTH_BASE_URL } from './config.js';
+import { getAuthToken } from './auth.js';
 
 export async function authApi(path, options = {}) {
+    const token = getAuthToken();
     const response = await fetch(`${AUTH_BASE_URL}${path}`, {
         credentials: 'include',
         ...options,
         headers: {
             ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...(options.headers || {}),
         },
     });
