@@ -93,8 +93,14 @@ const syncManager = {
 
         const library = this.safeParseInternal(record.library, 'library', {});
         const history = this.safeParseInternal(record.history, 'history', []);
-        const userPlaylists = this.safeParseInternal(record.user_playlists, 'user_playlists', {});
-        const userFolders = this.safeParseInternal(record.user_folders, 'user_folders', {});
+        const userPlaylists = this._dedupeRecordMap(
+            this.safeParseInternal(record.user_playlists, 'user_playlists', {}),
+            'playlist'
+        );
+        const userFolders = this._dedupeRecordMap(
+            this.safeParseInternal(record.user_folders, 'user_folders', {}),
+            'folder'
+        );
         const favoriteAlbums = this.safeParseInternal(record.favorite_albums, 'favorite_albums', []);
 
         const profile = {
@@ -129,9 +135,12 @@ const syncManager = {
             };
             const syncField = syncFieldMap[field];
             if (!syncField) return;
+            let payload = data;
+            if (field === 'user_playlists') payload = this._dedupeRecordMap(data, 'playlist');
+            if (field === 'user_folders') payload = this._dedupeRecordMap(data, 'folder');
             const updated = await authApi('/api/sync', {
                 method: 'PATCH',
-                body: JSON.stringify({ [syncField]: data }),
+                body: JSON.stringify({ [syncField]: payload }),
             });
             this._userRecordCache = {
                 ...record,
@@ -184,6 +193,59 @@ const syncManager = {
                 return fallback;
             }
         }
+    },
+
+    _recordTimestamp(value) {
+        const parsed = Number(value || 0);
+        if (Number.isFinite(parsed) && parsed > 0) return parsed;
+        const date = Date.parse(value || '');
+        return Number.isFinite(date) ? date : 0;
+    },
+
+    _playlistFingerprint(playlist) {
+        const tracks = Array.isArray(playlist?.tracks) ? playlist.tracks : [];
+        return JSON.stringify({
+            name: String(playlist?.name || playlist?.title || '').trim().toLowerCase(),
+            description: String(playlist?.description || ''),
+            cover: String(playlist?.cover || playlist?.image || playlist?.cover_url || ''),
+            isPublic: playlist?.isPublic === true || playlist?.is_public === true,
+            tracks: tracks.map((track) => `${track?.type || track?.item_type || 'track'}:${track?.id || track?.item_id || ''}`),
+        });
+    },
+
+    _folderFingerprint(folder) {
+        const playlists = Array.isArray(folder?.playlists) ? folder.playlists : [];
+        return JSON.stringify({
+            name: String(folder?.name || '').trim().toLowerCase(),
+            cover: String(folder?.cover || folder?.image || folder?.cover_url || ''),
+            playlists: playlists.map(String).sort(),
+        });
+    },
+
+    _dedupeRecordMap(records, type) {
+        const source = records && typeof records === 'object' && !Array.isArray(records) ? records : {};
+        const byFingerprint = new Map();
+        const fingerprintFor = type === 'folder' ? this._folderFingerprint : this._playlistFingerprint;
+
+        for (const [key, value] of Object.entries(source)) {
+            if (!value || typeof value !== 'object') continue;
+            const record = { ...value, id: value.id || key };
+            const fingerprint = fingerprintFor.call(this, record);
+            const existing = byFingerprint.get(fingerprint);
+            const recordTime = this._recordTimestamp(record.updatedAt || record.updated || record.createdAt || record.created);
+            const existingTime = existing
+                ? this._recordTimestamp(existing.updatedAt || existing.updated || existing.createdAt || existing.created)
+                : -1;
+            if (!existing || recordTime >= existingTime) {
+                byFingerprint.set(fingerprint, record);
+            }
+        }
+
+        const deduped = {};
+        for (const record of byFingerprint.values()) {
+            if (record.id) deduped[record.id] = record;
+        }
+        return deduped;
     },
 
     async syncLibraryItem(type, item, added) {
@@ -424,7 +486,8 @@ const syncManager = {
 
             return {
                 ...record,
-                id: record.id,
+                id: record.client_id || record.id,
+                serverId: record.id,
                 name: finalTitle,
                 title: finalTitle,
                 description: finalDescription,
@@ -569,6 +632,8 @@ const syncManager = {
                     if (!userPlaylists) userPlaylists = {};
                     if (!userFolders) userFolders = {};
                     if (!history) history = [];
+                    userPlaylists = this._dedupeRecordMap(userPlaylists, 'playlist');
+                    userFolders = this._dedupeRecordMap(userFolders, 'folder');
 
                     const mergeItem = (collection, item, type) => {
                         const id = type === 'playlist' ? item.uuid || item.id : item.id;
@@ -602,6 +667,7 @@ const syncManager = {
                             needsUpdate = true;
                         }
                     });
+                    userPlaylists = this._dedupeRecordMap(userPlaylists, 'playlist');
 
                     localData.userFolders.forEach((folder) => {
                         if (!userFolders[folder.id]) {
@@ -616,6 +682,7 @@ const syncManager = {
                             needsUpdate = true;
                         }
                     });
+                    userFolders = this._dedupeRecordMap(userFolders, 'folder');
 
                     const combinedHistory = [...history, ...localData.history];
                     combinedHistory.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
