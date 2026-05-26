@@ -71,8 +71,8 @@ export async function onRequest(context) {
                 const title = record.name || 'Untitled Playlist';
 
                 let tracks = safeParseTracks(record.tracks).map((track) => ({
-                    id: track.item_id,
                     ...(track.metadata || {}),
+                    id: track.item_id,
                     type: track.item_type,
                 }));
                 const trackCount = tracks.length;

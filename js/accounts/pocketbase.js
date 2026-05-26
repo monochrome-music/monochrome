@@ -2,7 +2,7 @@
 import PocketBase from 'pocketbase';
 import { db } from '../db.js';
 import { authManager } from './auth.js';
-import { AUTH_BASE_URL } from './config.js';
+import { authApi } from './authApi.js';
 
 const DEFAULT_POCKETBASE_URL = 'https://data.samidy.xyz';
 const POCKETBASE_URL =
@@ -12,24 +12,6 @@ console.log('[PocketBase] Using URL:', POCKETBASE_URL);
 
 const pb = new PocketBase(POCKETBASE_URL);
 pb.autoCancellation(false);
-
-async function authApi(path, options = {}) {
-    const response = await fetch(`${AUTH_BASE_URL}${path}`, {
-        credentials: 'include',
-        ...options,
-        headers: {
-            ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-            ...(options.headers || {}),
-        },
-    });
-    if (!response.ok) {
-        const text = await response.text();
-        const error = new Error(text || `Auth server error: ${response.status}`);
-        error.status = response.status;
-        throw error;
-    }
-    return response.status === 204 ? null : response.json();
-}
 
 const syncManager = {
     pb: pb,
@@ -458,8 +440,8 @@ const syncManager = {
         try {
             const record = await authApi(`/api/public/playlists/${encodeURIComponent(uuid)}`);
             const tracks = (record.tracks || []).map((track) => ({
-                id: track.item_id,
                 ...(track.metadata || {}),
+                id: track.item_id,
                 type: track.item_type,
             }));
             const finalCover = record.cover_url || '';
@@ -530,8 +512,8 @@ const syncManager = {
                     playlists: record.privacy_playlists || 'public',
                     lastfm: record.privacy_lastfm || 'public',
                 },
-                user_playlists: {},
-                favorite_albums: [],
+                user_playlists: record.user_playlists || {},
+                favorite_albums: record.favorite_albums || [],
             };
         } catch {
             return null;

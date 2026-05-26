@@ -35,7 +35,7 @@ import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
-import { partyManager } from './listening-party.js';
+import { areListeningPartiesDisabled, partyManager } from './listening-party.js';
 import { Visualizer } from './visualizer.js';
 import { audioContextManager } from './audio-context.js';
 import { navigate } from './router.js';
@@ -2459,19 +2459,20 @@ export class UIRenderer {
         const loginBtn = document.getElementById('parties-login-btn');
         const disabledNotice = document.getElementById('parties-disabled-notice');
 
-        if (disabledNotice) {
-            disabledNotice.style.display = 'block';
-            hostControls.style.display = 'none';
-            authRequired.style.display = 'none';
+        if (areListeningPartiesDisabled()) {
+            if (disabledNotice) disabledNotice.style.display = 'block';
+            if (hostControls) hostControls.style.display = 'none';
+            if (authRequired) authRequired.style.display = 'none';
             return;
         }
 
-        hostControls.style.display = 'block';
+        if (disabledNotice) disabledNotice.style.display = 'none';
+        if (hostControls) hostControls.style.display = 'block';
         if (authManager.user) {
-            authRequired.style.display = 'none';
+            if (authRequired) authRequired.style.display = 'none';
         } else {
-            authRequired.style.display = 'block';
-            loginBtn.onclick = () => navigate('/account');
+            if (authRequired) authRequired.style.display = 'block';
+            if (loginBtn) loginBtn.onclick = () => navigate('/account');
         }
     }
 

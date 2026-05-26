@@ -7,9 +7,17 @@ import { audioContextManager } from './audio-context.js';
 import { showNotification } from './downloads.js';
 import { SVG_PAUSE } from './icons.js';
 
-const LISTENING_PARTIES_DISABLED = true;
-const LISTENING_PARTIES_DISABLED_MESSAGE =
+export const LISTENING_PARTIES_DISABLED_MESSAGE =
     'Listening parties are temporarily disabled while the new server implementation is being built. Library, profiles, themes, and playlists still work normally.';
+
+export function areListeningPartiesDisabled() {
+    const flags = window.__FEATURE_FLAGS__ || {};
+    if (typeof flags.listeningParties === 'boolean') return !flags.listeningParties;
+    if (typeof flags.listeningPartiesDisabled === 'boolean') return flags.listeningPartiesDisabled;
+    return true;
+}
+
+const LISTENING_PARTIES_DISABLED = areListeningPartiesDisabled();
 
 class Modal {
     static async show({ title, content, actions = [] }) {
