@@ -7,6 +7,10 @@ import { audioContextManager } from './audio-context.js';
 import { showNotification } from './downloads.js';
 import { SVG_PAUSE } from './icons.js';
 
+const LISTENING_PARTIES_DISABLED = true;
+const LISTENING_PARTIES_DISABLED_MESSAGE =
+    'Listening parties are temporarily disabled while the new server implementation is being built. Library, profiles, themes, and playlists still work normally.';
+
 class Modal {
     static async show({ title, content, actions = [] }) {
         return new Promise((resolve) => {
@@ -103,16 +107,15 @@ export class ListeningPartyManager {
         chatInput?.addEventListener('input', () => this._pingTyping());
         chatInput?.addEventListener('blur', () => this._clearTyping());
 
-        const listen_party_down = false;
-        const message =
-            'Listening parties are temporarily disabled while we ship some backend improvements. Existing parties will keep running, new ones can be created again shortly (hopefully in a day or 2). Thanks for your patience!';
-        if (listen_party_down) {
+        if (LISTENING_PARTIES_DISABLED) {
             this.maintenanceMode = true;
-            this.maintenanceMessage = message;
+            this.maintenanceMessage = LISTENING_PARTIES_DISABLED_MESSAGE;
             const createBtn = document.getElementById('create-party-btn');
             const nameInput = document.getElementById('party-name-input');
+            const hostControls = document.getElementById('parties-host-controls');
+            const disabledNotice = document.getElementById('parties-disabled-notice');
             if (createBtn) {
-                createBtn.textContent = 'Under Maintenance';
+                createBtn.textContent = 'Temporarily Disabled';
                 createBtn.disabled = true;
                 createBtn.style.opacity = '0.5';
                 createBtn.style.cursor = 'not-allowed';
@@ -121,6 +124,8 @@ export class ListeningPartyManager {
                 nameInput.disabled = true;
                 nameInput.placeholder = 'Hosting temporarily disabled';
             }
+            if (hostControls) hostControls.style.display = 'none';
+            if (disabledNotice) disabledNotice.style.display = 'block';
         }
     }
 
@@ -172,6 +177,11 @@ export class ListeningPartyManager {
     }
 
     async joinParty(partyId) {
+        if (this.maintenanceMode) {
+            await Modal.alert('Listening Parties Disabled', this.maintenanceMessage);
+            navigate('/parties');
+            return;
+        }
         if (this.currentParty?.id === partyId || this.isJoining) return;
         this.isJoining = true;
 
@@ -524,12 +534,14 @@ export class ListeningPartyManager {
     }
 
     async loadInitialData(_partyId) {
+        if (this.maintenanceMode) return;
         await this.loadMembers();
         await this.loadMessages();
         await this.loadRequests();
     }
 
     async loadMembers() {
+        if (this.maintenanceMode || !this.currentParty) return;
         const f_id = authManager.user ? authManager.user.$id : 'guest';
         this.members = await pb
             .collection('party_members')
@@ -605,6 +617,7 @@ export class ListeningPartyManager {
     }
 
     async loadRequests() {
+        if (this.maintenanceMode || !this.currentParty) return;
         const f_id = authManager.user ? authManager.user.$id : 'guest';
         try {
             this.requests = await pb.collection('party_requests').getFullList({
@@ -775,6 +788,10 @@ export class ListeningPartyManager {
     }
 
     async sendChatMessage() {
+        if (this.maintenanceMode) {
+            await Modal.alert('Listening Parties Disabled', this.maintenanceMessage);
+            return;
+        }
         const input = document.getElementById('party-chat-input');
         if (!input || !input.value.trim()) return;
         const content = input.value.trim();
@@ -790,6 +807,10 @@ export class ListeningPartyManager {
     }
 
     async requestSong(track) {
+        if (this.maintenanceMode) {
+            showNotification('Listening parties are temporarily disabled');
+            return;
+        }
         if (!this.currentParty) return;
         const profile = await this.getMemberProfile();
         const f_id = authManager.user ? authManager.user.$id : 'guest';
