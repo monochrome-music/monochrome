@@ -1,26 +1,10 @@
 import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
-import { AUTH_BASE_URL } from './accounts/config.js';
+import { authApi } from './accounts/authApi.js';
 import { navigate } from './router.js';
 import { SVG_BIN, SVG_SQUARE_PEN } from './icons.js';
 
 const THEMES_PER_PAGE = 50;
-
-async function authApi(path, options = {}) {
-    const response = await fetch(`${AUTH_BASE_URL}${path}`, {
-        credentials: 'include',
-        ...options,
-        headers: {
-            ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-            ...(options.headers || {}),
-        },
-    });
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `Auth server error: ${response.status}`);
-    }
-    return response.status === 204 ? null : response.json();
-}
 
 const GENERIC_FONT_FAMILIES = [
     'serif',
@@ -175,12 +159,15 @@ export class ThemeStore {
         }
 
         try {
-            const result = await authApi(`/api/themes?perPage=${THEMES_PER_PAGE}`);
+            const params = new URLSearchParams({ perPage: String(THEMES_PER_PAGE) });
+            const queryLower = query.trim().toLowerCase();
+            if (queryLower) params.set('query', queryLower);
+            const result = await authApi(`/api/themes?${params.toString()}`);
             this.loadingIndicator.style.display = 'none';
             const items = (result.items || []).map((theme) => this.normalizeTheme(theme));
-            const filteredItems = query
+            const filteredItems = queryLower
                 ? items.filter((theme) =>
-                      `${theme.name || ''} ${theme.description || ''}`.toLowerCase().includes(query.toLowerCase())
+                      `${theme.name || ''} ${theme.description || ''}`.toLowerCase().includes(queryLower)
                   )
                 : items;
             if (filteredItems.length === 0) {
