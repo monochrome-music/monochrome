@@ -101,9 +101,6 @@ export class AuthManager {
     async signInWithDiscord() {
         return this._signInSocial('discord');
     }
-    async signInWithSpotify() {
-        return this._signInSocial('spotify');
-    }
 
     async signInWithEmail(email, password) {
         try {
