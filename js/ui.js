@@ -2459,16 +2459,28 @@ export class UIRenderer {
         const hostControls = document.getElementById('parties-host-controls');
         const loginBtn = document.getElementById('parties-login-btn');
         const disabledNotice = document.getElementById('parties-disabled-notice');
+        const activeParty = document.getElementById('parties-active-party');
+        const returnBtn = document.getElementById('parties-return-btn');
 
         const authServerAvailable = await this.checkPartiesServerAvailable();
         if (areListeningPartiesDisabled() || !authServerAvailable) {
             if (disabledNotice) disabledNotice.style.display = 'block';
             if (hostControls) hostControls.style.display = 'none';
             if (authRequired) authRequired.style.display = 'none';
+            if (activeParty) activeParty.style.display = 'none';
             return;
         }
 
         if (disabledNotice) disabledNotice.style.display = 'none';
+        if (partyManager.currentParty?.id) {
+            if (activeParty) activeParty.style.display = 'block';
+            if (hostControls) hostControls.style.display = 'none';
+            if (authRequired) authRequired.style.display = 'none';
+            if (returnBtn) returnBtn.onclick = () => navigate(`/party/${partyManager.currentParty.id}`);
+            return;
+        }
+
+        if (activeParty) activeParty.style.display = 'none';
         if (hostControls) hostControls.style.display = 'block';
         if (authManager.user) {
             if (authRequired) authRequired.style.display = 'none';
