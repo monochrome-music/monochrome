@@ -2040,12 +2040,37 @@
                             Listen to music together with your friends in real-time. Host controls the music, everyone
                             enjoys it.
                         </p>
+                        <div
+                            id="parties-disabled-notice"
+                            style="
+                                display: none;
+                                margin-bottom: 2rem;
+                                padding: 1rem;
+                                border: 1px solid var(--border);
+                                border-radius: 8px;
+                                background: var(--card);
+                                color: var(--muted-foreground);
+                                text-align: left;
+                            "
+                        >
+                            <strong style="display: block; color: var(--foreground); margin-bottom: 0.35rem">
+                                Temporarily unavailable
+                            </strong>
+                            Listening parties could not connect to the realtime server. Try again in a moment.
+                        </div>
                         <div id="parties-auth-required" style="display: none; margin-bottom: 2rem">
                             <p style="margin-bottom: 1rem; color: var(--muted-foreground); font-size: 0.9rem">
-                                Hosting as a guest works, but signing in lets your party persist across devices and
-                                gives you a real profile in the chat.
+                                Hosting as a guest works. Signing in uses your profile name and avatar in the chat.
                             </p>
                             <button id="parties-login-btn" class="btn-secondary">Sign In / Sign Up</button>
+                        </div>
+                        <div id="parties-active-party" style="display: none; margin-bottom: 2rem">
+                            <p style="margin-bottom: 1rem; color: var(--muted-foreground); font-size: 0.9rem">
+                                You are already in a listening party.
+                            </p>
+                            <button id="parties-return-btn" class="btn-primary" style="width: 100%">
+                                Return to Party
+                            </button>
                         </div>
                         <div id="parties-host-controls" style="display: none">
                             <input

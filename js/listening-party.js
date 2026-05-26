@@ -1,4 +1,4 @@
-import { pb, syncManager } from './accounts/pocketbase.js';
+import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
 import { Player } from './player.js';
 import { navigate } from './router.js';
@@ -6,6 +6,19 @@ import { getTrackArtists, escapeHtml } from './utils.js';
 import { audioContextManager } from './audio-context.js';
 import { showNotification } from './downloads.js';
 import { SVG_PAUSE } from './icons.js';
+import { PartySocketClient } from './party-socket.js';
+
+export const LISTENING_PARTIES_DISABLED_MESSAGE =
+    'Listening parties are temporarily unavailable. Please try again later.';
+
+export function areListeningPartiesDisabled() {
+    const flags = window.__FEATURE_FLAGS__ || {};
+    if (typeof flags.listeningParties === 'boolean') return !flags.listeningParties;
+    if (typeof flags.listeningPartiesDisabled === 'boolean') return flags.listeningPartiesDisabled;
+    return false;
+}
+
+const LISTENING_PARTIES_DISABLED = areListeningPartiesDisabled();
 
 class Modal {
     static async show({ title, content, actions = [] }) {
@@ -87,6 +100,12 @@ export class ListeningPartyManager {
         this.isLeaving = false;
         this.isInternalSync = false;
         this.originalSafePlay = null;
+        this.originalPlayTrackFromQueue = null;
+        this.maintenanceMode = false;
+        this.maintenanceMessage = null;
+        this.socket = null;
+        this.socketUnsubscribe = null;
+        this._suppressSocketClose = false;
 
         this.setupEventListeners();
     }
@@ -103,24 +122,25 @@ export class ListeningPartyManager {
         chatInput?.addEventListener('input', () => this._pingTyping());
         chatInput?.addEventListener('blur', () => this._clearTyping());
 
-        const listen_party_down = false;
-        const message =
-            'Listening parties are temporarily disabled while we ship some backend improvements. Existing parties will keep running, new ones can be created again shortly (hopefully in a day or 2). Thanks for your patience!';
-        if (listen_party_down) {
+        if (LISTENING_PARTIES_DISABLED) {
             this.maintenanceMode = true;
-            this.maintenanceMessage = message;
+            this.maintenanceMessage = LISTENING_PARTIES_DISABLED_MESSAGE;
             const createBtn = document.getElementById('create-party-btn');
             const nameInput = document.getElementById('party-name-input');
+            const hostControls = document.getElementById('parties-host-controls');
+            const disabledNotice = document.getElementById('parties-disabled-notice');
             if (createBtn) {
-                createBtn.textContent = 'Under Maintenance';
+                createBtn.textContent = 'Temporarily Disabled';
                 createBtn.disabled = true;
                 createBtn.style.opacity = '0.5';
                 createBtn.style.cursor = 'not-allowed';
             }
             if (nameInput) {
                 nameInput.disabled = true;
-                nameInput.placeholder = 'Hosting temporarily disabled';
+                nameInput.placeholder = 'Hosting temporarily unavailable';
             }
+            if (hostControls) hostControls.style.display = 'none';
+            if (disabledNotice) disabledNotice.style.display = 'block';
         }
     }
 
@@ -135,10 +155,10 @@ export class ListeningPartyManager {
 
         let pbUser = null;
         if (user) {
-            pbUser = await syncManager._getUserRecord(user.$id);
-            if (!pbUser) {
-                await Modal.alert('Sync Error', 'Failed to sync user data. Please try again.');
-                return;
+            try {
+                pbUser = await syncManager._getUserRecord(user.$id);
+            } catch (_e) {
+                pbUser = null;
             }
         }
 
@@ -147,49 +167,60 @@ export class ListeningPartyManager {
         const name = nameInput.value.trim() || fallbackPartyName;
         const player = Player.instance;
         const currentTrack = player.currentTrack ? syncManager._minifyItem('track', player.currentTrack) : null;
-        const guestHostToken = user ? null : this._generateHostToken();
-        const partyData = {
-            name: name,
-            is_playing: player.currentTrack ? !player.activeElement.paused : false,
-            playback_time: player.activeElement.currentTime || 0,
-            playback_timestamp: Date.now(),
-            queue: player.queue?.map((t) => syncManager._minifyItem('track', t)) || [],
-        };
-        if (pbUser?.id) partyData.host = pbUser.id;
-        if (guestHostToken) partyData.guest_host_token = guestHostToken;
-        if (currentTrack) partyData.current_track = currentTrack;
-
-        const f_id = user ? user.$id : guestHostToken;
+        const hostToken = this._generateHostToken();
+        const profile = await this.getMemberProfile(pbUser);
 
         try {
-            const party = await pb.collection('parties').create(partyData, { f_id });
-            if (guestHostToken) this._rememberHostToken(party.id, guestHostToken);
-            navigate(`/party/${party.id}`);
+            this._connectSocket();
+            const response = await this.socket.request('create', {
+                name,
+                hostToken,
+                memberId: this._stableMemberId(),
+                userId: user?.$id || null,
+                profile,
+                playback: {
+                    current_track: currentTrack,
+                    is_playing: player.currentTrack ? !player.activeElement.paused : false,
+                    playback_time: player.activeElement.currentTime || 0,
+                    playback_timestamp: Date.now(),
+                    queue: player.queue?.map((t) => syncManager._minifyItem('track', t)) || [],
+                },
+            });
+            this._applyPartySnapshot(response);
+            this._rememberHostToken(response.party.id, hostToken);
+            this._rememberGuestMember(response.party.id, response.memberId);
+            this.isHost = true;
+            navigate(`/party/${response.party.id}`);
         } catch (e) {
             console.error('Create error:', e);
+            this._closeSocket();
             await Modal.alert('Error', 'Failed to create the party. Please try again.');
         }
     }
 
     async joinParty(partyId) {
-        if (this.currentParty?.id === partyId || this.isJoining) return;
+        if (this.maintenanceMode) {
+            await Modal.alert('Listening Parties Disabled', this.maintenanceMessage);
+            navigate('/parties');
+            return;
+        }
+        if (this.currentParty?.id === partyId) {
+            this.renderPartyUI();
+            await this.loadInitialData(partyId);
+            return;
+        }
+        if (this.isJoining) return;
         this.isJoining = true;
 
         try {
             const user = authManager.user;
-            const f_id = user ? user.$id : 'guest';
-            const party = await pb.collection('parties').getOne(partyId, { expand: 'host', f_id });
-
-            const pbUser = user ? await syncManager._getUserRecord(user.$id) : null;
-            this.isHost = this._isPartyHost(party, pbUser);
-
-            const existingMember = await this.findExistingMember(partyId, pbUser);
+            const pbUser = user ? await syncManager._getUserRecord(user.$id).catch(() => null) : null;
+            const existingMemberId = this._getGuestMemberId(partyId);
+            const hasHostToken = !!this._getHostToken(partyId);
 
             let confirmed;
-            if (existingMember) {
-                confirmed = {
-                    profile: { name: existingMember.name, avatar_url: existingMember.avatar_url },
-                };
+            if (existingMemberId) {
+                confirmed = { profile: await this.getMemberProfile(pbUser) };
             } else {
                 confirmed = await this.showJoinModal(user, pbUser);
                 if (!confirmed) {
@@ -199,34 +230,20 @@ export class ListeningPartyManager {
                 }
             }
 
-            this.currentParty = party;
-
             const profile = confirmed.profile || (await this.getMemberProfile(pbUser));
-            const memberData = {
-                party: partyId,
-                name: profile.name,
-                avatar_url: profile.avatar_url,
-                is_host: !!this.isHost,
-                last_seen: Date.now(),
-            };
-            if (pbUser?.id) memberData.user = pbUser.id;
+            this._connectSocket();
+            const response = await this.socket.request('join', {
+                partyId,
+                memberId: existingMemberId || this._stableMemberId(),
+                hostToken: this._getHostToken(partyId),
+                userId: user?.$id || null,
+                profile,
+            });
+            this._applyPartySnapshot(response);
+            this.isHost = response.isHost === true || hasHostToken;
+            this.memberId = response.memberId;
+            this._rememberGuestMember(partyId, response.memberId);
 
-            let member;
-            if (existingMember) {
-                try {
-                    member = await pb
-                        .collection('party_members')
-                        .update(existingMember.id, { last_seen: Date.now(), is_host: !!this.isHost }, { f_id });
-                } catch (_e) {
-                    member = await pb.collection('party_members').create(memberData, { f_id });
-                }
-            } else {
-                member = await pb.collection('party_members').create(memberData, { f_id });
-            }
-            this.memberId = member.id;
-            if (!pbUser?.id) this._rememberGuestMember(partyId, member.id);
-
-            this.setupSubscriptions(partyId);
             this.startHeartbeat();
             this.renderPartyUI();
             await this.loadInitialData(partyId);
@@ -234,13 +251,14 @@ export class ListeningPartyManager {
             if (!this.isHost) {
                 this.lockControls();
                 this.setupGuestSyncInterception();
-                if (party.current_track) {
+                if (this.currentParty.current_track) {
                     await audioContextManager.resume();
-                    await this.syncWithHost(party);
+                    await this.syncWithHost(this.currentParty);
                 }
             }
         } catch (error) {
             console.error('Join error:', error);
+            this._closeSocket();
             await Modal.alert('Error', 'Failed to join the party. It may have ended.');
             navigate('/parties');
         } finally {
@@ -378,18 +396,84 @@ export class ListeningPartyManager {
         return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
     }
 
-    _hostFid(party) {
+    _stableMemberId() {
         const user = authManager.user;
-        if (user) return user.$id;
-        const partyId = party?.id || this.currentParty?.id;
-        return (partyId && this._getHostToken(partyId)) || 'guest';
+        const key = user ? `party_member_user_${user.$id}` : 'party_member_guest';
+        let memberId = localStorage.getItem(key);
+        if (!memberId) {
+            memberId = `member_${crypto.randomUUID().replaceAll('-', '').slice(0, 18)}`;
+            localStorage.setItem(key, memberId);
+        }
+        return memberId;
     }
 
-    _isPartyHost(party, pbUser) {
-        if (pbUser && party?.host && pbUser.id === party.host) return true;
-        if (!party?.guest_host_token) return false;
-        const stored = this._getHostToken(party.id);
-        return !!stored && stored === party.guest_host_token;
+    _connectSocket() {
+        if (this.socket) return this.socket;
+        this.socket = new PartySocketClient();
+        this.socketUnsubscribe = this.socket.onMessage((message) => this._handleSocketMessage(message));
+        return this.socket;
+    }
+
+    _closeSocket() {
+        if (this.socketUnsubscribe) this.socketUnsubscribe();
+        this.socketUnsubscribe = null;
+        this.socket?.close();
+        this.socket = null;
+    }
+
+    _applyPartySnapshot(snapshot) {
+        if (!snapshot?.party) return;
+        this.currentParty = snapshot.party;
+        this.members = Array.isArray(snapshot.members) ? snapshot.members : this.members || [];
+        this.messages = Array.isArray(snapshot.messages) ? snapshot.messages : this.messages || [];
+        this.requests = Array.isArray(snapshot.requests) ? snapshot.requests : this.requests || [];
+        if (snapshot.memberId) this.memberId = snapshot.memberId;
+        if (typeof snapshot.isHost === 'boolean') this.isHost = snapshot.isHost;
+    }
+
+    async _handleSocketMessage(message) {
+        if (!message || this.isLeaving) return;
+
+        if (message.type === 'snapshot') {
+            this._applyPartySnapshot(message);
+            this.renderPartyUI();
+            await this.loadInitialData(this.currentParty?.id);
+            return;
+        }
+
+        if (message.type === 'party' && message.party) {
+            this.currentParty = message.party;
+            if (!this.isHost) await this.syncWithHost(message.party);
+            this.updatePartyHeader();
+            return;
+        }
+
+        if (message.type === 'members' && Array.isArray(message.members)) {
+            this.members = message.members;
+            this.renderMembers();
+            this.renderTypingIndicator();
+            this.updatePartyHeader();
+            this.showPartyIndicator();
+            return;
+        }
+
+        if (message.type === 'message' && message.message) {
+            this.messages.push(message.message);
+            this.messages = this.messages.slice(-100);
+            this.addChatMessage(message.message);
+            return;
+        }
+
+        if (message.type === 'requests' && Array.isArray(message.requests)) {
+            this.requests = message.requests;
+            this.renderRequests();
+            return;
+        }
+
+        if (message.type === 'ended') {
+            await Modal.alert('Party Ended', 'The host has ended the listening party.');
+            await this.leaveParty(false);
+        }
     }
 
     _getGuestMemberId(partyId) {
@@ -412,30 +496,9 @@ export class ListeningPartyManager {
         } catch (_e) {}
     }
 
-    async findExistingMember(partyId, pbUser) {
-        const f_id = authManager.user ? authManager.user.$id : 'guest';
-        try {
-            if (pbUser?.id) {
-                const rows = await pb.collection('party_members').getFullList({
-                    filter: `party = "${partyId}" && user = "${pbUser.id}"`,
-                    f_id,
-                });
-                return rows[0] || null;
-            }
-            const cachedId = this._getGuestMemberId(partyId);
-            if (!cachedId) return null;
-            try {
-                const row = await pb.collection('party_members').getOne(cachedId, { f_id });
-                if (row?.party === partyId) return row;
-                this._forgetGuestMember(partyId);
-                return null;
-            } catch (_e) {
-                this._forgetGuestMember(partyId);
-                return null;
-            }
-        } catch (_e) {
-            return null;
-        }
+    async findExistingMember(partyId) {
+        const cachedId = this._getGuestMemberId(partyId);
+        return cachedId ? { id: cachedId } : null;
     }
 
     async getMemberProfile(pbUser = null) {
@@ -468,72 +531,18 @@ export class ListeningPartyManager {
     setupSubscriptions(partyId) {
         this.unsubscribeFunctions.forEach((unsub) => unsub());
         this.unsubscribeFunctions = [];
-        const f_id = authManager.user ? authManager.user.$id : 'guest';
-
-        pb.collection('parties')
-            .subscribe(
-                partyId,
-                async (e) => {
-                    if (e.action === 'update') {
-                        this.currentParty = e.record;
-                        if (!this.isHost) await this.syncWithHost(e.record);
-                        this.updatePartyHeader();
-                    } else if (e.action === 'delete') {
-                        if (this.isLeaving) return;
-                        await Modal.alert('Party Ended', 'The host has ended the listening party.');
-                        await this.leaveParty(false);
-                    }
-                },
-                { f_id }
-            )
-            .then((unsub) => this.unsubscribeFunctions.push(unsub))
-            .catch(console.error);
-
-        pb.collection('party_members')
-            .subscribe(
-                '*',
-                async (e) => {
-                    if (e.record.party === partyId) await this.loadMembers();
-                },
-                { f_id }
-            )
-            .then((unsub) => this.unsubscribeFunctions.push(unsub))
-            .catch(console.error);
-
-        pb.collection('party_messages')
-            .subscribe(
-                '*',
-                (e) => {
-                    if (e.record.party === partyId && e.action === 'create') this.addChatMessage(e.record);
-                },
-                { f_id }
-            )
-            .then((unsub) => this.unsubscribeFunctions.push(unsub))
-            .catch(console.error);
-
-        pb.collection('party_requests')
-            .subscribe(
-                '*',
-                async (e) => {
-                    if (e.record.party === partyId) await this.loadRequests();
-                },
-                { f_id }
-            )
-            .then((unsub) => this.unsubscribeFunctions.push(unsub))
-            .catch(console.error);
+        this._connectSocket();
     }
 
     async loadInitialData(_partyId) {
+        if (this.maintenanceMode) return;
         await this.loadMembers();
         await this.loadMessages();
         await this.loadRequests();
     }
 
     async loadMembers() {
-        const f_id = authManager.user ? authManager.user.$id : 'guest';
-        this.members = await pb
-            .collection('party_members')
-            .getFullList({ filter: `party = "${this.currentParty.id}"`, sort: '-is_host,name', f_id });
+        if (this.maintenanceMode || !this.currentParty) return;
         this.renderMembers();
         this.renderTypingIndicator();
         this.updatePartyHeader();
@@ -545,20 +554,14 @@ export class ListeningPartyManager {
         const lastPing = this._lastTypingPing || 0;
         if (now - lastPing < 1500) return;
         this._lastTypingPing = now;
-        const f_id = authManager.user?.$id || 'guest';
-        pb.collection('party_members')
-            .update(this.memberId, { typing_until: now + 3000 }, { f_id })
-            .catch(() => {});
+        this.socket?.send('typing', { typing_until: now + 3000 }).catch(() => {});
     }
 
     _clearTyping() {
         if (!this.memberId || !this.currentParty) return;
         if ((this._lastTypingPing || 0) === 0) return;
         this._lastTypingPing = 0;
-        const f_id = authManager.user?.$id || 'guest';
-        pb.collection('party_members')
-            .update(this.memberId, { typing_until: 0 }, { f_id })
-            .catch(() => {});
+        this.socket?.send('typing', { typing_until: 0 }).catch(() => {});
     }
 
     renderTypingIndicator() {
@@ -592,11 +595,6 @@ export class ListeningPartyManager {
     }
 
     async loadMessages() {
-        const f_id = authManager.user ? authManager.user.$id : 'guest';
-        const res = await pb
-            .collection('party_messages')
-            .getList(1, 50, { filter: `party = "${this.currentParty.id}"`, sort: '-created', f_id });
-        this.messages = res.items.reverse();
         const container = document.getElementById('party-chat-messages');
         if (container) {
             container.innerHTML = '';
@@ -605,17 +603,8 @@ export class ListeningPartyManager {
     }
 
     async loadRequests() {
-        const f_id = authManager.user ? authManager.user.$id : 'guest';
-        try {
-            this.requests = await pb.collection('party_requests').getFullList({
-                filter: `party = "${this.currentParty.id}"`,
-                sort: 'created',
-                f_id: f_id,
-            });
-            this.renderRequests();
-        } catch (e) {
-            console.error('Failed to load requests:', e);
-        }
+        if (this.maintenanceMode || !this.currentParty) return;
+        this.renderRequests();
     }
 
     renderPartyUI() {
@@ -721,7 +710,6 @@ export class ListeningPartyManager {
             .join('');
 
         if (this.isHost) {
-            const f_id = authManager.user ? authManager.user.$id : 'guest';
             list.querySelectorAll('.add-request-btn').forEach((btn) =>
                 btn.addEventListener('click', async (e) => {
                     const reqId = e.currentTarget.dataset.reqId;
@@ -729,7 +717,7 @@ export class ListeningPartyManager {
                     if (req) {
                         Player.instance.addToQueue(req.track);
                         showNotification(`Added "${req.track.title}" to queue`);
-                        await pb.collection('party_requests').delete(req.id, { f_id });
+                        await this.socket?.send('request:remove', { requestId: req.id });
                     }
                 })
             );
@@ -775,34 +763,29 @@ export class ListeningPartyManager {
     }
 
     async sendChatMessage() {
+        if (this.maintenanceMode) {
+            await Modal.alert('Listening Parties Disabled', this.maintenanceMessage);
+            return;
+        }
         const input = document.getElementById('party-chat-input');
         if (!input || !input.value.trim()) return;
         const content = input.value.trim();
         input.value = '';
         this._clearTyping();
-        const profile = await this.getMemberProfile();
-        const f_id = authManager.user ? authManager.user.$id : 'guest';
         try {
-            await pb
-                .collection('party_messages')
-                .create({ party: this.currentParty.id, sender_name: profile.name, content }, { f_id });
+            await this.socket?.send('chat', { content });
         } catch (_e) {}
     }
 
     async requestSong(track) {
+        if (this.maintenanceMode) {
+            showNotification('Listening parties are temporarily unavailable');
+            return;
+        }
         if (!this.currentParty) return;
-        const profile = await this.getMemberProfile();
-        const f_id = authManager.user ? authManager.user.$id : 'guest';
         try {
             const minifiedTrack = syncManager._minifyItem('track', track);
-            await pb.collection('party_requests').create(
-                {
-                    party: this.currentParty.id,
-                    track: minifiedTrack,
-                    requested_by: profile.name,
-                },
-                { f_id }
-            );
+            await this.socket?.send('request', { track: minifiedTrack });
             showNotification(`Requested "${track.title}"`);
         } catch (e) {
             console.error('Request error:', e);
@@ -907,24 +890,21 @@ export class ListeningPartyManager {
             const el = player.activeElement;
             const sharedTrack = player.currentTrack ? syncManager._minifyItem('track', player.currentTrack) : null;
             try {
-                await pb.collection('parties').update(
-                    this.currentParty.id,
-                    {
-                        current_track: sharedTrack,
-                        is_playing: !el.paused,
-                        playback_time: el.currentTime,
-                        playback_timestamp: Date.now(),
-                        queue: player.queue?.map((t) => syncManager._minifyItem('track', t)) || [],
-                    },
-                    { f_id: this._hostFid(this.currentParty) }
-                );
+                await this.socket?.send('playback', {
+                    current_track: sharedTrack,
+                    is_playing: !el.paused,
+                    playback_time: el.currentTime,
+                    playback_timestamp: Date.now(),
+                    queue: player.queue?.map((t) => syncManager._minifyItem('track', t)) || [],
+                });
             } catch (_e) {}
         };
         ['play', 'pause', 'seeked'].forEach((ev) => {
             player.audio.addEventListener(ev, updateParty);
             if (player.video) player.video.addEventListener(ev, updateParty);
         });
-        const originalPlayTrackFromQueue = player.playTrackFromQueue.bind(player);
+        if (!this.originalPlayTrackFromQueue) this.originalPlayTrackFromQueue = player.playTrackFromQueue.bind(player);
+        const originalPlayTrackFromQueue = this.originalPlayTrackFromQueue;
         player.playTrackFromQueue = async (...args) => {
             const result = await originalPlayTrackFromQueue(...args);
             if (!this.isInternalSync) await updateParty();
@@ -935,7 +915,8 @@ export class ListeningPartyManager {
 
     setupGuestPlayerInterferenceCheck() {
         const player = Player.instance;
-        const originalPlayTrackFromQueue = player.playTrackFromQueue.bind(player);
+        if (!this.originalPlayTrackFromQueue) this.originalPlayTrackFromQueue = player.playTrackFromQueue.bind(player);
+        const originalPlayTrackFromQueue = this.originalPlayTrackFromQueue;
         player.playTrackFromQueue = async (...args) => {
             if (this.currentParty && !this.isHost && !this.isInternalSync) {
                 const leave = await Modal.confirm(
@@ -955,9 +936,7 @@ export class ListeningPartyManager {
         this.heartbeatInterval = setInterval(async () => {
             if (!this.memberId) return;
             try {
-                await pb
-                    .collection('party_members')
-                    .update(this.memberId, { last_seen: Date.now() }, { f_id: authManager.user?.$id || 'guest' });
+                await this.socket?.send('heartbeat');
             } catch (_e) {}
         }, 30000);
     }
@@ -967,8 +946,6 @@ export class ListeningPartyManager {
         this.isLeaving = true;
 
         const partyIdForCleanup = this.currentParty?.id;
-        const memberIdForCleanup = this.memberId;
-        const f_id = this.isHost ? this._hostFid(this.currentParty) : authManager.user?.$id || 'guest';
 
         try {
             if (this.isHost && shouldCleanup) {
@@ -982,39 +959,9 @@ export class ListeningPartyManager {
                     this.isLeaving = false;
                     return;
                 }
-                this.unsubscribeFunctions.forEach((unsub) => unsub());
-                this.unsubscribeFunctions = [];
-
-                try {
-                    const cleanup = async (coll) => {
-                        const items = await pb
-                            .collection(coll)
-                            .getFullList({ filter: `party = "${partyIdForCleanup}"`, f_id });
-                        for (const i of items) {
-                            try {
-                                await pb.collection(coll).delete(i.id, { f_id });
-                            } catch (e) {
-                                console.error(`Failed to delete ${coll}/${i.id}:`, e);
-                            }
-                        }
-                    };
-                    await cleanup('party_members');
-                    await cleanup('party_messages');
-                    await cleanup('party_requests');
-                    await pb.collection('parties').delete(partyIdForCleanup, { f_id });
-                } catch (e) {
-                    console.error('Failed to end party:', e);
-                    showNotification('Failed to end party. Please try again.');
-                }
-            } else if (memberIdForCleanup) {
-                try {
-                    await pb.collection('party_members').delete(memberIdForCleanup, { f_id });
-                } catch (e) {
-                    if (e?.status !== 404) {
-                        console.error('Failed to delete party member record:', e);
-                        showNotification('Could not leave properly, other members may still see you as on.');
-                    }
-                }
+                await this.socket?.send('leave', { end: true }).catch(() => {});
+            } else if (this.memberId) {
+                await this.socket?.send('leave', { end: false }).catch(() => {});
             }
         } finally {
             this.restorePlayerMethods();
@@ -1032,6 +979,7 @@ export class ListeningPartyManager {
                 this._forgetGuestMember(partyIdForCleanup);
                 this._forgetHostToken(partyIdForCleanup);
             }
+            this._closeSocket();
             this.currentParty = null;
             this.isHost = false;
             this.memberId = null;
@@ -1046,6 +994,10 @@ export class ListeningPartyManager {
         if (this.originalSafePlay) {
             player.safePlay = this.originalSafePlay;
             this.originalSafePlay = null;
+        }
+        if (this.originalPlayTrackFromQueue) {
+            player.playTrackFromQueue = this.originalPlayTrackFromQueue;
+            this.originalPlayTrackFromQueue = null;
         }
     }
 
