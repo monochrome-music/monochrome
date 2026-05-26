@@ -30,6 +30,11 @@ export class PartySocketClient {
             const fail = (message) => {
                 if (settled) return;
                 settled = true;
+                try {
+                    if (socket && socket.readyState !== WebSocket.CLOSED && typeof socket.close === 'function') {
+                        socket.close();
+                    }
+                } catch (_e) {}
                 clearTimeout(connectTimeout);
                 this.connected = null;
                 this.socket = null;
