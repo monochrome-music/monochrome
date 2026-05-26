@@ -1,9 +1,23 @@
 // js/accounts/auth.js
 import { authClient } from './config.js';
 
+const AUTH_TOKEN_KEY = 'monochrome-auth-token';
+
 function normalizeUser(user) {
     if (!user) return null;
     return { ...user, $id: user.id };
+}
+
+export function getAuthToken() {
+    return localStorage.getItem(AUTH_TOKEN_KEY) || '';
+}
+
+function storeAuthToken(token) {
+    if (token) localStorage.setItem(AUTH_TOKEN_KEY, token);
+}
+
+function clearAuthToken() {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
 }
 
 export class AuthManager {
@@ -69,6 +83,7 @@ export class AuthManager {
             const { data, error } = await authClient.signIn.email({ email, password });
             if (error) throw new Error(error.message);
 
+            storeAuthToken(data.token);
             this.user = normalizeUser(data.user);
             this.updateUI(this.user);
             this.authListeners.forEach((listener) => listener(this.user));
@@ -89,6 +104,7 @@ export class AuthManager {
             });
             if (error) throw new Error(error.message);
 
+            storeAuthToken(data.token);
             this.user = normalizeUser(data.user);
             this.updateUI(this.user);
             this.authListeners.forEach((listener) => listener(this.user));
@@ -131,6 +147,7 @@ export class AuthManager {
     async signOut() {
         try {
             await authClient.signOut();
+            clearAuthToken();
             this.user = null;
             this.updateUI(null);
             this.authListeners.forEach((listener) => listener(null));
