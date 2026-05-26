@@ -11,15 +11,13 @@ export async function onRequest(context) {
 
     if (isBot && username) {
         try {
-            const POCKETBASE_URL = 'https://data.samidy.xyz';
-            const filter = `username="${username}"`;
-            const profileUrl = `${POCKETBASE_URL}/api/collections/DB_users/records?filter=${encodeURIComponent(filter)}&fields=username,display_name,avatar_url,banner,about,status`;
+            const AUTH_SERVER_URL = env.AUTH_SERVER_URL || 'https://auth.monochrome.tf';
+            const profileUrl = `${AUTH_SERVER_URL}/api/users/${encodeURIComponent(username)}`;
 
             const response = await fetch(profileUrl);
-            if (!response.ok) throw new Error(`PocketBase error: ${response.status}`);
+            if (!response.ok) throw new Error(`Auth server error: ${response.status}`);
 
-            const data = await response.json();
-            const profile = data.items && data.items.length > 0 ? data.items[0] : null;
+            const profile = await response.json();
 
             if (profile) {
                 const displayName = profile.display_name || profile.username;
@@ -36,7 +34,7 @@ export async function onRequest(context) {
                 }
 
                 const imageUrl = profile.avatar_url || 'https://monochrome.tf/assets/appicon.png';
-                const bannerUrl = profile.banner || '';
+                const bannerUrl = profile.banner_url || '';
                 const pageUrl = new URL(request.url).href;
 
                 const metaHtml = `
