@@ -2457,6 +2457,14 @@ export class UIRenderer {
         const authRequired = document.getElementById('parties-auth-required');
         const hostControls = document.getElementById('parties-host-controls');
         const loginBtn = document.getElementById('parties-login-btn');
+        const disabledNotice = document.getElementById('parties-disabled-notice');
+
+        if (disabledNotice) {
+            disabledNotice.style.display = 'block';
+            hostControls.style.display = 'none';
+            authRequired.style.display = 'none';
+            return;
+        }
 
         hostControls.style.display = 'block';
         if (authManager.user) {
