@@ -35,6 +35,7 @@ import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
+import { AUTH_BASE_URL } from './accounts/config.js';
 import { areListeningPartiesDisabled, partyManager } from './listening-party.js';
 import { Visualizer } from './visualizer.js';
 import { audioContextManager } from './audio-context.js';
@@ -2459,7 +2460,8 @@ export class UIRenderer {
         const loginBtn = document.getElementById('parties-login-btn');
         const disabledNotice = document.getElementById('parties-disabled-notice');
 
-        if (areListeningPartiesDisabled()) {
+        const authServerAvailable = await this.checkPartiesServerAvailable();
+        if (areListeningPartiesDisabled() || !authServerAvailable) {
             if (disabledNotice) disabledNotice.style.display = 'block';
             if (hostControls) hostControls.style.display = 'none';
             if (authRequired) authRequired.style.display = 'none';
@@ -2473,6 +2475,23 @@ export class UIRenderer {
         } else {
             if (authRequired) authRequired.style.display = 'block';
             if (loginBtn) loginBtn.onclick = () => navigate('/account');
+        }
+    }
+
+    async checkPartiesServerAvailable() {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+        try {
+            const response = await fetch(`${AUTH_BASE_URL}/health`, {
+                credentials: 'include',
+                cache: 'no-store',
+                signal: controller.signal,
+            });
+            return response.ok;
+        } catch (_e) {
+            return false;
+        } finally {
+            clearTimeout(timeout);
         }
     }
 
