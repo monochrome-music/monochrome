@@ -1849,6 +1849,55 @@ export class LosslessAPI {
         return null;
     }
 
+    async hasHiFiStreamingFallbackInstances() {
+        try {
+            const streamingInstances = await this.settings.getInstances('streaming');
+            return Array.isArray(streamingInstances) && streamingInstances.length > 0;
+        } catch (error) {
+            console.warn('Failed to load HiFi streaming fallback instances:', error);
+            return false;
+        }
+    }
+
+    resolveStreamUrlFromLookup(lookup) {
+        if (!lookup) return null;
+        if (lookup.originalTrackUrl) return lookup.originalTrackUrl;
+        return lookup.info?.manifest ? this.extractStreamUrlFromManifest(lookup.info.manifest) : null;
+    }
+
+    getReplayGainInfoFromLookup(lookup) {
+        const info = lookup?.info || {};
+        return {
+            trackReplayGain: info.trackReplayGain ?? info.replayGain ?? 0,
+            trackPeakAmplitude: info.trackPeakAmplitude ?? info.peakAmplitude ?? 1,
+            albumReplayGain: info.albumReplayGain ?? 0,
+            albumPeakAmplitude: info.albumPeakAmplitude ?? 1,
+        };
+    }
+
+    async getHiFiStreamingFallback(id, quality = 'LOSSLESS') {
+        if (!(await this.hasHiFiStreamingFallbackInstances())) {
+            return null;
+        }
+
+        try {
+            const lookup = await this.getTrack(id, quality, { adaptive: this.shouldUseAdaptiveTrackManifest(false) });
+            const url = this.resolveStreamUrlFromLookup(lookup);
+            if (!url) {
+                throw new Error('Could not resolve stream URL from HiFi streaming manifest');
+            }
+
+            return {
+                url,
+                lookup,
+                rgInfo: this.getReplayGainInfoFromLookup(lookup),
+            };
+        } catch (error) {
+            console.warn(`HiFi streaming fallback failed for track ${id}:`, error);
+            return null;
+        }
+    }
+
     async getStreamUrl(id, quality = 'LOSSLESS') {
         const cacheKey = `stream_info_${id}_${quality}`;
 
@@ -1883,28 +1932,42 @@ export class LosslessAPI {
         }
 
         const track = await this.getTrackMetadata(id);
-        if (!track?.isrc) {
-            notifyAudioSourceMissing();
-            throw new Error('Could not resolve stream URL: track has no ISRC for Qobuz lookup');
+        let qobuzResult = null;
+
+        if (track?.isrc) {
+            qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
         }
 
-        const qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
-        if (!qobuzResult?.url) {
-            notifyAudioSourceMissing();
-            throw new Error('Could not resolve stream URL from Qobuz');
+        if (qobuzResult?.url) {
+            const result = {
+                url: qobuzResult.url,
+                rgInfo: qobuzResult.rgInfo || {
+                    trackReplayGain: 0,
+                    trackPeakAmplitude: 1,
+                    albumReplayGain: 0,
+                    albumPeakAmplitude: 1,
+                },
+            };
+            this.streamCache.set(cacheKey, result);
+            return result;
         }
 
-        const result = {
-            url: qobuzResult.url,
-            rgInfo: qobuzResult.rgInfo || {
-                trackReplayGain: 0,
-                trackPeakAmplitude: 1,
-                albumReplayGain: 0,
-                albumPeakAmplitude: 1,
-            },
-        };
-        this.streamCache.set(cacheKey, result);
-        return result;
+        const fallbackResult = await this.getHiFiStreamingFallback(id, quality);
+        if (fallbackResult?.url) {
+            const result = {
+                url: fallbackResult.url,
+                rgInfo: fallbackResult.rgInfo,
+            };
+            this.streamCache.set(cacheKey, result);
+            return result;
+        }
+
+        notifyAudioSourceMissing();
+        throw new Error(
+            track?.isrc
+                ? 'Could not resolve stream URL from Qobuz or HiFi streaming APIs'
+                : 'Could not resolve stream URL: track has no ISRC for Qobuz lookup and HiFi streaming fallback failed'
+        );
     }
 
     async getVideoStreamUrl(id) {
@@ -1973,28 +2036,37 @@ export class LosslessAPI {
         } else if (devModeSettings.isEnabled()) {
             lookup = new PlaybackInfo(await this.getTrackFromDevMode(id, cleanQuality));
         } else {
-            if (!track?.isrc) {
-                notifyAudioSourceMissing();
-                throw new Error('Cannot resolve audio stream: track has no ISRC for Qobuz lookup');
+            const qobuzResult = track?.isrc ? await this.getQobuzStreamUrl(track.isrc, cleanQuality) : null;
+            if (qobuzResult?.url) {
+                qobuzStreamUrl = qobuzResult.url;
+                qobuzRgInfo = qobuzResult.rgInfo;
+                lookup = {
+                    info: {
+                        audioQuality: cleanQuality,
+                        trackReplayGain: qobuzRgInfo?.trackReplayGain ?? 0,
+                        trackPeakAmplitude: qobuzRgInfo?.trackPeakAmplitude ?? 1,
+                        albumReplayGain: qobuzRgInfo?.albumReplayGain ?? 0,
+                        albumPeakAmplitude: qobuzRgInfo?.albumPeakAmplitude ?? 1,
+                    },
+                };
+            } else {
+                const fallbackResult = await this.getHiFiStreamingFallback(id, cleanQuality);
+                if (fallbackResult?.lookup) {
+                    lookup = fallbackResult.lookup;
+                } else {
+                    notifyAudioSourceMissing();
+                    throw new Error(
+                        track?.isrc
+                            ? 'Could not resolve audio stream from Qobuz or HiFi streaming APIs'
+                            : 'Cannot resolve audio stream: track has no ISRC for Qobuz lookup and HiFi streaming fallback failed'
+                    );
+                }
             }
 
-            const qobuzResult = await this.getQobuzStreamUrl(track.isrc, cleanQuality);
-            if (!qobuzResult?.url) {
+            if (!lookup) {
                 notifyAudioSourceMissing();
-                throw new Error('Could not resolve audio stream from Qobuz');
+                throw new Error('Could not resolve audio stream');
             }
-
-            qobuzStreamUrl = qobuzResult.url;
-            qobuzRgInfo = qobuzResult.rgInfo;
-            lookup = {
-                info: {
-                    audioQuality: cleanQuality,
-                    trackReplayGain: qobuzRgInfo?.trackReplayGain ?? 0,
-                    trackPeakAmplitude: qobuzRgInfo?.trackPeakAmplitude ?? 1,
-                    albumReplayGain: qobuzRgInfo?.albumReplayGain ?? 0,
-                    albumPeakAmplitude: qobuzRgInfo?.albumPeakAmplitude ?? 1,
-                },
-            };
         }
 
         const enrichedTrack = { ...this.prepareTrack(track) };
