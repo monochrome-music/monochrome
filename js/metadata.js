@@ -192,6 +192,15 @@ export async function readTrackMetadata(file, { filename = file?.name || 'Unknow
             metadata.isrc = data.isrc || metadata.isrc;
             metadata.copyright = data.copyright || metadata.copyright;
             metadata.explicit = !!data.explicit;
+
+            // Attempt to parse TIDAL_DATA if present
+            if (data.extra?.TIDAL_DATA) {
+                try {
+                    metadata.tidalData = JSON.parse(data.extra.TIDAL_DATA);
+                } catch {
+                    metadata.tidalData = data.extra.TIDAL_DATA;
+                }
+            }
         }
     } catch (e) {
         console.warn('Error reading metadata for', filename, e);
