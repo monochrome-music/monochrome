@@ -5561,7 +5561,14 @@ export class UIRenderer {
                 imageEl.src = '';
                 imageEl.style.backgroundColor = 'var(--muted)';
             }
-            ['artist-detail-bio', 'artist-detail-tracks', 'artist-detail-albums', 'artist-detail-eps', 'artist-detail-similar', 'artist-detail-in-library'].forEach((id) => {
+            [
+                'artist-detail-bio',
+                'artist-detail-tracks',
+                'artist-detail-albums',
+                'artist-detail-eps',
+                'artist-detail-similar',
+                'artist-detail-in-library',
+            ].forEach((id) => {
                 const el = document.getElementById(id);
                 if (el) el.innerHTML = '';
             });
