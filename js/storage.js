@@ -3231,13 +3231,28 @@ export const contentBlockingSettings = {
     BLOCKED_TRACKS_KEY: 'blocked-tracks',
     BLOCKED_ALBUMS_KEY: 'blocked-albums',
 
+    // Hardcoded always-blocked artist IDs. Merged into the user blocklist on
+    // every read so the block survives localStorage clears. To allow playback
+    // for one of these artists again, remove the ID from this array.
+    HARDCODED_BLOCKED_ARTIST_IDS: [3995478],
+
+    _hardcodedBlockedArtists() {
+        return this.HARDCODED_BLOCKED_ARTIST_IDS.map((id) => ({
+            id,
+            name: null,
+            blockedAt: 0,
+            hardcoded: true,
+        }));
+    },
+
     // Blocked Artists
     getBlockedArtists() {
         try {
             const data = localStorage.getItem(this.BLOCKED_ARTISTS_KEY);
-            return data ? JSON.parse(data) : [];
+            const user = data ? JSON.parse(data) : [];
+            return [...this._hardcodedBlockedArtists(), ...user];
         } catch {
-            return [];
+            return this._hardcodedBlockedArtists();
         }
     },
 
@@ -3367,6 +3382,27 @@ export const contentBlockingSettings = {
     shouldHideArtist(artist) {
         if (!artist) return true;
         return this.isArtistBlocked(artist.id);
+    },
+
+    // True only for hardcoded (non-user-removable) blocks. Renderers use
+    // this to omit the item entirely rather than just dim it.
+    isHardcodedBlockedArtist(artistId) {
+        if (!artistId) return false;
+        return this.HARDCODED_BLOCKED_ARTIST_IDS.some((id) => String(id) === String(artistId));
+    },
+
+    isHardcodedBlockedTrack(track) {
+        if (!track) return false;
+        if (track.artist?.id && this.isHardcodedBlockedArtist(track.artist.id)) return true;
+        if (track.artists?.some((a) => this.isHardcodedBlockedArtist(a.id))) return true;
+        return false;
+    },
+
+    isHardcodedBlockedAlbum(album) {
+        if (!album) return false;
+        if (album.artist?.id && this.isHardcodedBlockedArtist(album.artist.id)) return true;
+        if (album.artists?.some((a) => this.isHardcodedBlockedArtist(a.id))) return true;
+        return false;
     },
 
     // Filter arrays

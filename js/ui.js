@@ -489,6 +489,7 @@ export class UIRenderer {
         useTrackNumber = false,
         inlineLike = false
     ) {
+        if (contentBlockingSettings?.isHardcodedBlockedTrack(track)) return '';
         const isUnavailable = track.isUnavailable;
         const isBlocked = contentBlockingSettings?.shouldHideTrack(track);
         const isVideo = track.type === 'video';
@@ -827,6 +828,7 @@ export class UIRenderer {
     }
 
     createAlbumCardHTML(album) {
+        if (contentBlockingSettings?.isHardcodedBlockedAlbum(album)) return '';
         const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
         const qualityBadge = createQualityBadgeHTML(album);
         const isBlocked = contentBlockingSettings?.shouldHideAlbum(album);
@@ -923,6 +925,7 @@ export class UIRenderer {
     }
 
     createArtistCardHTML(artist) {
+        if (contentBlockingSettings?.isHardcodedBlockedArtist(artist?.id)) return '';
         const isCompact = cardSettings.isCompactArtist();
         const isBlocked = contentBlockingSettings?.shouldHideArtist(artist);
 
@@ -5546,6 +5549,28 @@ export class UIRenderer {
     }
 
     async renderArtistPage(artistId, provider = null) {
+        if (contentBlockingSettings?.isHardcodedBlockedArtist(artistId)) {
+            await this.showPage('artist');
+            this.currentArtistId = artistId;
+            const nameEl = document.getElementById('artist-detail-name');
+            const metaEl = document.getElementById('artist-detail-meta');
+            const imageEl = document.getElementById('artist-detail-image');
+            if (nameEl) nameEl.textContent = '';
+            if (metaEl) metaEl.textContent = '';
+            if (imageEl) {
+                imageEl.src = '';
+                imageEl.style.backgroundColor = 'var(--muted)';
+            }
+            ['artist-detail-bio', 'artist-detail-tracks', 'artist-detail-albums', 'artist-detail-eps', 'artist-detail-similar', 'artist-detail-in-library'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '';
+            });
+            ['artist-section-eps', 'artist-section-similar', 'artist-section-in-library'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            return;
+        }
         await this.showPage('artist');
         this.currentArtistId = artistId;
 

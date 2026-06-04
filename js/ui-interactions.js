@@ -245,6 +245,7 @@ export function initializeUIInteractions(player, api, ui) {
     };
 
     const renderQueueItemHTML = (track, index) => {
+        if (contentBlockingSettings?.isHardcodedBlockedTrack(track)) return '';
         const isPlaying = index === player.currentQueueIndex;
         const isBlocked = contentBlockingSettings?.shouldHideTrack(track);
         const trackTitle = getTrackTitle(track);
