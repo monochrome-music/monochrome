@@ -281,7 +281,7 @@ export async function getMetadataFromAudio(message: _GetMetadataMessage): Promis
 
     // Custom tags written by addMetadataToAudio
     // I will only add TIDAL_DATA here for now
-    // since it contains all the other information 
+    // since it contains all the other information
     // related to TIDAL, and I don't want to clutter
     // the main metadata with too many custom fields
     const extra: Record<string, string> = {};
