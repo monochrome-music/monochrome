@@ -901,7 +901,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const m = text.match(/(\d+)\s*kbps/i);
             return m ? parseInt(m[1], 10) : Infinity;
         };
-        const categoryOrder = ['Lossless', 'AAC', 'MP3', 'OGG'];
+        const categoryOrder = ['Lossless', 'AAC', 'MP3', 'OGG', 'Opus'];
         allOptions.sort((a, b) => {
             if (a.category == b.category && a.category === 'Lossless') return 0; // Preserve original order for lossless options
             const ai = categoryOrder.indexOf(a.category);
