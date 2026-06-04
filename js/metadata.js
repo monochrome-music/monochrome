@@ -193,13 +193,67 @@ export async function readTrackMetadata(file, { filename = file?.name || 'Unknow
             metadata.copyright = data.copyright || metadata.copyright;
             metadata.explicit = !!data.explicit;
 
-            // Attempt to parse TIDAL_DATA if present
+            // parse TIDAL_DATA if present
             if (data.extra?.TIDAL_DATA) {
                 try {
-                    metadata.tidalData = JSON.parse(data.extra.TIDAL_DATA);
+                    // parse as JSON if it's a string and then filter it
+                    const parsed = JSON.parse(data.extra.TIDAL_DATA);
+                    metadata.tidalData = filterTidalTrack(parsed);
                 } catch {
-                    metadata.tidalData = data.extra.TIDAL_DATA;
+                    // filter TIDAL_DATA if it's already an object
+                    if (typeof data.extra.TIDAL_DATA === 'object') {
+                        metadata.tidalData = filterTidalTrack(data.extra.TIDAL_DATA);
+                    } else {
+                        metadata.tidalData = data.extra.TIDAL_DATA; // raw string fallback
+                        console.warn('TIDAL_DATA is not valid JSON or object, storing as raw string');
+                    }
                 }
+            }
+
+            // Reusable filtering function
+            // if you want to add more fields in the future, just add them to this function
+            // it will be applied to both parsed and raw TIDAL_DATA
+            function filterTidalTrack(full) {
+                return {
+                    id: full.id,
+                    title: full.title,
+                    duration: full.duration,
+                    replayGain: full.replayGain,
+                    peak: full.peak,
+                    djReady: full.djReady,
+                    stemReady: full.stemReady,
+                    streamStartDate: full.streamStartDate,
+                    trackNumber: full.trackNumber,
+                    volumeNumber: full.volumeNumber,
+                    version: full.version,
+                    popularity: full.popularity,
+                    copyright: full.copyright,
+                    bpm: full.bpm,
+                    key: full.key,
+                    keyScale: full.keyScale,
+                    url: full.url,
+                    isrc: full.isrc,
+                    explicit: full.explicit,
+                    audioQuality: full.audioQuality,
+                    audioModes: full.audioModes,
+                    mediaMetadata: full.mediaMetadata,
+                    spotlighted: full.spotlighted,
+                    ai: full.ai,
+                    artist: full.artist,
+                    artists: full.artists,
+                    mixes: full.mixes,
+                    album: full.album
+                        ? {
+                              id: full.album.id,
+                              title: full.album.title,
+                              cover: full.album.cover,
+                              vibrantColor: full.album.vibrantColor,
+                              videoCover: full.album.videoCover,
+                              releaseDate: full.album.releaseDate,
+                              albumURL: full.album.url,
+                          }
+                        : undefined,
+                };
             }
         }
     } catch (e) {
