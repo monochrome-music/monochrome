@@ -32,6 +32,7 @@ import {
     pwaUpdateSettings,
     contentBlockingSettings,
     musicProviderSettings,
+    amazonMusicSettings,
     gaplessPlaybackSettings,
     analyticsSettings,
     modalSettings,
@@ -835,6 +836,46 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             musicProviderSettings.setProvider(e.target.value);
             // Reload page to apply changes
             window.location.reload();
+        });
+    }
+
+    const amazonMusicToggle = document.getElementById('amazon-music-toggle');
+    if (amazonMusicToggle) {
+        amazonMusicToggle.checked = amazonMusicSettings.isEnabled();
+        amazonMusicToggle.addEventListener('change', (e) => {
+            amazonMusicSettings.setEnabled(e.target.checked);
+        });
+    }
+
+    const amazonApiBaseUrlInput = document.getElementById('amazon-music-api-base-url');
+    if (amazonApiBaseUrlInput) {
+        amazonApiBaseUrlInput.value = amazonMusicSettings.getApiBaseUrl();
+        amazonApiBaseUrlInput.addEventListener('change', (e) => {
+            amazonMusicSettings.setApiBaseUrl(e.target.value.trim());
+        });
+    }
+
+    const amazonConverterBaseUrlInput = document.getElementById('amazon-music-converter-base-url');
+    if (amazonConverterBaseUrlInput) {
+        amazonConverterBaseUrlInput.value = amazonMusicSettings.getConverterBaseUrl();
+        amazonConverterBaseUrlInput.addEventListener('change', (e) => {
+            amazonMusicSettings.setConverterBaseUrl(e.target.value.trim());
+        });
+    }
+
+    const amazonTurnstileSiteKeyInput = document.getElementById('amazon-music-turnstile-site-key');
+    if (amazonTurnstileSiteKeyInput) {
+        amazonTurnstileSiteKeyInput.value = amazonMusicSettings.getTurnstileSiteKey();
+        amazonTurnstileSiteKeyInput.addEventListener('change', (e) => {
+            amazonMusicSettings.setTurnstileSiteKey(e.target.value.trim());
+        });
+    }
+
+    const amazonTurnstileBypassTokenInput = document.getElementById('amazon-music-turnstile-bypass-token');
+    if (amazonTurnstileBypassTokenInput) {
+        amazonTurnstileBypassTokenInput.value = amazonMusicSettings.getTurnstileBypassToken();
+        amazonTurnstileBypassTokenInput.addEventListener('change', (e) => {
+            amazonMusicSettings.setTurnstileBypassToken(e.target.value.trim());
         });
     }
 

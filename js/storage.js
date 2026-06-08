@@ -3064,14 +3064,93 @@ export const musicProviderSettings = {
 
     getProvider() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) || 'tidal';
+            return localStorage.getItem(this.STORAGE_KEY) || 'amazon';
         } catch {
-            return 'tidal';
+            return 'amazon';
         }
     },
 
     setProvider(provider) {
         localStorage.setItem(this.STORAGE_KEY, provider);
+    },
+};
+
+export const amazonMusicSettings = {
+    ENABLED_KEY: 'amazon-music-enabled',
+    API_BASE_URL_KEY: 'amazon-music-api-base-url',
+    CONVERTER_BASE_URL_KEY: 'amazon-music-converter-base-url',
+    TURNSTILE_SITE_KEY: 'amazon-music-turnstile-site-key',
+    TURNSTILE_BYPASS_TOKEN: 'amazon-music-turnstile-bypass-token',
+    DEFAULT_API_BASE_URL: 'https://amz.binimum.org',
+    DEFAULT_CONVERTER_BASE_URL: 'https://t2a.geeked.wtf',
+    DEFAULT_TURNSTILE_SITE_KEY: '0x4AAAAAADgxqF6QVMm0GLHH',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.ENABLED_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
+    },
+
+    getApiBaseUrl() {
+        try {
+            return localStorage.getItem(this.API_BASE_URL_KEY) || this.DEFAULT_API_BASE_URL;
+        } catch {
+            return this.DEFAULT_API_BASE_URL;
+        }
+    },
+
+    setApiBaseUrl(url) {
+        localStorage.setItem(this.API_BASE_URL_KEY, url || this.DEFAULT_API_BASE_URL);
+    },
+
+    getConverterBaseUrl() {
+        try {
+            return localStorage.getItem(this.CONVERTER_BASE_URL_KEY) || this.DEFAULT_CONVERTER_BASE_URL;
+        } catch {
+            return this.DEFAULT_CONVERTER_BASE_URL;
+        }
+    },
+
+    setConverterBaseUrl(url) {
+        localStorage.setItem(this.CONVERTER_BASE_URL_KEY, url || this.DEFAULT_CONVERTER_BASE_URL);
+    },
+
+    getTurnstileSiteKey() {
+        try {
+            return (
+                localStorage.getItem(this.TURNSTILE_SITE_KEY) ||
+                import.meta.env.VITE_AMAZON_TURNSTILE_SITE_KEY ||
+                this.DEFAULT_TURNSTILE_SITE_KEY
+            );
+        } catch {
+            return this.DEFAULT_TURNSTILE_SITE_KEY;
+        }
+    },
+
+    setTurnstileSiteKey(siteKey) {
+        localStorage.setItem(this.TURNSTILE_SITE_KEY, siteKey || '');
+    },
+
+    getTurnstileBypassToken() {
+        try {
+            return (
+                localStorage.getItem(this.TURNSTILE_BYPASS_TOKEN) ||
+                import.meta.env.VITE_AMAZON_TURNSTILE_BYPASS_TOKEN ||
+                ''
+            );
+        } catch {
+            return '';
+        }
+    },
+
+    setTurnstileBypassToken(token) {
+        localStorage.setItem(this.TURNSTILE_BYPASS_TOKEN, token || '');
     },
 };
 
