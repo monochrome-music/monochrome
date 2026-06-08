@@ -5699,6 +5699,109 @@
                             </div>
 
                             <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Amazon Music</span>
+                                        <span class="description"
+                                            >Use Amazon Music streams first, then fall back to Qobuz and HiFi
+                                            streaming.</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="amazon-music-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Amazon Music API URL</span>
+                                        <span class="description">The Amazon Music API endpoint</span>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="amazon-music-api-base-url"
+                                        placeholder="https://amz.binimum.org"
+                                        style="
+                                            width: 220px;
+                                            padding: 0.35rem 0.5rem;
+                                            border: 1px solid var(--border);
+                                            border-radius: var(--radius-md);
+                                            background: var(--card);
+                                            color: var(--foreground);
+                                            font-size: 0.8rem;
+                                        "
+                                    />
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Tidal to ASIN URL</span>
+                                        <span class="description"
+                                            >The converter endpoint used before Amazon lookup</span
+                                        >
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="amazon-music-converter-base-url"
+                                        placeholder="https://t2a.geeked.wtf"
+                                        style="
+                                            width: 220px;
+                                            padding: 0.35rem 0.5rem;
+                                            border: 1px solid var(--border);
+                                            border-radius: var(--radius-md);
+                                            background: var(--card);
+                                            color: var(--foreground);
+                                            font-size: 0.8rem;
+                                        "
+                                    />
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Turnstile Site Key</span>
+                                        <span class="description"
+                                            >Required for Amazon Music requests protected by Turnstile</span
+                                        >
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="amazon-music-turnstile-site-key"
+                                        placeholder="0x..."
+                                        style="
+                                            width: 220px;
+                                            padding: 0.35rem 0.5rem;
+                                            border: 1px solid var(--border);
+                                            border-radius: var(--radius-md);
+                                            background: var(--card);
+                                            color: var(--foreground);
+                                            font-size: 0.8rem;
+                                        "
+                                    />
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Turnstile Bypass Token</span>
+                                        <span class="description"
+                                            >Optional server-side bypass token for trusted deployments</span
+                                        >
+                                    </div>
+                                    <input
+                                        type="password"
+                                        id="amazon-music-turnstile-bypass-token"
+                                        placeholder="Optional"
+                                        autocomplete="off"
+                                        style="
+                                            width: 220px;
+                                            padding: 0.35rem 0.5rem;
+                                            border: 1px solid var(--border);
+                                            border-radius: var(--radius-md);
+                                            background: var(--card);
+                                            color: var(--foreground);
+                                            font-size: 0.8rem;
+                                        "
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
                                 <div id="api-instance-manager">
                                     <div class="setting-item">
                                         <div class="info">
