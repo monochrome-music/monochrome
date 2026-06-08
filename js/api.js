@@ -2541,7 +2541,26 @@ export class LosslessAPI {
             return result;
         }
 
-        const amazonResult = await this.getAmazonMusicStreamUrl(id, quality, { preferAdaptiveAuto: true });
+        const track = await this.getTrackMetadata(id);
+        const preferAmazon = Math.random() > 0.5;
+
+        let amazonResult = null;
+        let qobuzResult = null;
+
+        if (preferAmazon) {
+            amazonResult = await this.getAmazonMusicStreamUrl(id, quality, { preferAdaptiveAuto: true });
+            if (!amazonResult?.url && track?.isrc) {
+                qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
+            }
+        } else {
+            if (track?.isrc) {
+                qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
+            }
+            if (!qobuzResult?.url) {
+                amazonResult = await this.getAmazonMusicStreamUrl(id, quality, { preferAdaptiveAuto: true });
+            }
+        }
+
         if (amazonResult?.url) {
             const result = {
                 url: amazonResult.url,
@@ -2558,13 +2577,6 @@ export class LosslessAPI {
             };
             this.streamCache.set(cacheKey, result);
             return result;
-        }
-
-        const track = await this.getTrackMetadata(id);
-        let qobuzResult = null;
-
-        if (track?.isrc) {
-            qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
         }
 
         if (qobuzResult?.url) {
@@ -2673,9 +2685,24 @@ export class LosslessAPI {
         } else if (devModeSettings.isEnabled()) {
             lookup = new PlaybackInfo(await this.getTrackFromDevMode(id, cleanQuality));
         } else {
-            const amazonResult = await this.getAmazonMusicStreamUrl(id, cleanQuality);
-            const qobuzResult =
-                !amazonResult?.url && track?.isrc ? await this.getQobuzStreamUrl(track.isrc, cleanQuality) : null;
+            const preferAmazon = Math.random() > 0.5;
+            let amazonResult = null;
+            let qobuzResult = null;
+
+            if (preferAmazon) {
+                amazonResult = await this.getAmazonMusicStreamUrl(id, cleanQuality);
+                if (!amazonResult?.url && track?.isrc) {
+                    qobuzResult = await this.getQobuzStreamUrl(track.isrc, cleanQuality);
+                }
+            } else {
+                if (track?.isrc) {
+                    qobuzResult = await this.getQobuzStreamUrl(track.isrc, cleanQuality);
+                }
+                if (!qobuzResult?.url) {
+                    amazonResult = await this.getAmazonMusicStreamUrl(id, cleanQuality);
+                }
+            }
+
             const externalResult = amazonResult?.url ? amazonResult : qobuzResult;
             if (externalResult?.url) {
                 externalStreamUrl = externalResult.url;
