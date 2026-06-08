@@ -1855,7 +1855,9 @@ export class LosslessAPI {
         let adaptiveQuality = null;
         try {
             adaptiveQuality =
-                typeof localStorage !== 'undefined' ? localStorage.getItem('adaptive-playback-quality') || 'auto' : null;
+                typeof localStorage !== 'undefined'
+                    ? localStorage.getItem('adaptive-playback-quality') || 'auto'
+                    : null;
         } catch {}
         if (preferAdaptiveAuto && String(adaptiveQuality || '').toLowerCase() === 'auto') {
             return 'UHD';
@@ -2041,9 +2043,9 @@ export class LosslessAPI {
         const response = await fetch(`${apiBaseUrl}/api/auth/turnstile`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ cf_turnstile_response: turnstileResponse })
+            body: JSON.stringify({ cf_turnstile_response: turnstileResponse }),
         });
 
         if (!response.ok) {
@@ -2078,7 +2080,9 @@ export class LosslessAPI {
     }
 
     formatKeyIdUuid(keyId) {
-        const normalized = String(keyId || '').replace(/-/g, '').toLowerCase();
+        const normalized = String(keyId || '')
+            .replace(/-/g, '')
+            .toLowerCase();
         if (normalized.length !== 32) return normalized;
         return `${normalized.slice(0, 8)}-${normalized.slice(8, 12)}-${normalized.slice(12, 16)}-${normalized.slice(16, 20)}-${normalized.slice(20)}`;
     }
@@ -2437,13 +2441,15 @@ export class LosslessAPI {
                 mimeType: mp4Info ? 'application/dash+xml' : this.getAmazonMimeType(selectedQualityInfo),
                 mediaMimeType: this.getAmazonMimeType(selectedQualityInfo),
                 rgInfo: {
-                    trackReplayGain: data.replay_gain?.program_loudness_lufs != null 
-                        ? -14.0 - data.replay_gain.program_loudness_lufs 
-                        : 0,
+                    trackReplayGain:
+                        data.replay_gain?.program_loudness_lufs != null
+                            ? -14.0 - data.replay_gain.program_loudness_lufs
+                            : 0,
                     trackPeakAmplitude: 1,
-                    albumReplayGain: data.replay_gain?.program_loudness_lufs != null 
-                        ? -14.0 - data.replay_gain.program_loudness_lufs 
-                        : 0,
+                    albumReplayGain:
+                        data.replay_gain?.program_loudness_lufs != null
+                            ? -14.0 - data.replay_gain.program_loudness_lufs
+                            : 0,
                     albumPeakAmplitude: 1,
                 },
             };

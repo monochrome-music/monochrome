@@ -1398,8 +1398,9 @@ export class Player {
                     } else {
                         this.shakaPlayer.configure({ drm: { clearKeys: {} } });
                     }
-                    const shakaMimeType =
-                        resolvedStreamInfo.playbackType?.includes('cenc') ? resolvedStreamInfo.mimeType || null : null;
+                    const shakaMimeType = resolvedStreamInfo.playbackType?.includes('cenc')
+                        ? resolvedStreamInfo.mimeType || null
+                        : null;
 
                     try {
                         if (startTime > 0) {
