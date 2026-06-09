@@ -454,21 +454,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     new ThemeStore();
 
-    await HiFiClient.initialize({
-        storage: [
-            localStorage,
-            ...(import.meta.env.DEV
-                ? [
-                      {
-                          setItem: (key, value) => console.debug(`HiFiClient storage set: ${key} = ${value}`),
-                          removeItem: (key) => console.debug(`HiFiClient storage remove: ${key}`),
-                      },
-                  ]
-                : []),
-        ],
-        token: localStorage.getItem('hifi_token') || undefined,
-        tokenExpiry: parseInt(localStorage.getItem('hifi_token_expiry') || '0'),
-    });
+    try {
+        await HiFiClient.initialize({
+            storage: [
+                localStorage,
+                ...(import.meta.env.DEV
+                    ? [
+                          {
+                              setItem: (key, value) => console.debug(`HiFiClient storage set: ${key} = ${value}`),
+                              removeItem: (key) => console.debug(`HiFiClient storage remove: ${key}`),
+                          },
+                      ]
+                    : []),
+            ],
+            token: localStorage.getItem('hifi_token') || undefined,
+            tokenExpiry: parseInt(localStorage.getItem('hifi_token_expiry') || '0'),
+        });
+    } catch (err) {
+        console.error('Failed to initialize HiFiClient:', err);
+    }
 
     await MusicAPI.initialize(apiSettings);
 
