@@ -1761,10 +1761,16 @@
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-donate">
-                                <a id="sidebar-donate-link" href="/donate">
+                                <a href="/donate">
                                     <use svg="!lucide/hand-heart.svg" size="24" />
                                     <span>Donate</span>
                                 </a>
+                                <div id="sidebar-donate-goal-container" class="sidebar-donate-goal">
+                                    <div class="sidebar-donate-goal-track">
+                                        <div id="sidebar-donate-goal-progress" class="sidebar-donate-goal-fill"></div>
+                                    </div>
+                                    <span id="sidebar-donate-goal-text">0%</span>
+                                </div>
                             </li>
                             <li class="nav-item" id="sidebar-nav-settings">
                                 <a href="/settings">
@@ -6159,29 +6165,35 @@
                     </div>
                 </div>
                 <div id="page-donate" class="page">
-                    <div style="text-align: center; padding: 2rem; max-width: 500px; margin: 0 auto">
-                        <h2 class="section-title" style="margin-bottom: 1.5rem">Support Monochrome</h2>
-                        <p style="margin-bottom: 1.5rem; line-height: 1.6; color: var(--muted-foreground)">
+                    <div class="donate-page-wrapper">
+                        <h2 class="section-title donate-page-title">Support Monochrome</h2>
+                        <p class="donate-page-desc">
                             If Monochrome has been useful to you and you're able to, consider making a donation. It
                             helps pay for the server and domain, and you get to support us :)
                         </p>
+                        <div class="donate-goal-card">
+                            <div class="donate-goal-card-header">
+                                <span class="donate-goal-card-label">Donation Goal</span>
+                                <span id="donate-goal-percent" class="donate-goal-card-percent">0%</span>
+                            </div>
+                            <div class="donate-goal-track">
+                                <div id="donate-goal-progress" class="donate-goal-fill"></div>
+                            </div>
+                            <div class="donate-goal-card-footer">
+                                <span id="donate-goal">$0.00</span>
+                                <span>of $1,000.00 goal</span>
+                            </div>
+                        </div>
                         <a
                             href="https://ko-fi.com/monochrometf"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="btn-primary"
-                            style="
-                                text-decoration: none;
-                                display: inline-flex;
-                                align-items: center;
-                                gap: 0.5rem;
-                                margin-bottom: 2rem;
-                            "
+                            class="btn-primary donate-kofi-btn"
                         >
                             Donate on Ko-fi
                         </a>
-                        <div style="padding-top: 1.5rem; border-top: 1px solid var(--border)">
-                            <p style="font-size: 0.9rem; color: var(--muted-foreground); margin-bottom: 1rem">
+                        <div class="donate-alt-section">
+                            <p class="donate-alt-text">
                                 If you cannot financially support us, please consider starring the project on GitHub and
                                 sharing with friends!
                             </p>
@@ -6189,8 +6201,7 @@
                                 href="https://github.com/monochrome-music/monochrome"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="btn-secondary"
-                                style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem"
+                                class="btn-secondary donate-github-btn"
                             >
                                 Star on GitHub
                             </a>
