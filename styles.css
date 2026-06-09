@@ -11635,7 +11635,6 @@ img.cd {
     text-align: left;
     box-shadow: var(--shadow-sm);
     backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
 }
 
 .donate-goal-card-header {
