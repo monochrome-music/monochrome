@@ -38,6 +38,8 @@ import {
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 export { resolveDownloadTotalBytes };
 let lastAudioSourceMissingNotifyAt = 0;
+const AMAZON_RATE_LIMITED_UNTIL_KEY = 'amazon-music-rate-limited-until';
+const AMAZON_RATE_LIMIT_DURATION_MS = 30 * 60 * 1000;
 function notifyAudioSourceMissing() {
     const now = Date.now();
     if (now - lastAudioSourceMissingNotifyAt < 3000) return;
@@ -1877,6 +1879,46 @@ export class LosslessAPI {
         return qualityMap[quality] || qualityMap[normalizeQualityToken(quality)] || 'HD';
     }
 
+    getAmazonRateLimitedUntil() {
+        try {
+            return Number(localStorage.getItem(AMAZON_RATE_LIMITED_UNTIL_KEY) || 0);
+        } catch {
+            return this.amazonRateLimitedUntil || 0;
+        }
+    }
+
+    isAmazonRateLimited() {
+        return Date.now() < this.getAmazonRateLimitedUntil();
+    }
+
+    setAmazonRateLimited() {
+        const until = Date.now() + AMAZON_RATE_LIMIT_DURATION_MS;
+        this.amazonRateLimitedUntil = until;
+        try {
+            localStorage.setItem(AMAZON_RATE_LIMITED_UNTIL_KEY, String(until));
+        } catch {}
+
+        for (const [key, value] of this.streamCache.entries()) {
+            if (value?.provider === 'amazon') {
+                this.streamCache.delete(key);
+            }
+        }
+
+        console.warn('Amazon Music API returned 403; falling back to Qobuz for 30 minutes');
+    }
+
+    clearAmazonTurnstileJwt() {
+        this._turnstileCachedJwt = null;
+        this._turnstileCachedExpiry = 0;
+    }
+
+    handleAmazonApiStatus(status, endpointName = 'Amazon Music API') {
+        if (status === 403) {
+            this.setAmazonRateLimited();
+            throw new Error(`${endpointName} rate limited the client`);
+        }
+    }
+
     getAmazonSelectedQualityInfo(trackInfo) {
         if (!Array.isArray(trackInfo?.available_qualities)) return null;
         return trackInfo.available_qualities.find((item) => item.quality === trackInfo.quality_selected) || null;
@@ -1984,21 +2026,17 @@ export class LosslessAPI {
         return panel.querySelector('#amazon-music-turnstile-container');
     }
 
-    async getTurnstileJwt() {
+    async getTurnstileResponse() {
         const siteKey = amazonMusicSettings.getTurnstileSiteKey().trim();
         if (!siteKey) {
             return null;
-        }
-
-        if (this._turnstileCachedJwt && Date.now() < this._turnstileCachedExpiry) {
-            return this._turnstileCachedJwt;
         }
 
         const container = this.getTurnstileContainer();
         container.innerHTML = '';
         const turnstile = await this.loadTurnstile();
 
-        const turnstileResponse = await new Promise((resolve, reject) => {
+        return await new Promise((resolve, reject) => {
             let timeoutId;
             let widgetId;
             const cleanup = () => {
@@ -2038,15 +2076,38 @@ export class LosslessAPI {
 
             turnstile.execute(widgetId);
         });
+    }
+
+    async getTurnstileJwt({ forceRefresh = false } = {}) {
+        if (!forceRefresh && this._turnstileCachedJwt && Date.now() < this._turnstileCachedExpiry) {
+            return this._turnstileCachedJwt;
+        }
+        if (forceRefresh) {
+            this.clearAmazonTurnstileJwt();
+        }
 
         const apiBaseUrl = amazonMusicSettings.getApiBaseUrl().replace(/\/+$/, '');
-        const response = await fetch(`${apiBaseUrl}/api/auth/turnstile`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ cf_turnstile_response: turnstileResponse }),
-        });
+        let response = null;
+
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const turnstileResponse = await this.getTurnstileResponse();
+            if (!turnstileResponse) return null;
+
+            response = await fetch(`${apiBaseUrl}/api/auth/turnstile`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ cf_turnstile_response: turnstileResponse }),
+            });
+
+            this.handleAmazonApiStatus(response.status, 'Amazon Music Turnstile auth');
+            if ((response.status === 401 || response.status === 428) && attempt === 0) {
+                this.clearAmazonTurnstileJwt();
+                continue;
+            }
+            break;
+        }
 
         if (!response.ok) {
             throw new Error(`Failed to exchange Turnstile token: ${response.status}`);
@@ -2363,6 +2424,7 @@ export class LosslessAPI {
             {},
             8000
         );
+        this.handleAmazonApiStatus(response.status, 'Tidal to ASIN converter');
         if (!response.ok) {
             throw new Error(`Tidal to ASIN converter failed: ${response.status}`);
         }
@@ -2377,36 +2439,52 @@ export class LosslessAPI {
         return asin;
     }
 
+    async fetchAmazonTrackApi(apiBaseUrl, asin, amazonQuality, { forceTurnstile = false } = {}) {
+        const params = new URLSearchParams({ quality: amazonQuality });
+        const headers = {};
+        const bypassToken = amazonMusicSettings.getTurnstileBypassToken().trim();
+
+        if (bypassToken && !forceTurnstile) {
+            params.set('bypass_token', bypassToken);
+        } else {
+            const turnstileJwt = await this.getTurnstileJwt({ forceRefresh: forceTurnstile });
+            if (!turnstileJwt) {
+                return null;
+            }
+            headers['X-Turnstile-JWT'] = turnstileJwt;
+        }
+
+        const response = await this.fetchWithTimeout(
+            `${apiBaseUrl}/api/track/${asin}?${params.toString()}`,
+            {
+                headers,
+            },
+            15000
+        );
+        this.handleAmazonApiStatus(response.status, 'Amazon Music API');
+        return response;
+    }
+
     async getAmazonMusicStreamUrl(tidalTrackId, quality = 'LOSSLESS', options = {}) {
         try {
             if (!amazonMusicSettings?.isEnabled()) {
+                return null;
+            }
+            if (this.isAmazonRateLimited()) {
                 return null;
             }
 
             const asin = await this.getAmazonAsin(tidalTrackId);
             const amazonQuality = this.getAmazonMusicQuality(quality, options);
             const apiBaseUrl = amazonMusicSettings.getApiBaseUrl().replace(/\/+$/, '');
-            const params = new URLSearchParams({ quality: amazonQuality });
-            const headers = {};
-            const bypassToken = amazonMusicSettings.getTurnstileBypassToken().trim();
 
-            if (bypassToken) {
-                params.set('bypass_token', bypassToken);
-            } else {
-                const turnstileJwt = await this.getTurnstileJwt();
-                if (!turnstileJwt) {
-                    return null;
-                }
-                headers['X-Turnstile-JWT'] = turnstileJwt;
+            let response = await this.fetchAmazonTrackApi(apiBaseUrl, asin, amazonQuality);
+            if (response && (response.status === 401 || response.status === 428)) {
+                this.clearAmazonTurnstileJwt();
+                response = await this.fetchAmazonTrackApi(apiBaseUrl, asin, amazonQuality, { forceTurnstile: true });
             }
+            if (!response) return null;
 
-            const response = await this.fetchWithTimeout(
-                `${apiBaseUrl}/api/track/${asin}?${params.toString()}`,
-                {
-                    headers,
-                },
-                15000
-            );
             if (!response.ok) {
                 throw new Error(`Amazon Music API failed: ${response.status}`);
             }
@@ -2512,7 +2590,12 @@ export class LosslessAPI {
         const cacheKey = `stream_info_${id}_${quality}`;
 
         if (this.streamCache.has(cacheKey)) {
-            return this.streamCache.get(cacheKey);
+            const cached = this.streamCache.get(cacheKey);
+            if (cached?.provider === 'amazon' && this.isAmazonRateLimited()) {
+                this.streamCache.delete(cacheKey);
+            } else {
+                return cached;
+            }
         }
 
         if (devModeSettings.isEnabled()) {
