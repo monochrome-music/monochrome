@@ -11607,8 +11607,6 @@ img.cd {
     border: 0.125vw solid #ccc;
 }
 
-
-
 /* creator of CSS gotta be a nazi icl css can SUCK MY ASS */
 
 .donate-page-wrapper {
@@ -11629,7 +11627,7 @@ img.cd {
 }
 
 .donate-goal-card {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgb(255, 255, 255, 0.02);
     border: 1px solid var(--border);
     border-radius: 1rem;
     padding: 1.5rem;
@@ -11637,7 +11635,7 @@ img.cd {
     text-align: left;
     box-shadow: var(--shadow-sm);
     backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
 }
 
 .donate-goal-card-header {
@@ -11742,7 +11740,6 @@ img.cd {
     color: inherit;
 }
 
-
 .sidebar-donate-goal {
     font-size: 0.65rem;
     color: inherit;
@@ -11751,14 +11748,14 @@ img.cd {
     align-items: center;
     gap: 0.4rem;
     pointer-events: none;
-    padding: 0 0.75rem 0 0.75rem;
+    padding: 0 0.75rem;
     margin-left: 2rem;
 }
 
 .sidebar-donate-goal-track {
     width: 45px;
     height: 3px;
-    background: rgba(128, 128, 128, 0.3);
+    background: rgb(128, 128, 128, 0.3);
     border-radius: 99px;
     overflow: hidden;
 }
@@ -11766,7 +11763,7 @@ img.cd {
 .sidebar-donate-goal-fill {
     width: 0%;
     height: 100%;
-    background: currentColor;
+    background: currentcolor;
     border-radius: 99px;
 }
 
@@ -11777,4 +11774,3 @@ body.sidebar-collapsed .sidebar-donate-goal {
 body.sidebar-collapsed #sidebar-nav-donate {
     padding-bottom: 0;
 }
-
