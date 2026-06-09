@@ -11606,3 +11606,175 @@ img.cd {
     border-radius: 50%;
     border: 0.125vw solid #ccc;
 }
+
+
+
+/* creator of CSS gotta be a nazi icl css can SUCK MY ASS */
+
+.donate-page-wrapper {
+    text-align: center;
+    padding: 2rem;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.donate-page-title {
+    margin-bottom: 1.5rem;
+}
+
+.donate-page-desc {
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+}
+
+.donate-goal-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    text-align: left;
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.donate-goal-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.donate-goal-card-label {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--foreground);
+}
+
+.donate-goal-card-percent {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.donate-goal-track {
+    width: 100%;
+    height: 8px;
+    background: var(--muted);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.donate-goal-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--primary);
+    border-radius: 999px;
+}
+
+.donate-goal-card-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+}
+
+.donate-kofi-btn {
+    text-decoration: none;
+    margin-bottom: 2rem;
+}
+
+.donate-alt-section {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.donate-alt-text {
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+    margin-bottom: 1rem;
+}
+
+.donate-github-btn {
+    text-decoration: none;
+}
+
+#sidebar-nav-donate {
+    border-radius: var(--radius);
+    transition:
+        background-color var(--transition-fast),
+        color var(--transition-fast),
+        transform var(--transition-fast);
+    cursor: pointer;
+    color: var(--muted-foreground);
+    padding-bottom: 0.4rem;
+}
+
+#sidebar-nav-donate:hover {
+    background-color: var(--secondary);
+    color: var(--foreground);
+    transform: translateX(4px);
+}
+
+#sidebar-nav-donate:has(a.active) {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
+#sidebar-nav-donate a {
+    background-color: transparent !important;
+    transform: none !important;
+    color: inherit;
+    border-radius: 0;
+}
+
+#sidebar-nav-donate a:hover {
+    background-color: transparent !important;
+    color: inherit;
+    transform: none !important;
+}
+
+#sidebar-nav-donate a.active {
+    background-color: transparent !important;
+    color: inherit;
+}
+
+
+.sidebar-donate-goal {
+    font-size: 0.65rem;
+    color: inherit;
+    opacity: 0.75;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    pointer-events: none;
+    padding: 0 0.75rem 0 0.75rem;
+    margin-left: 2rem;
+}
+
+.sidebar-donate-goal-track {
+    width: 45px;
+    height: 3px;
+    background: rgba(128, 128, 128, 0.3);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.sidebar-donate-goal-fill {
+    width: 0%;
+    height: 100%;
+    background: currentColor;
+    border-radius: 99px;
+}
+
+body.sidebar-collapsed .sidebar-donate-goal {
+    display: none;
+}
+
+body.sidebar-collapsed #sidebar-nav-donate {
+    padding-bottom: 0;
+}
+

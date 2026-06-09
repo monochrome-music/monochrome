@@ -263,6 +263,8 @@ export class UIRenderer {
             await this.renderHomeEditorsPicks(true, 'home-editors-picks');
             await this.renderHomeEditorsPicks(true, 'home-editors-picks-empty');
         });
+
+        this.loadDonateGoal();
     }
 
     static async initialize(api, player) {
@@ -2453,6 +2455,44 @@ export class UIRenderer {
         } else {
             document.querySelectorAll('.settings-tab').forEach((t) => t.classList.remove('active'));
             document.querySelectorAll('.settings-tab-content').forEach((c) => c.classList.remove('active'));
+        }
+
+        if (pageId === 'donate') {
+            this.loadDonateGoal();
+        }
+    }
+
+    async loadDonateGoal() {
+        const goal = document.getElementById('donate-goal');
+        const goalPercent = document.getElementById('donate-goal-percent');
+        const goalProgress = document.getElementById('donate-goal-progress');
+        const donateBtn = document.querySelector('#page-donate a.btn-primary');
+
+        const sidebarProgress = document.getElementById('sidebar-donate-goal-progress');
+        const sidebarText = document.getElementById('sidebar-donate-goal-text');
+
+        try {
+            const response = await fetch('https://goal.samidy.xyz/index.json');
+            const data = await response.json();
+            if (data && data.goal) {
+                const current = data.goal.current_amount || 0;
+                const target = data.goal.target_amount || 1000;
+                const percentage = Math.min(100, Math.max(0, (current / target) * 100));
+
+                if (goal)
+                    goal.textContent = `$${current.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                if (goalPercent) goalPercent.textContent = `${percentage.toFixed(1)}%`;
+                if (goalProgress) goalProgress.style.width = `${percentage}%`;
+
+                if (sidebarText) {
+                    sidebarText.textContent = `${percentage.toFixed(0)}%`;
+                }
+                if (sidebarProgress) {
+                    sidebarProgress.style.width = `${percentage}%`;
+                }
+            }
+        } catch (error) {
+            // lowk wrapping it in the try-catch for the larp
         }
     }
 
