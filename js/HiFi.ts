@@ -1420,10 +1420,14 @@ class HiFiClient {
         const instance = (HiFiClient.#instance = new HiFiClient(options));
 
         if (!options.token && !options.clientId && !options.clientSecret) {
-            await instance.#fetchAppToken({
-                ...options,
-                signal: options.signal || new AbortController().signal,
-            });
+            try {
+                await instance.#fetchAppToken({
+                    ...options,
+                    signal: options.signal || new AbortController().signal,
+                });
+            } catch (err) {
+                console.error('Failed to get app token, Hi-FI API fallback wont work. error:', err);
+            }
         }
 
         return (HiFiClient.#instance = instance);
