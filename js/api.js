@@ -2603,7 +2603,8 @@ export class LosslessAPI {
                 return null;
             }
 
-            const track = options.track || (tidalTrackId ? await this.getTrackMetadata(tidalTrackId).catch(() => null) : null);
+            const track =
+                options.track || (tidalTrackId ? await this.getTrackMetadata(tidalTrackId).catch(() => null) : null);
             const asin = await this.getAmazonAsin(tidalTrackId, track);
             const amazonQuality = this.getAmazonMusicQuality(quality, options);
             const apiBaseUrl = amazonMusicSettings.getApiBaseUrl().replace(/\/+$/, '');
