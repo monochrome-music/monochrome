@@ -2413,29 +2413,158 @@ export class LosslessAPI {
         return URL.createObjectURL(blob);
     }
 
-    async getAmazonAsin(tidalTrackId) {
-        if (this.amazonAsinCache.has(tidalTrackId)) {
-            return this.amazonAsinCache.get(tidalTrackId);
+    getAmazonTrackTitle(track) {
+        return String(track?.title || track?.name || '').trim();
+    }
+
+    getAmazonTrackArtist(track) {
+        if (track?.artist?.name) return String(track.artist.name).trim();
+        if (Array.isArray(track?.artists) && track.artists.length > 0) {
+            return track.artists
+                .map((artist) => (typeof artist === 'string' ? artist : artist?.name))
+                .filter(Boolean)
+                .join(' ')
+                .trim();
+        }
+        return '';
+    }
+
+    getAmazonTrackAlbum(track) {
+        return String(track?.album?.title || track?.album?.name || '').trim();
+    }
+
+    normalizeAmazonSearchText(value) {
+        return String(value || '')
+            .normalize('NFKD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/\b(explicit|clean|remaster(?:ed)?|deluxe|bonus track|radio edit)\b/g, ' ')
+            .replace(/[()[\]{}]/g, ' ')
+            .replace(/&/g, ' and ')
+            .replace(/[^a-z0-9]+/g, ' ')
+            .trim()
+            .replace(/\s+/g, ' ');
+    }
+
+    scoreAmazonTextMatch(expected, actual, weight) {
+        const left = this.normalizeAmazonSearchText(expected);
+        const right = this.normalizeAmazonSearchText(actual);
+        if (!left || !right) return 0;
+        if (left === right) return weight;
+        if (right.includes(left) || left.includes(right)) return weight * 0.78;
+
+        const leftTokens = new Set(left.split(' ').filter(Boolean));
+        const rightTokens = new Set(right.split(' ').filter(Boolean));
+        if (!leftTokens.size || !rightTokens.size) return 0;
+
+        let overlap = 0;
+        for (const token of leftTokens) {
+            if (rightTokens.has(token)) overlap++;
+        }
+        return weight * (overlap / Math.max(leftTokens.size, rightTokens.size));
+    }
+
+    scoreAmazonDurationMatch(expectedDuration, actualDuration) {
+        const expected = Number(expectedDuration);
+        const actual = Number(actualDuration);
+        if (!Number.isFinite(expected) || !Number.isFinite(actual) || expected <= 0 || actual <= 0) {
+            return 0;
+        }
+
+        const diff = Math.abs(expected - actual);
+        if (diff <= 2) return 15;
+        if (diff <= 5) return 12;
+        if (diff <= 10) return 8;
+        if (diff <= 20) return 4;
+        return 0;
+    }
+
+    scoreAmazonSearchResult(track, candidate) {
+        const titleScore = this.scoreAmazonTextMatch(this.getAmazonTrackTitle(track), candidate?.title, 45);
+        const artistScore = this.scoreAmazonTextMatch(this.getAmazonTrackArtist(track), candidate?.artist?.name, 25);
+        const albumScore = this.scoreAmazonTextMatch(this.getAmazonTrackAlbum(track), candidate?.album?.name, 15);
+        const durationScore = this.scoreAmazonDurationMatch(track?.duration, candidate?.duration);
+        const score = titleScore + artistScore + albumScore + durationScore;
+
+        return {
+            candidate,
+            score,
+            titleScore,
+            artistScore,
+            albumScore,
+            durationScore,
+        };
+    }
+
+    getBestAmazonSearchResult(track, results) {
+        if (!Array.isArray(results) || results.length === 0) return null;
+
+        const ranked = results
+            .filter((candidate) => candidate?.id)
+            .map((candidate) => this.scoreAmazonSearchResult(track, candidate))
+            .sort((a, b) => b.score - a.score);
+        const best = ranked[0];
+        if (!best) return null;
+
+        const strongTitle = best.titleScore >= 35;
+        const strongArtist = best.artistScore >= 19;
+        const closeDuration = !track?.duration || !best.candidate?.duration || best.durationScore >= 8;
+        if (best.score < 62 || !strongTitle || !strongArtist || !closeDuration) {
+            console.warn('Amazon Music search had no confident match:', {
+                track: {
+                    title: this.getAmazonTrackTitle(track),
+                    artist: this.getAmazonTrackArtist(track),
+                    album: this.getAmazonTrackAlbum(track),
+                    duration: track?.duration,
+                },
+                best,
+            });
+            return null;
+        }
+
+        return best.candidate;
+    }
+
+    async getAmazonAsin(tidalTrackId, track = null) {
+        const title = this.getAmazonTrackTitle(track);
+        const artist = this.getAmazonTrackArtist(track);
+        const album = this.getAmazonTrackAlbum(track);
+        const cacheKey =
+            title || artist
+                ? `search:${this.normalizeAmazonSearchText(`${title} ${artist} ${album}`)}:${track?.duration || 0}`
+                : `id:${tidalTrackId}`;
+        if (this.amazonAsinCache.has(cacheKey)) {
+            return this.amazonAsinCache.get(cacheKey);
+        }
+
+        if (!title || !artist) {
+            throw new Error('Amazon Music search requires a track title and artist');
         }
 
         const converterBaseUrl = amazonMusicSettings.getConverterBaseUrl().replace(/\/+$/, '');
+        const params = new URLSearchParams({ query: `${title} ${artist}`.trim() });
         const response = await this.fetchWithTimeout(
-            `${converterBaseUrl}/?id=${encodeURIComponent(tidalTrackId)}`,
+            `${converterBaseUrl}/api/search/songs?${params.toString()}`,
             {},
             8000
         );
-        this.handleAmazonApiStatus(response.status, 'Tidal to ASIN converter');
+        this.handleAmazonApiStatus(response.status, 'Amazon Music search');
         if (!response.ok) {
-            throw new Error(`Tidal to ASIN converter failed: ${response.status}`);
+            throw new Error(`Amazon Music search failed: ${response.status}`);
         }
 
         const data = await response.json();
-        const asin = data?.asin;
-        if (!asin) {
-            throw new Error('Tidal to ASIN converter returned no ASIN');
+        if (data?.success === false) {
+            throw new Error('Amazon Music search returned unsuccessful response');
         }
 
-        this.amazonAsinCache.set(tidalTrackId, asin);
+        const match = this.getBestAmazonSearchResult(track, data?.data);
+        const asin = match?.id;
+        if (!asin) {
+            throw new Error('Amazon Music search returned no confident ASIN match');
+        }
+
+        this.amazonAsinCache.set(cacheKey, asin);
         return asin;
     }
 
@@ -2474,7 +2603,8 @@ export class LosslessAPI {
                 return null;
             }
 
-            const asin = await this.getAmazonAsin(tidalTrackId);
+            const track = options.track || (tidalTrackId ? await this.getTrackMetadata(tidalTrackId).catch(() => null) : null);
+            const asin = await this.getAmazonAsin(tidalTrackId, track);
             const amazonQuality = this.getAmazonMusicQuality(quality, options);
             const apiBaseUrl = amazonMusicSettings.getApiBaseUrl().replace(/\/+$/, '');
 
@@ -2631,7 +2761,10 @@ export class LosslessAPI {
         let qobuzResult = null;
 
         if (preferAmazon) {
-            amazonResult = await this.getAmazonMusicStreamUrl(id, quality, { preferAdaptiveAuto: true });
+            amazonResult = await this.getAmazonMusicStreamUrl(id, quality, {
+                preferAdaptiveAuto: true,
+                track,
+            });
             if (!amazonResult?.url && track?.isrc) {
                 qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
             }
@@ -2640,7 +2773,10 @@ export class LosslessAPI {
                 qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
             }
             if (!qobuzResult?.url) {
-                amazonResult = await this.getAmazonMusicStreamUrl(id, quality, { preferAdaptiveAuto: true });
+                amazonResult = await this.getAmazonMusicStreamUrl(id, quality, {
+                    preferAdaptiveAuto: true,
+                    track,
+                });
             }
         }
 
@@ -2773,7 +2909,7 @@ export class LosslessAPI {
             let qobuzResult = null;
 
             if (preferAmazon) {
-                amazonResult = await this.getAmazonMusicStreamUrl(id, cleanQuality);
+                amazonResult = await this.getAmazonMusicStreamUrl(id, cleanQuality, { track });
                 if (!amazonResult?.url && track?.isrc) {
                     qobuzResult = await this.getQobuzStreamUrl(track.isrc, cleanQuality);
                 }
@@ -2782,7 +2918,7 @@ export class LosslessAPI {
                     qobuzResult = await this.getQobuzStreamUrl(track.isrc, cleanQuality);
                 }
                 if (!qobuzResult?.url) {
-                    amazonResult = await this.getAmazonMusicStreamUrl(id, cleanQuality);
+                    amazonResult = await this.getAmazonMusicStreamUrl(id, cleanQuality, { track });
                 }
             }
 
