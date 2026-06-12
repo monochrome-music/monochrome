@@ -21,6 +21,7 @@ import {
     SVG_SQUARE_PEN,
     SVG_TRASH,
     SVG_EQUAL,
+    SVG_TRIANGLE_ALERT,
 } from './icons.js';
 import { hapticSuccess } from './haptics.js';
 
@@ -615,7 +616,7 @@ export function initializeUIInteractions(player, api, ui) {
                 '.card-title, .card-subtitle, .track-item-details .title, .track-item-details .artist, .now-playing-bar .title, .now-playing-bar .artist, .now-playing-bar .album, .pinned-item-name';
             const target = e.target.closest(selector);
 
-            if (target) {
+            if (target && !e.target.closest('.deezer-hires-warning')) {
                 // Remove native title if present to avoid double tooltip
                 if (target.hasAttribute('title')) {
                     target.removeAttribute('title');
@@ -645,11 +646,58 @@ export function initializeUIInteractions(player, api, ui) {
         });
     }
 
+    let hiresWarningTooltip = null;
+    const showHiresWarning = (anchor) => {
+        if (!hiresWarningTooltip) {
+            hiresWarningTooltip = document.createElement('div');
+            hiresWarningTooltip.id = 'hires-fallback-tooltip';
+            hiresWarningTooltip.setAttribute('role', 'tooltip');
+            hiresWarningTooltip.innerHTML =
+                `<div class="hires-fallback-title">${SVG_TRIANGLE_ALERT(16)}Hi-Res unavailable</div>` +
+                '<div class="hires-fallback-body">We couldn’t source a Hi-Res master for this track, so it’s ' +
+                'playing in CD-quality lossless instead. That’s 16-bit / 44.1 kHz FLAC, the best the fallback ' +
+                'source offers.</div>';
+            document.body.appendChild(hiresWarningTooltip);
+        }
+        hiresWarningTooltip.classList.add('visible');
+
+        const anchorRect = anchor.getBoundingClientRect();
+        const ttW = hiresWarningTooltip.offsetWidth;
+        const ttH = hiresWarningTooltip.offsetHeight;
+        let left = anchorRect.left + anchorRect.width / 2 - ttW / 2;
+        let top = anchorRect.top - ttH - 10;
+        if (top < 8) top = anchorRect.bottom + 10;
+        left = Math.max(8, Math.min(left, window.innerWidth - ttW - 8));
+        hiresWarningTooltip.style.left = `${Math.round(left)}px`;
+        hiresWarningTooltip.style.top = `${Math.round(top)}px`;
+    };
+    const hideHiresWarning = () => {
+        if (hiresWarningTooltip) hiresWarningTooltip.classList.remove('visible');
+    };
+
+    document.body.addEventListener('mouseover', (e) => {
+        const anchor = e.target.closest?.('.deezer-hires-warning');
+        if (anchor) showHiresWarning(anchor);
+    });
+    document.body.addEventListener('mouseout', (e) => {
+        const anchor = e.target.closest?.('.deezer-hires-warning');
+        if (anchor && !anchor.contains(e.relatedTarget)) hideHiresWarning();
+    });
+    document.body.addEventListener('focusin', (e) => {
+        const anchor = e.target.closest?.('.deezer-hires-warning');
+        if (anchor) showHiresWarning(anchor);
+    });
+    document.body.addEventListener('focusout', (e) => {
+        if (e.target.closest?.('.deezer-hires-warning')) hideHiresWarning();
+    });
+    window.addEventListener('scroll', hideHiresWarning, true);
+
     // Hide tooltip and context menu on any click to be safe
     document.addEventListener('mousedown', (e) => {
         if (tooltipEl) {
             tooltipEl.classList.remove('visible');
         }
+        hideHiresWarning();
 
         const contextMenu = document.getElementById('context-menu');
         if (contextMenu && contextMenu.style.display === 'block' && !contextMenu.contains(e.target)) {

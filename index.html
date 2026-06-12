@@ -5709,8 +5709,8 @@
                                     <div class="info">
                                         <span class="label">Amazon Music</span>
                                         <span class="description"
-                                            >Use Amazon Music streams first, then fall back to Qobuz and HiFi
-                                            streaming.</span
+                                            >Use Amazon Music streams first, then fall back to Qobuz, then Deezer
+                                            as a last resort.</span
                                         >
                                     </div>
                                     <label class="toggle-switch">
@@ -5794,6 +5794,42 @@
                                         id="amazon-music-turnstile-bypass-token"
                                         placeholder="Optional"
                                         autocomplete="off"
+                                        style="
+                                            width: 220px;
+                                            padding: 0.35rem 0.5rem;
+                                            border: 1px solid var(--border);
+                                            border-radius: var(--radius-md);
+                                            background: var(--card);
+                                            color: var(--foreground);
+                                            font-size: 0.8rem;
+                                        "
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Deezer Fallback</span>
+                                        <span class="description"
+                                            >Last-resort source, used only when both Amazon Music and Qobuz fail.
+                                            Tops out at 16-bit lossless (FLAC).</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="deezer-fallback-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Deezer Fallback API URL</span>
+                                        <span class="description">The Deezer fallback API endpoint</span>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="deezer-fallback-api-base-url"
+                                        placeholder="https://fallback.funny-domain.lol"
                                         style="
                                             width: 220px;
                                             padding: 0.35rem 0.5rem;

@@ -10,7 +10,14 @@ import {
     getTrackCoverId,
     getCoverBlob,
 } from './utils.js';
-import { preferDolbyAtmosSettings, trackDateSettings, devModeSettings, amazonMusicSettings } from './storage.js';
+import {
+    preferDolbyAtmosSettings,
+    trackDateSettings,
+    devModeSettings,
+    amazonMusicSettings,
+    deezerFallbackSettings,
+} from './storage.js';
+import { decryptDeezerStream } from './deezer-decrypt.js';
 import { APICache } from './cache.js';
 import { DashDownloader } from './dash-downloader.ts';
 import { HlsDownloader } from './hls-downloader.js';
@@ -1853,6 +1860,85 @@ export class LosslessAPI {
         return null;
     }
 
+    getDeezerStreamFormat(quality = 'LOSSLESS') {
+        const map = {
+            HI_RES_LOSSLESS: 'FLAC',
+            LOSSLESS: 'FLAC',
+            DOLBY_ATMOS: 'FLAC',
+            HIGH: 'MP3_320',
+            LOW: 'MP3_128',
+            NORMAL: 'MP3_128',
+        };
+        return map[quality] || map[normalizeQualityToken(quality)] || 'FLAC';
+    }
+
+    async getDeezerStreamUrl(isrc, quality = 'LOSSLESS') {
+        if (!isrc || !deezerFallbackSettings.isEnabled()) return null;
+        const baseUrl = deezerFallbackSettings.getApiBaseUrl().replace(/\/+$/, '');
+        if (!baseUrl) return null;
+        const format = this.getDeezerStreamFormat(quality);
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
+            const res = await fetch(
+                `${baseUrl}/track/?isrc=${encodeURIComponent(isrc)}&format=${encodeURIComponent(format)}`,
+                { signal: controller.signal }
+            );
+            clearTimeout(timeoutId);
+            if (!res.ok) return null;
+            const data = await res.json();
+            if (!data?.url || !data?.blowfishKey) return null;
+            return {
+                url: data.url,
+                blowfishKey: data.blowfishKey,
+                format: data.format || format,
+                encryption: data.encryption || 'BF_CBC_STRIPE',
+                provider: 'deezer',
+                rgInfo: null,
+            };
+        } catch (e) {
+            console.warn(`Deezer fallback failed for ISRC ${isrc}:`, e);
+            return null;
+        }
+    }
+
+    async fetchAndDecryptDeezer(deezerResult, { onProgress, signal } = {}) {
+        const isMp3 = String(deezerResult.format || '')
+            .toUpperCase()
+            .startsWith('MP3');
+        const mime = isMp3 ? 'audio/mpeg' : 'audio/flac';
+
+        const readAll = async (response) => {
+            const contentLength = response.headers.get('Content-Length');
+            const totalBytes = contentLength ? parseInt(contentLength, 10) : undefined;
+            if (!response.body) {
+                const buf = new Uint8Array(await response.arrayBuffer());
+                onProgress?.(new DownloadProgress(buf.length, buf.length));
+                return buf;
+            }
+            const chunks = [];
+            let received = 0;
+            for await (const chunk of readableStreamIterator(response.body)) {
+                chunks.push(chunk);
+                received += chunk.byteLength;
+                onProgress?.(new DownloadProgress(received, totalBytes));
+            }
+            const bytes = new Uint8Array(received);
+            let pos = 0;
+            for (const c of chunks) {
+                bytes.set(c, pos);
+                pos += c.byteLength;
+            }
+            return bytes;
+        };
+
+        const response = await fetch(deezerResult.url, { cache: 'no-store', signal });
+        if (!response.ok) throw new Error(`Deezer CDN fetch failed: ${response.status}`);
+        const bytes = await readAll(response);
+        const decrypted = decryptDeezerStream(bytes, deezerResult.blowfishKey);
+        return new Blob([decrypted], { type: mime });
+    }
+
     getAmazonMusicQuality(quality = 'LOSSLESS', { preferAdaptiveAuto = false } = {}) {
         let adaptiveQuality = null;
         try {
@@ -2765,11 +2851,33 @@ export class LosslessAPI {
             return result;
         }
 
+        if (track?.isrc) {
+            const deezerResult = await this.getDeezerStreamUrl(track.isrc, quality);
+            if (deezerResult?.url) {
+                const blob = await this.fetchAndDecryptDeezer(deezerResult);
+                const result = {
+                    url: URL.createObjectURL(blob),
+                    rgInfo: {
+                        trackReplayGain: 0,
+                        trackPeakAmplitude: 1,
+                        albumReplayGain: 0,
+                        albumPeakAmplitude: 1,
+                    },
+                    provider: 'deezer',
+                    playbackType: 'direct',
+                    deezerFormat: deezerResult.format,
+                    deezerHiRes: deriveTrackQuality(track) === 'HI_RES_LOSSLESS',
+                };
+                this.streamCache.set(cacheKey, result);
+                return result;
+            }
+        }
+
         notifyAudioSourceMissing();
         throw new Error(
             track?.isrc
-                ? 'Could not resolve stream URL from Amazon Music or Qobuz'
-                : 'Could not resolve stream URL: Amazon Music failed and track has no ISRC for Qobuz lookup'
+                ? 'Could not resolve stream URL from Amazon Music, Qobuz, or Deezer'
+                : 'Could not resolve stream URL: Amazon Music failed and track has no ISRC for Qobuz/Deezer lookup'
         );
     }
 
@@ -2840,6 +2948,8 @@ export class LosslessAPI {
         let externalMimeType = null;
         let externalMediaMimeType = null;
         let externalSourceUrl = null;
+        let deezerBlowfishKey = null;
+        let deezerFormat = null;
 
         if (isVideo) {
             lookup = await this.getVideo(id);
@@ -2885,12 +2995,30 @@ export class LosslessAPI {
                     },
                 };
             } else {
-                notifyAudioSourceMissing();
-                throw new Error(
-                    track?.isrc
-                        ? 'Could not resolve audio stream from Amazon Music or Qobuz'
-                        : 'Cannot resolve audio stream: Amazon Music failed and track has no ISRC for Qobuz lookup'
-                );
+                const deezerResult = track?.isrc ? await this.getDeezerStreamUrl(track.isrc, 'LOSSLESS') : null;
+                if (deezerResult?.url) {
+                    externalProvider = 'deezer';
+                    externalStreamUrl = deezerResult.url;
+                    externalSourceUrl = deezerResult.url;
+                    deezerBlowfishKey = deezerResult.blowfishKey;
+                    deezerFormat = deezerResult.format;
+                    lookup = {
+                        info: {
+                            audioQuality: cleanQuality,
+                            trackReplayGain: 0,
+                            trackPeakAmplitude: 1,
+                            albumReplayGain: 0,
+                            albumPeakAmplitude: 1,
+                        },
+                    };
+                } else {
+                    notifyAudioSourceMissing();
+                    throw new Error(
+                        track?.isrc
+                            ? 'Could not resolve audio stream from Amazon Music, Qobuz, or Deezer'
+                            : 'Cannot resolve audio stream: Amazon Music failed and track has no ISRC for Qobuz/Deezer lookup'
+                    );
+                }
             }
         }
 
@@ -2963,6 +3091,10 @@ export class LosslessAPI {
         }
         if (externalProvider === 'amazon') {
             result.amazonMusicStreamUrl = externalSourceUrl || externalStreamUrl;
+        }
+        if (externalProvider === 'deezer') {
+            result.deezerBlowfishKey = deezerBlowfishKey;
+            result.deezerFormat = deezerFormat;
         }
         return result;
     }
@@ -3097,6 +3229,15 @@ export class LosslessAPI {
                     onProgress,
                     signal: options.signal,
                 });
+            } else if (enriched.externalProvider === 'deezer') {
+                blob = await this.fetchAndDecryptDeezer(
+                    {
+                        url: streamUrl,
+                        blowfishKey: enriched.deezerBlowfishKey,
+                        format: enriched.deezerFormat,
+                    },
+                    { onProgress, signal: options.signal }
+                );
             } else if (streamUrl.startsWith('blob:')) {
                 try {
                     const downloader = new DashDownloader();

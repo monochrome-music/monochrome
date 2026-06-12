@@ -96,11 +96,7 @@ export const apiSettings = {
                         { url: 'https://hund.qqdl.site', version: '2.6' },
                         { url: 'https://wolf.qqdl.site', version: '2.6' },
                     ],
-                    qobuz: [
-                        { url: 'https://qdl-api.monochrome.tf', version: '1.0' },
-                        { url: 'https://qobuz.kennyy.com.br', version: '1.0' },
-                        { url: 'https://mono.scavengerfurs.net', version: '1.0' },
-                    ],
+                    qobuz: [{ url: 'https://qobuz.kennyy.com.br', version: '1.0' }],
                 };
                 this.instancesLoaded = true;
                 this._loadPromise = null;
@@ -130,7 +126,7 @@ export const apiSettings = {
 
             // Ensure default Qobuz instance is always available
             if (groupedInstances.qobuz.length === 0) {
-                groupedInstances.qobuz = [{ url: 'https://qdl-api.monochrome.tf', version: '1.0' }];
+                groupedInstances.qobuz = [{ url: 'https://qobuz.kennyy.com.br', version: '1.0' }];
             }
 
             this.defaultInstances = groupedInstances;
@@ -3151,6 +3147,36 @@ export const amazonMusicSettings = {
 
     setTurnstileBypassToken(token) {
         localStorage.setItem(this.TURNSTILE_BYPASS_TOKEN, token || '');
+    },
+};
+
+export const deezerFallbackSettings = {
+    ENABLED_KEY: 'deezer-fallback-enabled',
+    API_BASE_URL_KEY: 'deezer-fallback-api-base-url',
+    DEFAULT_API_BASE_URL: 'https://fallback.funny-domain.lol',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.ENABLED_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
+    },
+
+    getApiBaseUrl() {
+        try {
+            return localStorage.getItem(this.API_BASE_URL_KEY) || this.DEFAULT_API_BASE_URL;
+        } catch {
+            return this.DEFAULT_API_BASE_URL;
+        }
+    },
+
+    setApiBaseUrl(url) {
+        localStorage.setItem(this.API_BASE_URL_KEY, url || this.DEFAULT_API_BASE_URL);
     },
 };
 

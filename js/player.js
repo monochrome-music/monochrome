@@ -25,7 +25,7 @@ import { isIos, isSafari } from './platform-detection.js';
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
 
-import { SVG_CLOCK, SVG_ATMOS } from './icons.js';
+import { SVG_CLOCK, SVG_ATMOS, SVG_TRIANGLE_ALERT } from './icons.js';
 import { UIRenderer } from './ui.js';
 import { MediaSession } from '@capgo/capacitor-media-session';
 
@@ -704,7 +704,9 @@ export class Player {
 
         const requiresShaka =
             !track.isLocal &&
-            (streamInfo.playbackType?.includes('cenc') || streamUrl.startsWith('blob:') || streamUrl.includes('.mpd'));
+            (streamInfo.playbackType?.includes('cenc') ||
+                (streamUrl.startsWith('blob:') && streamInfo.playbackType !== 'direct') ||
+                streamUrl.includes('.mpd'));
         if (requiresShaka && (!this.shakaPlayer || this.shakaPlayer.getMediaElement() !== activeElement)) {
             return false;
         }
@@ -719,6 +721,17 @@ export class Player {
             this.currentRgValues = null;
             this.applyReplayGain();
             this.backfillReplayGainFromTrack(track, currentSequence);
+        }
+
+        const deezerHiResFallback =
+            streamInfo.provider === 'deezer' &&
+            (streamInfo.deezerHiRes || deriveTrackQuality(track) === 'HI_RES_LOSSLESS');
+        track.deezerHiResFallback = deezerHiResFallback;
+        if (this.currentTrack?.id === track.id) {
+            this.currentTrack.deezerHiResFallback = deezerHiResFallback;
+        }
+        if (deezerHiResFallback) {
+            this.updateNowPlayingTitle(track);
         }
 
         const retryImmediateHandoff = async (error) => {
@@ -1357,6 +1370,17 @@ export class Player {
                         this.currentTrack.amazonMusicQualitySelected = resolvedStreamInfo.quality;
                         this.currentTrack.amazonMusicQualityDisplay = resolvedStreamInfo.qualityDisplay;
                     }
+                    this.updateNowPlayingTitle(track);
+                }
+
+                const deezerHiResFallback =
+                    resolvedStreamInfo.provider === 'deezer' &&
+                    (resolvedStreamInfo.deezerHiRes || deriveTrackQuality(track) === 'HI_RES_LOSSLESS');
+                track.deezerHiResFallback = deezerHiResFallback;
+                if (this.currentTrack?.id === track.id) {
+                    this.currentTrack.deezerHiResFallback = deezerHiResFallback;
+                }
+                if (deezerHiResFallback) {
                     this.updateNowPlayingTitle(track);
                 }
 
@@ -2212,7 +2236,10 @@ export class Player {
         if (!track) return;
         const titleEl = document.querySelector('.now-playing-bar .title');
         if (!titleEl) return;
-        titleEl.innerHTML = `${escapeHtml(getTrackTitle(track))} ${createQualityBadgeHTML(track)}`;
+        const warning = track.deezerHiResFallback
+            ? `<span class="deezer-hires-warning" role="img" tabindex="0" aria-label="Hi-Res unavailable for this track. Playing in CD-quality lossless instead. That's 16-bit / 44.1 kHz FLAC.">${SVG_TRIANGLE_ALERT(16)}</span>`
+            : '';
+        titleEl.innerHTML = `${escapeHtml(getTrackTitle(track))} ${createQualityBadgeHTML(track)}${warning}`;
     }
 
     updateAdaptiveQualityBadge() {
