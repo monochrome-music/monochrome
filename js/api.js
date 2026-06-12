@@ -2668,55 +2668,6 @@ export class LosslessAPI {
         }
     }
 
-    async hasHiFiStreamingFallbackInstances() {
-        try {
-            const streamingInstances = await this.settings.getInstances('streaming');
-            return Array.isArray(streamingInstances) && streamingInstances.length > 0;
-        } catch (error) {
-            console.warn('Failed to load HiFi streaming fallback instances:', error);
-            return false;
-        }
-    }
-
-    resolveStreamUrlFromLookup(lookup) {
-        if (!lookup) return null;
-        if (lookup.originalTrackUrl) return lookup.originalTrackUrl;
-        return lookup.info?.manifest ? this.extractStreamUrlFromManifest(lookup.info.manifest) : null;
-    }
-
-    getReplayGainInfoFromLookup(lookup) {
-        const info = lookup?.info || {};
-        return {
-            trackReplayGain: info.trackReplayGain ?? info.replayGain ?? 0,
-            trackPeakAmplitude: info.trackPeakAmplitude ?? info.peakAmplitude ?? 1,
-            albumReplayGain: info.albumReplayGain ?? 0,
-            albumPeakAmplitude: info.albumPeakAmplitude ?? 1,
-        };
-    }
-
-    async getHiFiStreamingFallback(id, quality = 'LOSSLESS') {
-        if (!(await this.hasHiFiStreamingFallbackInstances())) {
-            return null;
-        }
-
-        try {
-            const lookup = await this.getTrack(id, quality, { adaptive: this.shouldUseAdaptiveTrackManifest(false) });
-            const url = this.resolveStreamUrlFromLookup(lookup);
-            if (!url) {
-                throw new Error('Could not resolve stream URL from HiFi streaming manifest');
-            }
-
-            return {
-                url,
-                lookup,
-                rgInfo: this.getReplayGainInfoFromLookup(lookup),
-            };
-        } catch (error) {
-            console.warn(`HiFi streaming fallback failed for track ${id}:`, error);
-            return null;
-        }
-    }
-
     async getStreamUrl(id, quality = 'LOSSLESS') {
         const cacheKey = `stream_info_${id}_${quality}`;
 
@@ -2814,21 +2765,11 @@ export class LosslessAPI {
             return result;
         }
 
-        const fallbackResult = await this.getHiFiStreamingFallback(id, quality);
-        if (fallbackResult?.url) {
-            const result = {
-                url: fallbackResult.url,
-                rgInfo: fallbackResult.rgInfo,
-            };
-            this.streamCache.set(cacheKey, result);
-            return result;
-        }
-
         notifyAudioSourceMissing();
         throw new Error(
             track?.isrc
-                ? 'Could not resolve stream URL from Amazon Music, Qobuz, or HiFi streaming APIs'
-                : 'Could not resolve stream URL: Amazon Music failed, track has no ISRC for Qobuz lookup, and HiFi streaming fallback failed'
+                ? 'Could not resolve stream URL from Amazon Music or Qobuz'
+                : 'Could not resolve stream URL: Amazon Music failed and track has no ISRC for Qobuz lookup'
         );
     }
 
@@ -2944,22 +2885,12 @@ export class LosslessAPI {
                     },
                 };
             } else {
-                const fallbackResult = await this.getHiFiStreamingFallback(id, cleanQuality);
-                if (fallbackResult?.lookup) {
-                    lookup = fallbackResult.lookup;
-                } else {
-                    notifyAudioSourceMissing();
-                    throw new Error(
-                        track?.isrc
-                            ? 'Could not resolve audio stream from Amazon Music, Qobuz, or HiFi streaming APIs'
-                            : 'Cannot resolve audio stream: Amazon Music failed, track has no ISRC for Qobuz lookup, and HiFi streaming fallback failed'
-                    );
-                }
-            }
-
-            if (!lookup) {
                 notifyAudioSourceMissing();
-                throw new Error('Could not resolve audio stream');
+                throw new Error(
+                    track?.isrc
+                        ? 'Could not resolve audio stream from Amazon Music or Qobuz'
+                        : 'Cannot resolve audio stream: Amazon Music failed and track has no ISRC for Qobuz lookup'
+                );
             }
         }
 
