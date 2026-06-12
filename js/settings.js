@@ -33,6 +33,7 @@ import {
     contentBlockingSettings,
     musicProviderSettings,
     amazonMusicSettings,
+    deezerFallbackSettings,
     gaplessPlaybackSettings,
     analyticsSettings,
     modalSettings,
@@ -876,6 +877,22 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         amazonTurnstileBypassTokenInput.value = amazonMusicSettings.getTurnstileBypassToken();
         amazonTurnstileBypassTokenInput.addEventListener('change', (e) => {
             amazonMusicSettings.setTurnstileBypassToken(e.target.value.trim());
+        });
+    }
+
+    const deezerFallbackToggle = document.getElementById('deezer-fallback-toggle');
+    if (deezerFallbackToggle) {
+        deezerFallbackToggle.checked = deezerFallbackSettings.isEnabled();
+        deezerFallbackToggle.addEventListener('change', (e) => {
+            deezerFallbackSettings.setEnabled(e.target.checked);
+        });
+    }
+
+    const deezerApiBaseUrlInput = document.getElementById('deezer-fallback-api-base-url');
+    if (deezerApiBaseUrlInput) {
+        deezerApiBaseUrlInput.value = deezerFallbackSettings.getApiBaseUrl();
+        deezerApiBaseUrlInput.addEventListener('change', (e) => {
+            deezerFallbackSettings.setApiBaseUrl(e.target.value.trim());
         });
     }
 

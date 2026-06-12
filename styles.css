@@ -11773,3 +11773,76 @@ body.sidebar-collapsed .sidebar-donate-goal {
 body.sidebar-collapsed #sidebar-nav-donate {
     padding-bottom: 0;
 }
+
+
+.deezer-hires-warning {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+    color: #f59e0b;
+    cursor: help;
+}
+
+.deezer-hires-warning svg {
+    height: 0.85rem;
+    width: auto;
+}
+
+.deezer-hires-warning:focus-visible {
+    outline: 2px solid #f59e0b;
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+}
+
+#hires-fallback-tooltip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: max-content;
+    max-width: 280px;
+    background: var(--card);
+    color: var(--card-foreground);
+    padding: 0.7rem 0.8rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(5px) scale(0.96);
+    transform-origin: bottom center;
+    transition:
+        opacity 0.14s ease,
+        transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    will-change: transform, opacity;
+}
+
+#hires-fallback-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+#hires-fallback-tooltip .hires-fallback-title {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #f59e0b;
+    margin-bottom: 0.3rem;
+}
+
+#hires-fallback-tooltip .hires-fallback-title svg {
+    height: 0.9rem;
+    width: auto;
+}
+
+#hires-fallback-tooltip .hires-fallback-body {
+    font-size: 0.76rem;
+    line-height: 1.45;
+    color: var(--muted-foreground);
+}

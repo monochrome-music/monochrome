@@ -70,6 +70,7 @@ export { default as SVG_SQUARE_PEN } from '!lucide/square-pen.svg?svg&icon';
 export { default as SVG_STORE } from '!lucide/store.svg?svg&icon';
 export { default as SVG_SUN } from '!lucide/sun.svg?svg&icon';
 export { default as SVG_TRASH } from '!lucide/trash.svg?svg&icon';
+export { default as SVG_TRIANGLE_ALERT } from '!lucide/triangle-alert.svg?svg&icon';
 export { default as SVG_TWITTER } from '../images/twitter.svg?svg&icon';
 export { default as SVG_UPLOAD } from '!lucide/upload.svg?svg&icon';
 export { default as SVG_USER } from '!lucide/user.svg?svg&icon';
