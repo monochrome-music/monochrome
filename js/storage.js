@@ -3153,7 +3153,7 @@ export const amazonMusicSettings = {
 export const deezerFallbackSettings = {
     ENABLED_KEY: 'deezer-fallback-enabled',
     API_BASE_URL_KEY: 'deezer-fallback-api-base-url',
-    DEFAULT_API_BASE_URL: 'https://fallback.funny-domain.lol',
+    DEFAULT_API_BASE_URL: 'https://dzr.tabs-vs-spaces.wtf',
 
     isEnabled() {
         try {
