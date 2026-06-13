@@ -2462,7 +2462,38 @@ export class UIRenderer {
         }
     }
 
+    setupCryptoCopy() {
+        const list = document.getElementById('donate-crypto-list');
+        if (!list || list.dataset.copyBound === 'true') return;
+        list.dataset.copyBound = 'true';
+
+        const revealBtn = document.getElementById('donate-crypto-btn');
+        const actions = document.getElementById('donate-actions');
+        const section = document.getElementById('donate-crypto-section');
+        if (revealBtn && actions && section) {
+            revealBtn.addEventListener('click', () => {
+                actions.hidden = true;
+                section.hidden = false;
+            });
+        }
+
+        list.addEventListener('click', async (e) => {
+            const wallet = e.target.closest('.crypto-wallet');
+            if (!wallet) return;
+            const address = wallet.dataset.address;
+            if (!address) return;
+            try {
+                await navigator.clipboard.writeText(address);
+                showNotification(`${wallet.dataset.label || 'Address'} copied to clipboard!`);
+            } catch (error) {
+                showNotification('Failed to copy address');
+            }
+        });
+    }
+
     async loadDonateGoal() {
+        this.setupCryptoCopy();
+
         const goal = document.getElementById('donate-goal');
         const goalPercent = document.getElementById('donate-goal-percent');
         const goalProgress = document.getElementById('donate-goal-progress');

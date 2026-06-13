@@ -6220,14 +6220,283 @@
                                 <span>of $1,000.00 goal</span>
                             </div>
                         </div>
-                        <a
-                            href="https://ko-fi.com/monochrometf"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="btn-primary donate-kofi-btn"
-                        >
-                            Donate on Ko-fi
-                        </a>
+                        <div class="donate-actions" id="donate-actions">
+                            <a
+                                href="https://ko-fi.com/monochrometf"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="btn-primary donate-kofi-btn"
+                            >
+                                Donate on Ko-fi
+                            </a>
+                            <button type="button" class="btn-primary donate-crypto-btn" id="donate-crypto-btn">
+                                Donate with crypto
+                            </button>
+                        </div>
+                        <div class="donate-crypto-section" id="donate-crypto-section" hidden>
+                            <h3 class="donate-crypto-title">Pay with crypto</h3>
+                            <p class="donate-crypto-subtitle">Tap any address to copy it to your clipboard.</p>
+                            <div class="donate-crypto-list" id="donate-crypto-list">
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Monero (XMR)"
+                                    data-address="84QSJs6sq1GSS6f3HFL1Yc6QK3f73867aQduTnaxGdcvXTkpnduaU16f98akdwRo6HdPYfoNwn1GJijc3iLfGXhd5MLcfsk"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Monero (XMR)</span>
+                                        <span class="crypto-wallet-addr"
+                                            >84QSJs6sq1GSS6f3HFL1Yc6QK3f73867aQduTnaxGdcvXTkpnduaU16f98akdwRo6HdPYfoNwn1GJijc3iLfGXhd5MLcfsk</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Bitcoin (Active)"
+                                    data-address="bc1qzl0kznz3xxdpmz2m77qe3mx8ds06tcvm7pk2t4"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Bitcoin · Active</span>
+                                        <span class="crypto-wallet-addr"
+                                            >bc1qzl0kznz3xxdpmz2m77qe3mx8ds06tcvm7pk2t4</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Bitcoin (P2WPKH)"
+                                    data-address="bc1qf7elcxp394a7ly5pgqg0wsetzkkqn2xrlzpeh2"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Bitcoin · P2WPKH</span>
+                                        <span class="crypto-wallet-addr"
+                                            >bc1qf7elcxp394a7ly5pgqg0wsetzkkqn2xrlzpeh2</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Bitcoin (P2PKH)"
+                                    data-address="1NnLbNBH8RcTfbfEpZyf1iW1ezXv3XBAQR"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Bitcoin · P2PKH</span>
+                                        <span class="crypto-wallet-addr">1NnLbNBH8RcTfbfEpZyf1iW1ezXv3XBAQR</span>
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Bitcoin (P2SH)"
+                                    data-address="3J3YpbRZtX7exyt962s5zbC9PMGQhZ4B7j"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Bitcoin · P2SH</span>
+                                        <span class="crypto-wallet-addr">3J3YpbRZtX7exyt962s5zbC9PMGQhZ4B7j</span>
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Bitcoin (P2TR)"
+                                    data-address="bc1p87xf6f8tnsnlt0tjkj9suysyq72kxz4a8fprgynggxk6p9mcr3wq5rhd43"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Bitcoin · P2TR (Taproot)</span>
+                                        <span class="crypto-wallet-addr"
+                                            >bc1p87xf6f8tnsnlt0tjkj9suysyq72kxz4a8fprgynggxk6p9mcr3wq5rhd43</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Bitcoin (P2WSH)"
+                                    data-address="bc1q6luyymmww83d260925g6cvy8qjy4y4djg40cgqjcqszs9upes3xsy9nt6m"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Bitcoin · P2WSH</span>
+                                        <span class="crypto-wallet-addr"
+                                            >bc1q6luyymmww83d260925g6cvy8qjy4y4djg40cgqjcqszs9upes3xsy9nt6m</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Bitcoin (Silent Payments)"
+                                    data-address="sp1qq0wnt8ehzg9hes4kyc23s5h4mc0gcr69fp6clm4m5yjuc78v0as4xq5j3wz03v9jw4yslcmue7xy7ek80sm3lnw8eq7ce9tkjfs3d0rj3yhj6lw6"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Bitcoin · Silent Payments</span>
+                                        <span class="crypto-wallet-addr"
+                                            >sp1qq0wnt8ehzg9hes4kyc23s5h4mc0gcr69fp6clm4m5yjuc78v0as4xq5j3wz03v9jw4yslcmue7xy7ek80sm3lnw8eq7ce9tkjfs3d0rj3yhj6lw6</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Bitcoin Lightning"
+                                    data-address="oblongbalinese7350@cake.cash"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Bitcoin · Lightning</span>
+                                        <span class="crypto-wallet-addr">oblongbalinese7350@cake.cash</span>
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Litecoin (Active)"
+                                    data-address="ltc1qt9jspfdwcgas9q4sf5q9ajn7x9ka8mfywsehrr"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Litecoin · Active</span>
+                                        <span class="crypto-wallet-addr"
+                                            >ltc1qt9jspfdwcgas9q4sf5q9ajn7x9ka8mfywsehrr</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Litecoin (P2WPKH)"
+                                    data-address="ltc1qqtsdhlae2rm67avrw7eal57j77845lz5kvz6qj"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Litecoin · P2WPKH</span>
+                                        <span class="crypto-wallet-addr"
+                                            >ltc1qqtsdhlae2rm67avrw7eal57j77845lz5kvz6qj</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Litecoin (MWEB)"
+                                    data-address="ltcmweb1qq06pgdyw2xlwy64vhz3l903kmp84j0qgx9nu7er8ckr6tp2289r9sqe9ntqyzyd2usf298ln5cvpfc7wccsys320ajr5sx8hfy43eut74c2jae4c"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Litecoin · MWEB</span>
+                                        <span class="crypto-wallet-addr"
+                                            >ltcmweb1qq06pgdyw2xlwy64vhz3l903kmp84j0qgx9nu7er8ckr6tp2289r9sqe9ntqyzyd2usf298ln5cvpfc7wccsys320ajr5sx8hfy43eut74c2jae4c</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="EVM address"
+                                    data-address="0x078A47E9bbe2e0D7aEb2B2B09302ceB2af964593"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name"
+                                            >Ethereum / EVM · ETH · BNB · Polygon · Base · Arbitrum</span
+                                        >
+                                        <span class="crypto-wallet-addr"
+                                            >0x078A47E9bbe2e0D7aEb2B2B09302ceB2af964593</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Solana (SOL)"
+                                    data-address="2zdNcs4Uu2377Nzjc8P91qH7hHiyQs8E1f27A6icUSKx"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Solana (SOL)</span>
+                                        <span class="crypto-wallet-addr"
+                                            >2zdNcs4Uu2377Nzjc8P91qH7hHiyQs8E1f27A6icUSKx</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Zcash (ZEC)"
+                                    data-address="u120zcwxlt9azs36d07uafdnj7fzsa62stwuk4f2eruk272e8he0czxvyjquakhp968mvm0tuzmqx6ln7c5k3qdw2qem2ypk4p6s3hgczx"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Zcash (ZEC)</span>
+                                        <span class="crypto-wallet-addr"
+                                            >u120zcwxlt9azs36d07uafdnj7fzsa62stwuk4f2eruk272e8he0czxvyjquakhp968mvm0tuzmqx6ln7c5k3qdw2qem2ypk4p6s3hgczx</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Tron (TRX)"
+                                    data-address="TQU2kovh58VnnPr1PUjZUhNY2a3UfM4ERh"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Tron (TRX)</span>
+                                        <span class="crypto-wallet-addr">TQU2kovh58VnnPr1PUjZUhNY2a3UfM4ERh</span>
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Dogecoin (DOGE)"
+                                    data-address="DNpErVMo3yPM6UFAStSfWuBbHPvUwx95D9"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Dogecoin (DOGE)</span>
+                                        <span class="crypto-wallet-addr">DNpErVMo3yPM6UFAStSfWuBbHPvUwx95D9</span>
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Bitcoin Cash (BCH)"
+                                    data-address="bitcoincash:qzg8j4ddjew3ptcr9g503qk0345kdr332s5jmrzeym"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Bitcoin Cash (BCH)</span>
+                                        <span class="crypto-wallet-addr"
+                                            >bitcoincash:qzg8j4ddjew3ptcr9g503qk0345kdr332s5jmrzeym</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="crypto-wallet"
+                                    data-label="Nano (XNO)"
+                                    data-address="nano_1qfmbi1b9tzocx9socbffy7z6te6r7z75byc7ofpfpqjpbfb1i3eaqe3etjz"
+                                >
+                                    <span class="crypto-wallet-meta">
+                                        <span class="crypto-wallet-name">Nano (XNO)</span>
+                                        <span class="crypto-wallet-addr"
+                                            >nano_1qfmbi1b9tzocx9socbffy7z6te6r7z75byc7ofpfpqjpbfb1i3eaqe3etjz</span
+                                        >
+                                    </span>
+                                    <use svg="!lucide/copy.svg" size="18" class="crypto-wallet-copy-icon" />
+                                </button>
+                            </div>
+                        </div>
                         <div class="donate-alt-section">
                             <p class="donate-alt-text">
                                 If you cannot financially support us, please consider starring the project on GitHub and
