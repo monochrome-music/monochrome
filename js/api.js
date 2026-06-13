@@ -54,6 +54,14 @@ function notifyAudioSourceMissing() {
     import('./downloads.js').then((m) => m.showNotification('Could not find Audio Source')).catch(() => {});
 }
 
+// HIGH and LOW are advertised as AAC in the UI, but Qobuz doesn't serve AAC.
+// We pull a lossless FLAC source and transcode to AAC client-side
+// (see applyAudioPostProcessing), so any quality in this set must be
+// fetched as LOSSLESS even though the user-facing label says otherwise.
+function qualityNeedsLosslessSource(quality) {
+    return isCustomFormat(quality) || quality === 'HIGH' || quality === 'LOW';
+}
+
 export class LosslessAPI {
     constructor(settings) {
         this.settings = settings;
@@ -2936,7 +2944,7 @@ export class LosslessAPI {
         const id = input?.id || input;
         const track = typeof input === 'object' && input.isrc ? input : await this.getTrackMetadata(id);
         const isVideo = track?.type?.toLowerCase().includes('video');
-        const cleanQuality = isCustomFormat(downloadQuality) ? 'LOSSLESS' : downloadQuality;
+        const cleanQuality = qualityNeedsLosslessSource(downloadQuality) ? 'LOSSLESS' : downloadQuality;
 
         let lookup = null;
         let externalRgInfo = null;
@@ -3135,8 +3143,10 @@ export class LosslessAPI {
         let prefetchPromises = null;
 
         try {
-            // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
-            let downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
+            // Custom FFMPEG formats (and HIGH/LOW, which are transcoded to AAC client-side
+            // because Qobuz doesn't serve AAC) are not native source qualities; download
+            // LOSSLESS and transcode in applyAudioPostProcessing.
+            let downloadQuality = qualityNeedsLosslessSource(quality) ? 'LOSSLESS' : quality;
 
             const enriched = await this.enrichTrack(inputTrack || id, { downloadQuality });
             const { lookup, enrichedTrack, isVideo } = enriched;

@@ -9,7 +9,7 @@ import {
     getContainerFormat,
     transcodeWithContainerFormat,
 } from './ffmpegFormats';
-import { ffmpegInfo, ffmpegNewContainer, ffmpeg } from './ffmpeg';
+import { ffmpegInfo, ffmpegNewContainer } from './ffmpeg';
 
 /**
  * Triggers a browser file download for the given blob.
@@ -29,12 +29,15 @@ export function triggerDownload(blob: Blob, filename: string): void {
  * Apply post-processing to an audio Blob according to the requested quality.
  *
  * This function:
+ * - Remaps the legacy "HIGH"/"LOW" quality strings to FFMPEG_AAC_320/FFMPEG_AAC_96 so all
+ *   lossy outputs flow through one transcoding path.
  * - Detects the source container/extension via getExtensionFromBlob.
  * - Determines whether the source is lossless:
  *   - FLAC is always lossless.
  *   - M4A is treated as lossless only when trackAudioQuality is "LOSSLESS" or "HI_RES_LOSSLESS".
  * - If a custom lossy format is requested (isCustomFormat(quality)):
- *   - If the source is already lossy, returns the original Blob to avoid quality degradation.
+ *   - If the source extension already matches the target extension, returns the original Blob
+ *     to avoid a pointless re-encode.
  *   - Otherwise, obtains the custom format via getCustomFormat and transcodes using
  *     transcodeWithCustomFormat(...). Progress events are reported via onProgress.
  *   - If encoding fails, onProgress is notified with an error stage and the original error is rethrown.
@@ -71,6 +74,12 @@ export async function applyAudioPostProcessing(
     signal: AbortSignal | null = null,
     trackAudioQuality: string | null = null
 ): Promise<Blob> {
+    // Qobuz never serves AAC, so HIGH/LOW are fetched as lossless FLAC and
+    // transcoded client-side. Map them to the equivalent custom AAC formats
+    // so they flow through the same code path as FFMPEG_AAC_* qualities.
+    if (quality === 'HIGH') quality = 'FFMPEG_AAC_320';
+    else if (quality === 'LOW') quality = 'FFMPEG_AAC_96';
+
     const extension = await getExtensionFromBlob(blob);
     const statedLossless = (trackAudioQuality || quality).endsWith('LOSSLESS');
 
@@ -90,13 +99,14 @@ export async function applyAudioPostProcessing(
 
     // Transcode to custom lossy format if requested
     if (isCustomFormat(quality)) {
-        // If the source is already lossy, transcoding would degrade quality
-        // further (lossy → lossy).  Return the blob as-is instead.
-        if (!sourceIsLossless) {
-            return blob;
-        }
         const format = getCustomFormat(quality);
         if (format) {
+            // Skip the transcode if the source already matches the target container
+            // (e.g. a provider unexpectedly serves AAC for FFMPEG_AAC_*). Avoids a
+            // pointless lossy→lossy re-encode.
+            if (extension === format.extension) {
+                return blob;
+            }
             try {
                 blob = await transcodeWithCustomFormat(blob, format, onProgress, signal);
 
@@ -110,29 +120,6 @@ export async function applyAudioPostProcessing(
                 }
                 throw encodingError;
             }
-        }
-    }
-
-    // Source is lossless but user requested lossy quality (HIGH/LOW).
-    // This can happen when Qobuz returns FLAC regardless of the quality param.
-    // Transcode to AAC to match expected lossy output.
-    if (sourceIsLossless && !statedLossless && !isCustomFormat(quality)) {
-        try {
-            const bitrateMap: Record<string, string> = { HIGH: '320k', FFMPEG_AAC_256: '256k', LOW: '96k' };
-            const bitrate = bitrateMap[quality] || '256k';
-            blob = await ffmpeg(blob, {
-                args: ['-map_metadata', '-1', '-c:a', 'aac', '-b:a', bitrate],
-                outputName: 'output.m4a',
-                outputMime: 'audio/mp4',
-                onProgress,
-                signal,
-            });
-            return blob;
-        } catch (error) {
-            if ((error as Error)?.name === 'AbortError' || signal?.aborted) {
-                throw error;
-            }
-            console.warn('Lossy transcode failed, returning lossless source:', error);
         }
     }
 
