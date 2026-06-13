@@ -11679,9 +11679,107 @@ img.cd {
     color: var(--muted-foreground);
 }
 
+.donate-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.donate-actions[hidden] {
+    display: none;
+}
+
 .donate-kofi-btn {
     text-decoration: none;
+}
+
+.donate-crypto-btn {
+    background-color: var(--secondary);
+    color: var(--foreground);
+}
+
+.donate-crypto-section {
     margin-bottom: 2rem;
+}
+
+.donate-crypto-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--foreground);
+    margin-bottom: 0.25rem;
+    text-align: center;
+}
+
+.donate-crypto-subtitle {
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+    margin-bottom: 1.25rem;
+    text-align: center;
+}
+
+.donate-crypto-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.crypto-wallet {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    background: rgb(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    cursor: pointer;
+    text-align: left;
+    color: var(--foreground);
+    font: inherit;
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast);
+}
+
+.crypto-wallet:hover {
+    background: var(--secondary);
+    border-color: var(--primary);
+}
+
+.crypto-wallet-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.crypto-wallet-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.crypto-wallet-addr {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.crypto-wallet-copy-icon {
+    flex-shrink: 0;
+    color: var(--muted-foreground);
+    pointer-events: none;
+}
+
+.crypto-wallet:hover .crypto-wallet-copy-icon {
+    color: var(--primary);
 }
 
 .donate-alt-section {
