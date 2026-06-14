@@ -1889,7 +1889,7 @@ export class LosslessAPI {
             const data = await res.json();
             if (!data?.url || !data?.blowfishKey) return null;
             return {
-                url: data.url,
+                url: data.audioUrl,
                 blowfishKey: data.blowfishKey,
                 format: data.format || format,
                 encryption: data.encryption || 'BF_CBC_STRIPE',
