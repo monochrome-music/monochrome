@@ -21,6 +21,10 @@ package-lock.json
 .envrc
 # vim
 .lazy.lua
+# Desktop app
+desktop/node_modules
+desktop/release
+desktop/out
 # Q-DL Files
 qobuz-api
 Qobuz-DL

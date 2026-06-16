@@ -1,0 +1,65 @@
+{
+    "name": "monochrome-desktop",
+    "version": "2.5.1",
+    "description": "Monochrome - Open-source music streaming desktop app",
+    "main": "main.js",
+    "author": "Monochrome Music",
+    "license": "Apache-2.0",
+    "scripts": {
+        "start": "electron .",
+        "dev": "electron . --dev",
+        "build": "electron-builder",
+        "build:win": "electron-builder --win",
+        "build:mac": "electron-builder --mac",
+        "build:linux": "electron-builder --linux"
+    },
+    "build": {
+        "appId": "tf.monochrome.desktop",
+        "productName": "Monochrome",
+        "directories": {
+            "output": "release"
+        },
+        "files": [
+            "main.js",
+            "preload.js",
+            "package.json"
+        ],
+        "extraResources": [
+            {
+                "from": "../dist",
+                "to": "web",
+                "filter": ["**/*"]
+            }
+        ],
+        "win": {
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": ["x64", "arm64"]
+                },
+                "portable"
+            ],
+            "icon": "../public/assets/256.png"
+        },
+        "mac": {
+            "target": ["dmg", "zip"],
+            "icon": "../public/assets/256.png",
+            "category": "public.app-category.music"
+        },
+        "linux": {
+            "target": ["AppImage", "deb"],
+            "icon": "../public/assets/256.png",
+            "category": "Audio"
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true
+        }
+    },
+    "devDependencies": {
+        "electron": "^35.0.0",
+        "electron-builder": "^26.0.0"
+    }
+}

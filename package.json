@@ -19,7 +19,11 @@
         "lint": "bun run lint:js && bun run lint:css && bun run lint:html",
         "format": "prettier --write .",
         "lhci": "lhci",
-        "lhci:autorun": "npm run build && lhci autorun"
+        "lhci:autorun": "npm run build && lhci autorun",
+        "desktop:install": "cd desktop && npm install",
+        "desktop:dev": "npm run build && cd desktop && npm start -- --dev",
+        "desktop:start": "npm run build && cd desktop && npm start",
+        "desktop:build": "npm run build && cd desktop && npm run build"
     },
     "repository": {
         "type": "git",
