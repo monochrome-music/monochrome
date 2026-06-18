@@ -260,8 +260,10 @@ export class UIRenderer {
         });
 
         window.addEventListener('refresh-home-editors-picks', async () => {
-            await this.renderHomeEditorsPicks(true, 'home-editors-picks');
-            await this.renderHomeEditorsPicks(true, 'home-editors-picks-empty');
+            const container = document.getElementById('home-editors-picks');
+            if (container && container.children.length > 0) {
+                await this.renderHomeEditorsPicks(true, 'home-editors-picks');
+            }
         });
 
         this.loadDonateGoal();
@@ -2858,8 +2860,6 @@ export class UIRenderer {
 
             const welcomeEl = document.getElementById('home-welcome');
             const contentEl = document.getElementById('home-content');
-            const editorsPicksSectionEmpty = document.getElementById('home-editors-picks-section-empty');
-            const editorsPicksSection = document.getElementById('home-editors-picks-section');
 
             const history = await db.getHistory();
             const favorites = await db.getFavorites('track');
@@ -2867,22 +2867,9 @@ export class UIRenderer {
 
             const hasActivity = history.length > 0 || favorites.length > 0 || playlists.length > 0;
 
-            // Handle Editor's Picks visibility based on settings
-            if (!homePageSettings.shouldShowEditorsPicks()) {
-                if (editorsPicksSectionEmpty) editorsPicksSectionEmpty.style.display = 'none';
-                if (editorsPicksSection) editorsPicksSection.style.display = 'none';
-            } else {
-                // Show empty-state section at top when no activity, hide the bottom one
-                if (editorsPicksSectionEmpty) editorsPicksSectionEmpty.style.display = hasActivity ? 'none' : '';
-                // Show bottom section when has activity, render it
-                if (editorsPicksSection) editorsPicksSection.style.display = hasActivity ? '' : 'none';
-            }
-
-            // Render editor's picks in the visible container
-            if (hasActivity) {
-                await this.renderHomeEditorsPicks(false, 'home-editors-picks');
-            } else {
-                await this.renderHomeEditorsPicks(false, 'home-editors-picks-empty');
+            const editorsPicksTab = document.querySelector('.home-tab[data-tab="editors-picks"]');
+            if (editorsPicksTab) {
+                editorsPicksTab.style.display = homePageSettings.shouldShowEditorsPicks() ? '' : 'none';
             }
 
             if (!hasActivity) {
@@ -2949,6 +2936,9 @@ export class UIRenderer {
 
                 if (tab.dataset.tab === 'explore') {
                     await this.renderExplorePage();
+                }
+                if (tab.dataset.tab === 'editors-picks') {
+                    await this.renderHomeEditorsPicks(false, 'home-editors-picks');
                 }
                 if (tab.dataset.tab === 'aoty') {
                     await this.renderAOTYPage();
