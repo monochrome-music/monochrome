@@ -103,28 +103,83 @@ export class Player {
             });
         }
 
-        const waitForImagesLoading = () => {
-            const images = Array.from(document.images).filter((img) => !img.complete);
-            if (images.length === 0) return Promise.resolve();
-            return Promise.all(
-                images.map(
-                    (img) =>
-                        new Promise((res) => {
-                            img.onload = img.onerror = res;
-                        })
-                )
-            );
-        };
+        this.shakaReady = this._initShaka();
 
-        if (document.readyState !== 'complete') {
-            await new Promise((resolve) => window.addEventListener('load', resolve));
-        }
-        await waitForImagesLoading();
+        this.loadQueueState();
+        await this.setupMediaSession();
 
-        // Initialize Shaka player
-        const shaka = await import('shaka-player');
-        shaka.polyfill.installAll();
-        if (shaka.Player.isBrowserSupported()) {
+        this.radioEnabled = radioSettings.isEnabled();
+        this.radioSeeds = [];
+        this.isFetchingRadio = false;
+        this.radioFetchPromise = null;
+
+        this.autoplayEnabled = autoplaySettings.isEnabled();
+        this.autoplaySeeds = [];
+        this.isFetchingAutoplay = false;
+        this.autoplayFetchPromise = null;
+        this._recentlyPlayedIds = [];
+        this._maxRecentlyPlayed = 100;
+
+        this.playbackSequence = 0;
+
+        window.addEventListener('beforeunload', async () => {
+            await this.saveQueueState();
+            import('./listening-tracker.js')
+                .then(({ listeningTracker }) => {
+                    listeningTracker.onTrackEnd();
+                    listeningTracker.forceFlush();
+                })
+                .catch(() => {});
+        });
+
+        document.addEventListener('visibilitychange', async () => {
+            const el = this.activeElement;
+            if (document.visibilityState === 'hidden' && !el.paused) {
+                void audioContextManager.resume();
+            }
+            if (document.visibilityState === 'visible' && !el.paused) {
+                if (!audioContextManager.isReady()) {
+                    audioContextManager.init(el);
+                }
+                await audioContextManager.resume();
+            }
+            if (document.visibilityState === 'visible' && this.autoplayBlocked) {
+                this.autoplayBlocked = false;
+                el.play().catch(() => {});
+            }
+        });
+
+        this._setupVideoSync();
+        this._setupAnimatedCoverSync();
+    }
+
+    async _initShaka() {
+        try {
+            const waitForImagesLoading = () => {
+                const images = Array.from(document.images).filter((img) => !img.complete);
+                if (images.length === 0) return Promise.resolve();
+                return Promise.all(
+                    images.map(
+                        (img) =>
+                            new Promise((res) => {
+                                img.onload = img.onerror = res;
+                            })
+                    )
+                );
+            };
+
+            if (document.readyState !== 'complete') {
+                await new Promise((resolve) => window.addEventListener('load', resolve));
+            }
+            await waitForImagesLoading();
+
+            const shaka = await import('shaka-player');
+            shaka.polyfill.installAll();
+            if (!shaka.Player.isBrowserSupported()) {
+                console.error('Browser not supported for Shaka Player');
+                return;
+            }
+
             this.shakaPlayer = new shaka.Player();
             this.shakaPlayer.configure({
                 streaming: {
@@ -160,61 +215,10 @@ export class Player {
 
             this.shakaInitialized = false;
 
-            // Monitor and bridge different codec groups (e.g. AAC to FLAC) since native ABR isolates them
             setInterval(this.evaluateCrossCodecAbr.bind(this), 3000);
-        } else {
-            console.error('Browser not supported for Shaka Player');
+        } catch (e) {
+            console.error('Shaka Player initialization failed:', e);
         }
-
-        this.loadQueueState();
-        await this.setupMediaSession();
-
-        this.radioEnabled = radioSettings.isEnabled();
-        this.radioSeeds = [];
-        this.isFetchingRadio = false;
-        this.radioFetchPromise = null;
-
-        this.autoplayEnabled = autoplaySettings.isEnabled();
-        this.autoplaySeeds = [];
-        this.isFetchingAutoplay = false;
-        this.autoplayFetchPromise = null;
-        this._recentlyPlayedIds = [];
-        this._maxRecentlyPlayed = 100;
-
-        this.playbackSequence = 0;
-
-        window.addEventListener('beforeunload', async () => {
-            await this.saveQueueState();
-            import('./listening-tracker.js')
-                .then(({ listeningTracker }) => {
-                    listeningTracker.onTrackEnd();
-                    listeningTracker.forceFlush();
-                })
-                .catch(() => {});
-        });
-
-        // Handle visibility change - AudioContext can be suspended when backgrounded
-        document.addEventListener('visibilitychange', async () => {
-            const el = this.activeElement;
-            if (document.visibilityState === 'hidden' && !el.paused) {
-                // Proactively resume context when going to background to prevent suspension
-                void audioContextManager.resume();
-            }
-            if (document.visibilityState === 'visible' && !el.paused) {
-                // Ensure audio context is resumed when user returns to the app
-                if (!audioContextManager.isReady()) {
-                    audioContextManager.init(el);
-                }
-                await audioContextManager.resume();
-            }
-            if (document.visibilityState === 'visible' && this.autoplayBlocked) {
-                this.autoplayBlocked = false;
-                el.play().catch(() => {});
-            }
-        });
-
-        this._setupVideoSync();
-        this._setupAnimatedCoverSync();
     }
 
     _setupAnimatedCoverSync() {
@@ -984,6 +988,7 @@ export class Player {
     }
 
     async playTrackFromQueue(startTime = 0, recursiveCount = 0, isRetry = false, options = {}) {
+        await this.shakaReady;
         const { preserveGestureToken = false } = options;
         if (!isRetry) {
             this.isFallbackRetry = false;
