@@ -1888,6 +1888,7 @@
                     <div class="home-header-tabs">
                         <button class="home-tab active" data-tab="for-you">Home</button>
                         <button class="home-tab" data-tab="explore">Hot & New</button>
+                        <button class="home-tab" data-tab="editors-picks">Editor's Picks</button>
                         <button class="home-tab" data-tab="aoty">AOTY</button>
                     </div>
 
@@ -1898,24 +1899,6 @@
                                 You haven't listened to anything yet. Search for your favorite songs to get started!
                             </p>
                         </div>
-
-                        <section
-                            class="content-section"
-                            id="home-editors-picks-section-empty"
-                            style="margin-top: 0; display: none"
-                        >
-                            <div
-                                style="
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: space-between;
-                                    margin-bottom: 1rem;
-                                "
-                            >
-                                <h2 class="section-title" style="margin-bottom: 0">Editor's Picks</h2>
-                            </div>
-                            <div class="card-grid" id="home-editors-picks-empty"></div>
-                        </section>
 
                         <div id="home-content" style="display: none">
                             <section class="content-section">
@@ -2012,19 +1995,6 @@
                                 </div>
                                 <div class="card-grid" id="home-recent-mixed"></div>
                             </section>
-                            <section class="content-section" id="home-editors-picks-section">
-                                <div
-                                    style="
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: space-between;
-                                        margin-bottom: 1rem;
-                                    "
-                                >
-                                    <h2 class="section-title" style="margin-bottom: 0">Editor's Picks</h2>
-                                </div>
-                                <div class="card-grid" id="home-editors-picks"></div>
-                            </section>
                         </div>
                     </div>
 
@@ -2032,6 +2002,12 @@
                         <div id="explore-content">
                             <div class="card-grid" id="explore-grid"></div>
                         </div>
+                    </div>
+
+                    <div id="home-view-editors-picks" class="home-view" style="display: none">
+                        <section class="content-section" style="margin-top: 0">
+                            <div class="card-grid" id="home-editors-picks"></div>
+                        </section>
                     </div>
 
                     <div id="home-view-aoty" class="home-view" style="display: none">
