@@ -90,11 +90,35 @@ export default defineConfig((_options) => {
             VitePWA({
                 registerType: 'prompt',
                 workbox: {
-                    globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+                    globPatterns: ['index.html', 'manifest.json'],
                     cleanupOutdatedCaches: true,
                     maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB limit
                     // Define runtime caching strategies
                     runtimeCaching: [
+                        {
+                            urlPattern: ({ request }) =>
+                                request.destination === 'script' || request.destination === 'worker',
+                            handler: 'CacheFirst',
+                            options: {
+                                cacheName: 'scripts',
+                                expiration: {
+                                    maxEntries: 200,
+                                    maxAgeSeconds: 60 * 24 * 60 * 60,
+                                },
+                            },
+                        },
+                        {
+                            urlPattern: ({ request }) =>
+                                request.destination === 'style' || request.destination === 'font',
+                            handler: 'CacheFirst',
+                            options: {
+                                cacheName: 'static-resources',
+                                expiration: {
+                                    maxEntries: 60,
+                                    maxAgeSeconds: 60 * 24 * 60 * 60,
+                                },
+                            },
+                        },
                         {
                             urlPattern: ({ request }) => request.destination === 'image',
                             handler: 'CacheFirst',
