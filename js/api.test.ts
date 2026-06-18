@@ -196,7 +196,7 @@ suite('Track Downloads', async () => {
             preferDolbyAtmos: false,
             trackId: SILENCE_TRACK,
             detection: Detection.AacHigh,
-            ffmpegCalls: 0,
+            ffmpegCalls: 1,
         },
         {
             display_quality: 'Low',
@@ -205,9 +205,18 @@ suite('Track Downloads', async () => {
             preferDolbyAtmos: false,
             trackId: SILENCE_TRACK,
             detection: Detection.AacLow,
-            ffmpegCalls: 0,
+            ffmpegCalls: 1,
         },
 
+        {
+            display_quality: 'AAC 320',
+            quality: 'FFMPEG_AAC_320',
+            container: 'flac',
+            preferDolbyAtmos: false,
+            trackId: SILENCE_TRACK,
+            detection: Detection.AacHigh,
+            ffmpegCalls: 1,
+        },
         {
             display_quality: 'AAC 256',
             quality: 'FFMPEG_AAC_256',
@@ -215,6 +224,15 @@ suite('Track Downloads', async () => {
             preferDolbyAtmos: false,
             trackId: TRACK_ATMOS,
             detection: Detection.AAC_256,
+            ffmpegCalls: 1,
+        },
+        {
+            display_quality: 'AAC 96',
+            quality: 'FFMPEG_AAC_96',
+            container: 'flac',
+            preferDolbyAtmos: false,
+            trackId: SILENCE_TRACK,
+            detection: Detection.AacLow,
             ffmpegCalls: 1,
         },
 
@@ -369,7 +387,7 @@ suite('Track Downloads', async () => {
                 expect(mp4.audioProperties().codec).toBe(Mp4Codec.AAC);
                 expect(mp4.audioProperties().bitsPerSample).toBe(16);
                 expect(mp4.audioProperties().sampleRate).toBe(44100);
-                expect(mp4.audioProperties().bitrate).toBe(97);
+                expect(mp4.audioProperties().bitrate).toBe(96);
                 break;
             }
             case Detection.AacReallyLow: {
@@ -387,7 +405,9 @@ suite('Track Downloads', async () => {
                 expect(mp4.audioProperties().codec).toBe(Mp4Codec.AAC);
                 expect(mp4.audioProperties().bitsPerSample).toBe(16);
                 expect(mp4.audioProperties().sampleRate).toBe(44100);
-                expect(mp4.audioProperties().bitrate).toBe(322);
+                // SILENCE_TRACK transcoded with -b:a 320k: ffmpeg's AAC encoder
+                // drops the actual bitrate well below the target on silent audio.
+                expect(mp4.audioProperties().bitrate).toBe(239);
                 break;
             }
 
