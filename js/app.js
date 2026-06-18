@@ -105,12 +105,22 @@ async function loadDownloadsModule() {
     return downloadsModule;
 }
 
+let contributorsLoaded = false;
+
 async function fetchcontributors() {
+    if (contributorsLoaded) return;
+    contributorsLoaded = true;
     try {
         const response = await fetch('https://api.samidy.com/api/contributors');
-        if (!response.ok) return;
+        if (!response.ok) {
+            contributorsLoaded = false;
+            return;
+        }
         const data1 = await response.json();
-        if (!Array.isArray(data1)) return;
+        if (!Array.isArray(data1)) {
+            contributorsLoaded = false;
+            return;
+        }
 
         let data = data1.filter(
             (user) => user.type !== 'Bot' && user.login !== 'edidealt' && user.login !== 'satanyahoo'
@@ -139,13 +149,12 @@ async function fetchcontributors() {
             con.appendChild(userDIV);
         });
     } catch (e) {
+        contributorsLoaded = false;
         const con = document.querySelector('.about-contributors-failed');
         if (!con) return;
-        const userDIV = document.createElement('div');
-        userDIV.innerHTML = `
+        con.innerHTML = `
         <h4 style="text-align: center; color: var(--muted-foreground);">Failed to Fetch Contributor List</h4>
         `;
-        con.appendChild(userDIV);
     }
 }
 
@@ -485,7 +494,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize tracker
     initTracker().catch(console.error);
 
-    await fetchcontributors();
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
 
@@ -2609,6 +2617,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         await router();
+        if (window.location.pathname.replace(/\/+$/, '') === '/about') {
+            fetchcontributors();
+        }
         updateTabTitle(Player.instance);
     };
 
