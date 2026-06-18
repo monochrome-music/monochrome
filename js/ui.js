@@ -4389,9 +4389,11 @@ export class UIRenderer {
         this.searchAbortController = new AbortController();
         const signal = this.searchAbortController.signal;
 
+        this.setupSearchTabsLazyLoad();
+
         try {
             const provider = this.api.getCurrentProvider();
-            const results = await this.api.search(query, { signal, provider });
+            const results = await this.api.search(query, { signal, provider, enrichArtists: false });
 
             let finalTracks = (results.tracks && results.tracks.items) || [];
             let finalVideos = (results.videos && results.videos.items) || [];
@@ -4413,7 +4415,7 @@ export class UIRenderer {
                         });
                     }
                 });
-                finalArtists = await this.api.tidalAPI.enrichArtistsWithPicture(Array.from(artistMap.values()));
+                finalArtists = Array.from(artistMap.values());
             }
 
             if (finalAlbums.length === 0 && finalTracks.length > 0) {
@@ -4430,52 +4432,19 @@ export class UIRenderer {
             finalVideos = finalVideos.filter((t) => !_isBlockedCopyright(t.copyright));
             finalAlbums = finalAlbums.filter((t) => !_isBlockedCopyright(t.copyright));
 
-            // Track search with results
-            const totalResults = finalTracks.length + finalArtists.length + finalAlbums.length + finalPlaylists.length;
+            this._searchState = {
+                query,
+                tracks: finalTracks,
+                videos: finalVideos,
+                artists: finalArtists,
+                albums: finalAlbums,
+                playlists: finalPlaylists,
+                artistsEnriched: false,
+                rendered: {},
+            };
 
-            if (finalTracks.length) {
-                await this.renderListWithTracks(tracksContainer, finalTracks, true, false, false, true);
-            } else {
-                tracksContainer.innerHTML = createPlaceholder('No tracks found.');
-            }
-
-            artistsContainer.innerHTML = finalArtists.length
-                ? finalArtists.map((artist) => this.createArtistCardHTML(artist)).join('')
-                : createPlaceholder('No artists found.');
-
-            for (const artist of finalArtists) {
-                const el = artistsContainer.querySelector(`[data-artist-id="${artist.id}"]`);
-                if (el) {
-                    trackDataStore.set(el, artist);
-                    await this.updateLikeState(el, 'artist', artist.id);
-                }
-            }
-
-            albumsContainer.innerHTML = finalAlbums.length
-                ? finalAlbums.map((album) => this.createAlbumCardHTML(album)).join('')
-                : createPlaceholder('No albums found.');
-
-            for (const album of finalAlbums) {
-                const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
-                if (el) {
-                    trackDataStore.set(el, album);
-                    await this.updateLikeState(el, 'album', album.id);
-                }
-            }
-
-            playlistsContainer.innerHTML = finalPlaylists.length
-                ? finalPlaylists.map((playlist) => this.createPlaylistCardHTML(playlist)).join('')
-                : createPlaceholder('No playlists found.');
-
-            for (const playlist of finalPlaylists) {
-                const el = playlistsContainer.querySelector(`[data-playlist-id="${playlist.uuid}"]`);
-                if (el) {
-                    trackDataStore.set(el, playlist);
-                    await this.updateLikeState(el, 'playlist', playlist.uuid);
-                }
-            }
-
-            await this.renderPodcastSearchResults(query);
+            const activeTab = document.querySelector('#page-search .search-tab.active')?.dataset.tab || 'tracks';
+            await this.renderSearchTab(activeTab);
         } catch (error) {
             if (error.name === 'AbortError') return;
             console.error('Search failed:', error);
@@ -4485,6 +4454,100 @@ export class UIRenderer {
             albumsContainer.innerHTML = errorMsg;
             playlistsContainer.innerHTML = errorMsg;
             podcastsContainer.innerHTML = errorMsg;
+        }
+    }
+
+    setupSearchTabsLazyLoad() {
+        const page = document.getElementById('page-search');
+        if (!page || page.dataset.lazyBound) return;
+        page.dataset.lazyBound = 'true';
+        page.querySelectorAll('.search-tab').forEach((tab) => {
+            tab.addEventListener('click', () => {
+                this.renderSearchTab(tab.dataset.tab);
+            });
+        });
+    }
+
+    async renderSearchTab(tabName) {
+        const state = this._searchState;
+        if (!state || state.rendered[tabName]) return;
+        state.rendered[tabName] = true;
+
+        switch (tabName) {
+            case 'tracks':
+                await this._renderSearchTracks(state);
+                break;
+            case 'albums':
+                await this._renderSearchAlbums(state);
+                break;
+            case 'artists':
+                await this._renderSearchArtists(state);
+                break;
+            case 'playlists':
+                await this._renderSearchPlaylists(state);
+                break;
+            case 'podcasts':
+                await this.renderPodcastSearchResults(state.query);
+                break;
+        }
+    }
+
+    async _renderSearchTracks(state) {
+        const tracksContainer = document.getElementById('search-tracks-container');
+        if (state.tracks.length) {
+            await this.renderListWithTracks(tracksContainer, state.tracks, true, false, false, true);
+        } else {
+            tracksContainer.innerHTML = createPlaceholder('No tracks found.');
+        }
+    }
+
+    async _renderSearchAlbums(state) {
+        const albumsContainer = document.getElementById('search-albums-container');
+        albumsContainer.innerHTML = state.albums.length
+            ? state.albums.map((album) => this.createAlbumCardHTML(album)).join('')
+            : createPlaceholder('No albums found.');
+        for (const album of state.albums) {
+            const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
+            if (el) {
+                trackDataStore.set(el, album);
+                await this.updateLikeState(el, 'album', album.id);
+            }
+        }
+    }
+
+    async _renderSearchArtists(state) {
+        const artistsContainer = document.getElementById('search-artists-container');
+        if (!state.artistsEnriched && state.artists.length) {
+            try {
+                state.artists = await this.api.tidalAPI.enrichArtistsWithPicture(state.artists);
+            } catch (e) {
+                console.warn('Artist enrichment failed:', e);
+            }
+            state.artistsEnriched = true;
+        }
+        artistsContainer.innerHTML = state.artists.length
+            ? state.artists.map((artist) => this.createArtistCardHTML(artist)).join('')
+            : createPlaceholder('No artists found.');
+        for (const artist of state.artists) {
+            const el = artistsContainer.querySelector(`[data-artist-id="${artist.id}"]`);
+            if (el) {
+                trackDataStore.set(el, artist);
+                await this.updateLikeState(el, 'artist', artist.id);
+            }
+        }
+    }
+
+    async _renderSearchPlaylists(state) {
+        const playlistsContainer = document.getElementById('search-playlists-container');
+        playlistsContainer.innerHTML = state.playlists.length
+            ? state.playlists.map((playlist) => this.createPlaylistCardHTML(playlist)).join('')
+            : createPlaceholder('No playlists found.');
+        for (const playlist of state.playlists) {
+            const el = playlistsContainer.querySelector(`[data-playlist-id="${playlist.uuid}"]`);
+            if (el) {
+                trackDataStore.set(el, playlist);
+                await this.updateLikeState(el, 'playlist', playlist.uuid);
+            }
         }
     }
 

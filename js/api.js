@@ -626,7 +626,9 @@ export class LosslessAPI {
 
             const [enrichedTracks, enrichedArtists] = await Promise.all([
                 this.enrichTracksWithAlbumCover(preparedTracks),
-                this.enrichArtistsWithPicture(preparedArtists),
+                options.enrichArtists === false
+                    ? Promise.resolve(preparedArtists)
+                    : this.enrichArtistsWithPicture(preparedArtists),
             ]);
 
             const results = {
