@@ -52,13 +52,6 @@ export class AuthManager {
             if (params.has('secret')) {
                 storeAuthToken(params.get('secret'));
             }
-            try {
-                const { Capacitor } = await import('@capacitor/core');
-                if (Capacitor.isNativePlatform()) {
-                    const { Browser } = await import('@capacitor/browser');
-                    await Browser.close();
-                }
-            } catch {}
             window.history.replaceState({}, '', window.location.pathname);
         }
 
