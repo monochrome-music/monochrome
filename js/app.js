@@ -2646,7 +2646,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // PWA Update Logic
-    if (window.__AUTH_GATE__) {
+    let isNativeApp = false;
+    try {
+        const { Capacitor } = await import('@capacitor/core');
+        isNativeApp = Capacitor.isNativePlatform();
+    } catch {
+    }
+
+    if (isNativeApp) {
+        await disablePwaForAuthGate().catch(console.error);
+    } else if (window.__AUTH_GATE__) {
         await disablePwaForAuthGate().catch(console.error);
     } else {
         const updateSW = registerSW({
