@@ -84,10 +84,35 @@ export class AuthManager {
 
     async _signInSocial(provider) {
         try {
+            const callbackURL = window.location.origin + '/index.html';
+            const errorCallbackURL = window.location.origin + '/index.html';
+
+            let isNativeApp = false;
+            try {
+                const { Capacitor } = await import('@capacitor/core');
+                isNativeApp = Capacitor.isNativePlatform();
+            } catch {}
+
+            if (isNativeApp) {
+                const response = await fetch(`${AUTH_BASE_URL}/api/auth/sign-in/social`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ provider, callbackURL, errorCallbackURL }),
+                });
+                const data = await response.json();
+                if (!data?.url) throw new Error('No redirect URL returned from auth server');
+
+                const browserMod = '@capacitor/browser';
+                const { Browser } = await import(/* @vite-ignore */ browserMod);
+                await Browser.open({ url: data.url });
+                return;
+            }
+
             await authClient.signIn.social({
                 provider,
-                callbackURL: window.location.origin + '/index.html',
-                errorCallbackURL: window.location.origin + '/index.html',
+                callbackURL,
+                errorCallbackURL,
             });
         } catch (error) {
             console.error('Login failed:', error);
