@@ -103,8 +103,8 @@ export class AuthManager {
                 const data = await response.json();
                 if (!data?.url) throw new Error('No redirect URL returned from auth server');
 
-                const browserMod = '@capacitor/browser';
-                const { Browser } = await import(/* @vite-ignore */ browserMod);
+                const { registerPlugin } = await import('@capacitor/core');
+                const Browser = registerPlugin('Browser');
                 await Browser.open({ url: data.url });
                 return;
             }
