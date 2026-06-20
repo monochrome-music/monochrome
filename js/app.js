@@ -2650,8 +2650,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const { Capacitor } = await import('@capacitor/core');
         isNativeApp = Capacitor.isNativePlatform();
-    } catch {
-    }
+    } catch {}
 
     if (isNativeApp) {
         await disablePwaForAuthGate().catch(console.error);
