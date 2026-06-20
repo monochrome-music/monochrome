@@ -86,8 +86,8 @@ export class AuthManager {
         try {
             await authClient.signIn.social({
                 provider,
-                callbackURL,
-                errorCallbackURL,
+                callbackURL: window.location.origin + '/index.html',
+                errorCallbackURL: window.location.origin + '/index.html',
             });
         } catch (error) {
             console.error('Login failed:', error);
