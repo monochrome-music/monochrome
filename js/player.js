@@ -533,12 +533,16 @@ export class Player {
         if (this.isIOS) {
             // iOS: set handlers only when playback starts. Setting them in the constructor makes
             // the lock screen show +10/-10. Registering on first 'playing' gives next/previous track
-            this.audio.addEventListener('playing', () => setHandlers(), { once: true });
+            this.audio.addEventListener('playing', () => setHandlers().catch(() => {}), { once: true });
             if (this.video) {
-                this.video.addEventListener('playing', () => setHandlers(), { once: true });
+                this.video.addEventListener('playing', () => setHandlers().catch(() => {}), { once: true });
             }
         } else {
-            await setHandlers();
+            try {
+                await setHandlers();
+            } catch (e) {
+                console.warn('MediaSession action handlers not registered:', e);
+            }
         }
     }
 
@@ -2556,7 +2560,7 @@ export class Player {
 
     updateMediaSessionPlaybackState() {
         const isPlaying = !this.activeElement.paused;
-        void MediaSession.setPlaybackState({ playbackState: isPlaying ? 'playing' : 'paused' });
+        MediaSession.setPlaybackState({ playbackState: isPlaying ? 'playing' : 'paused' }).catch(() => {});
 
         // Start/stop Android foreground service to prevent background audio throttling
         this._updateBackgroundAudioService(isPlaying);
