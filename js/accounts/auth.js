@@ -87,9 +87,11 @@ export class AuthManager {
             const callbackURL = window.location.origin + '/index.html';
             const errorCallbackURL = window.location.origin + '/index.html';
 
-            const isCapacitorNative = !!(window.Capacitor
-                && window.Capacitor.getPlatform
-                && window.Capacitor.getPlatform() !== 'web');
+            const isCapacitorNative = !!(
+                window.Capacitor &&
+                window.Capacitor.getPlatform &&
+                window.Capacitor.getPlatform() !== 'web'
+            );
 
             if (isCapacitorNative) {
                 const res = await fetch(`${AUTH_BASE_URL}/api/auth/sign-in/social`, {
