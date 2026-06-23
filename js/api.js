@@ -1809,9 +1809,12 @@ export class LosslessAPI {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-                const trackRes = await fetch(getProxyUrl(`${baseUrl}/api/get-music?q=${encodeURIComponent(isrc)}&offset=0`), {
-                    signal: controller.signal,
-                });
+                const trackRes = await fetch(
+                    getProxyUrl(`${baseUrl}/api/get-music?q=${encodeURIComponent(isrc)}&offset=0`),
+                    {
+                        signal: controller.signal,
+                    }
+                );
                 clearTimeout(timeoutId);
                 if (!trackRes.ok) continue;
                 const trackJson = await trackRes.json();
@@ -2539,8 +2542,16 @@ export class LosslessAPI {
 
     scoreAmazonSearchResult(track, candidate) {
         const titleScore = this.scoreAmazonTextMatch(this.getAmazonTrackTitle(track), candidate?.title, 45);
-        const artistScore = this.scoreAmazonTextMatch(this.getAmazonTrackArtist(track), this.getAmazonTrackArtist(candidate), 25);
-        const albumScore = this.scoreAmazonTextMatch(this.getAmazonTrackAlbum(track), this.getAmazonTrackAlbum(candidate), 15);
+        const artistScore = this.scoreAmazonTextMatch(
+            this.getAmazonTrackArtist(track),
+            this.getAmazonTrackArtist(candidate),
+            25
+        );
+        const albumScore = this.scoreAmazonTextMatch(
+            this.getAmazonTrackAlbum(track),
+            this.getAmazonTrackAlbum(candidate),
+            15
+        );
         const durationScore = this.scoreAmazonDurationMatch(
             this.getAmazonTrackDuration(track),
             this.getAmazonTrackDuration(candidate)
@@ -2570,7 +2581,9 @@ export class LosslessAPI {
         const strongTitle = best.titleScore >= 35;
         const strongArtist = best.artistScore >= 19;
         const closeDuration =
-            !this.getAmazonTrackDuration(track) || !this.getAmazonTrackDuration(best.candidate) || best.durationScore >= 8;
+            !this.getAmazonTrackDuration(track) ||
+            !this.getAmazonTrackDuration(best.candidate) ||
+            best.durationScore >= 8;
         if (best.score < 62 || !strongTitle || !strongArtist || !closeDuration) {
             console.debug('Amazon Music search had no confident match:', {
                 track: {
@@ -2771,7 +2784,7 @@ export class LosslessAPI {
         }
 
         const track = await this.getTrackMetadata(id);
-        
+
         const canPlayAmazonCenc = canUseNativeAmazonCenc;
         const needsProxyDecryption = !canPlayAmazonCenc;
 
@@ -2803,9 +2816,7 @@ export class LosslessAPI {
             let playbackType = amazonResult.playbackType;
             let provider = amazonResult.provider;
             const shouldProxyAmazon =
-                needsProxyDecryption &&
-                !!amazonResult.decryptionKey &&
-                !!(amazonResult.sourceUrl || amazonResult.url);
+                needsProxyDecryption && !!amazonResult.decryptionKey && !!(amazonResult.sourceUrl || amazonResult.url);
 
             console.log('[Amazon SW Decrypter] stream decision', {
                 needsProxyDecryption,
@@ -2821,7 +2832,7 @@ export class LosslessAPI {
                     }
                 })(),
             });
-            
+
             // Route CENC streams through our custom SW decrypter on Safari/Firefox to bypass broken EME
             if (shouldProxyAmazon) {
                 streamUrl = `${window.location.protocol}//${window.location.host}/api/decrypt-stream?url=${encodeURIComponent(amazonResult.sourceUrl || amazonResult.url)}&key=${amazonResult.decryptionKey}&codec=${targetCodec}`;

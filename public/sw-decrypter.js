@@ -17,7 +17,7 @@ self.addEventListener('fetch', (event) => {
         const streamUrl = url.searchParams.get('url');
         const keyHex = url.searchParams.get('key');
         const targetCodec = url.searchParams.get('codec') || 'flac';
-        
+
         if (!streamUrl || !keyHex) {
             event.respondWith(new Response('Missing url or key', { status: 400 }));
             return;
@@ -45,16 +45,18 @@ async function handleDecryptStream(request, streamUrl, keyHex, targetCodec = 'fl
             return response;
         }
 
-        console.log(`[SW Decrypter] Intercepted stream request. Codec: ${targetCodec}, Target: ${streamUrl.substring(0, 50)}...`);
+        console.log(
+            `[SW Decrypter] Intercepted stream request. Codec: ${targetCodec}, Target: ${streamUrl.substring(0, 50)}...`
+        );
 
-        const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+        const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
         const cryptoKey = await crypto.subtle.importKey('raw', keyBytes, 'AES-CTR', false, ['decrypt']);
 
         const transformStream = new TransformStream(new Mp4DecryptTransformer(cryptoKey, targetCodec));
 
         const newHeaders = new Headers(response.headers);
         const rawFlacMode = targetCodec === 'flac-raw';
-        
+
         newHeaders.set('Accept-Ranges', 'none');
         newHeaders.set('Content-Type', getDecryptedContentType(targetCodec));
         newHeaders.set('Cache-Control', 'no-store');
@@ -69,7 +71,7 @@ async function handleDecryptStream(request, streamUrl, keyHex, targetCodec = 'fl
         return new Response(response.body.pipeThrough(transformStream), {
             status: 200,
             statusText: 'OK',
-            headers: newHeaders
+            headers: newHeaders,
         });
     } catch (error) {
         console.error('Decryption stream failed:', error);
@@ -92,7 +94,10 @@ async function handleHlsPlaylist(requestUrl, streamUrl, keyHex) {
             codec: 'flac-hls-init',
             end: metadata.moovEnd - 1,
         });
-        const targetDuration = Math.max(1, Math.ceil(Math.max(...metadata.segments.map((segment) => segment.duration))));
+        const targetDuration = Math.max(
+            1,
+            Math.ceil(Math.max(...metadata.segments.map((segment) => segment.duration)))
+        );
         const lines = [
             '#EXTM3U',
             '#EXT-X-VERSION:7',
@@ -128,8 +133,8 @@ async function handleHlsPlaylist(requestUrl, streamUrl, keyHex) {
             headers: {
                 'Content-Type': 'application/vnd.apple.mpegurl',
                 'Cache-Control': 'no-store, no-cache, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0',
+                Pragma: 'no-cache',
+                Expires: '0',
             },
         });
     } catch (error) {
@@ -153,8 +158,8 @@ async function handleHlsInit(requestUrl, streamUrl, keyHex) {
                 'Content-Type': 'audio/mp4',
                 'Content-Length': String(transformedBytes.length),
                 'Cache-Control': 'no-store, no-cache, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0',
+                Pragma: 'no-cache',
+                Expires: '0',
             },
         });
     } catch (error) {
@@ -191,8 +196,8 @@ async function handleHlsSegment(requestUrl, streamUrl, keyHex) {
                 'Content-Type': 'audio/mp4',
                 'Content-Length': String(transformedBytes.length),
                 'Cache-Control': 'no-store, no-cache, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0',
+                Pragma: 'no-cache',
+                Expires: '0',
             },
         });
     } catch (error) {
@@ -388,8 +393,13 @@ class Mp4DecryptTransformer {
 
                 const view = new DataView(this.buffer.buffer, this.buffer.byteOffset, 8);
                 this.currentBoxSize = view.getUint32(0);
-                this.currentBoxType = String.fromCharCode(view.getUint8(4), view.getUint8(5), view.getUint8(6), view.getUint8(7));
-                
+                this.currentBoxType = String.fromCharCode(
+                    view.getUint8(4),
+                    view.getUint8(5),
+                    view.getUint8(6),
+                    view.getUint8(7)
+                );
+
                 let headerSize = 8;
                 if (this.currentBoxSize === 1) {
                     if (this.buffer.length < 16) return;
@@ -397,7 +407,7 @@ class Mp4DecryptTransformer {
                     const view16 = new DataView(this.buffer.buffer, this.buffer.byteOffset, 16);
                     const high = view16.getUint32(8);
                     const low = view16.getUint32(12);
-                    this.currentBoxSize = (high * Math.pow(2, 32)) + low;
+                    this.currentBoxSize = high * Math.pow(2, 32) + low;
                     headerSize = 16;
                 }
 
@@ -458,7 +468,7 @@ class Mp4DecryptTransformer {
                 if (this.sampleSizes.length === 0 || this.currentSampleIndex >= this.sampleSizes.length) {
                     const remainingMdat = this.currentBoxSize - this.currentBoxDataRead;
                     const chunkToEnqueue = Math.min(this.buffer.length, remainingMdat);
-                    
+
                     if (chunkToEnqueue > 0) {
                         if (!this.rawFlacMode) {
                             controller.enqueue(this.buffer.slice(0, chunkToEnqueue));
@@ -481,12 +491,12 @@ class Mp4DecryptTransformer {
                 if (this.buffer.length < neededBytes) {
                     // Wait until we have the full sample to decrypt it properly with AES-CTR
                     // We could decrypt incrementally, but buffering per sample is simpler and FLAC samples are small
-                    return; 
+                    return;
                 }
 
                 const sampleData = this.buffer.slice(0, neededBytes);
                 this.buffer = this.buffer.slice(neededBytes);
-                
+
                 const decryptedData = await this.decryptSample(sampleData, this.sampleIVs[this.currentSampleIndex]);
                 this.enqueueFlacHeader(controller);
                 controller.enqueue(decryptedData);
@@ -514,23 +524,36 @@ class Mp4DecryptTransformer {
             this.flacMetadataBlocks = this.extractDfLaMetadata(boxData) || this.flacMetadataBlocks;
             let isFlac = false;
             for (let i = 8; i < boxData.length - 4; i++) {
-                if (boxData[i] === 0x65 && boxData[i+1] === 0x6e && boxData[i+2] === 0x63 && boxData[i+3] === 0x61) { // 'enca'
+                if (
+                    boxData[i] === 0x65 &&
+                    boxData[i + 1] === 0x6e &&
+                    boxData[i + 2] === 0x63 &&
+                    boxData[i + 3] === 0x61
+                ) {
+                    // 'enca'
                     if (this.targetCodec === 'flac' || this.targetCodec === 'flac-raw') {
                         boxData[i] = 0x66; // f
-                        boxData[i+1] = 0x4c; // L
-                        boxData[i+2] = 0x61; // a
-                        boxData[i+3] = 0x43; // C
+                        boxData[i + 1] = 0x4c; // L
+                        boxData[i + 2] = 0x61; // a
+                        boxData[i + 3] = 0x43; // C
                         isFlac = true;
                     } else if (this.targetCodec === 'mp4a') {
                         boxData[i] = 0x6d; // m
-                        boxData[i+1] = 0x70; // p
-                        boxData[i+2] = 0x34; // 4
-                        boxData[i+3] = 0x61; // a
+                        boxData[i + 1] = 0x70; // p
+                        boxData[i + 2] = 0x34; // 4
+                        boxData[i + 3] = 0x61; // a
                     }
                 }
-                
+
                 // If it's FLAC, synthesize dfLa box to replace sinf
-                if (isFlac && boxData[i] === 0x73 && boxData[i+1] === 0x69 && boxData[i+2] === 0x6e && boxData[i+3] === 0x66) { // 'sinf'
+                if (
+                    isFlac &&
+                    boxData[i] === 0x73 &&
+                    boxData[i + 1] === 0x69 &&
+                    boxData[i + 2] === 0x6e &&
+                    boxData[i + 3] === 0x66
+                ) {
+                    // 'sinf'
                     const sinfSize = view.getUint32(i - 4);
                     if (hasExistingDfLa) {
                         this.renameNestedBoxToFree(boxData, i - 4, sinfSize);
@@ -541,21 +564,60 @@ class Mp4DecryptTransformer {
                     // The dfLa box with dummy STREAMINFO is 50 bytes.
                     if (sinfSize >= 50) {
                         const dfLa = new Uint8Array([
-                            0x00, 0x00, 0x00, 0x32, // size = 50
-                            0x64, 0x66, 0x4C, 0x61, // 'dfLa'
-                            0x00, 0x00, 0x00, 0x00, // version/flags
-                            0x80, 0x00, 0x00, 0x22, // metadata block header
-                            0x10, 0x00, // min block
-                            0x10, 0x00, // max block
-                            0x00, 0x00, 0x00, // min frame size
-                            0x00, 0x00, 0x00, // max frame size
-                            0x0A, 0xC4, 0x42, 0xF0, // sr (44100), chan (2), bps (16), total samples high
-                            0x00, 0x00, 0x00, 0x00, // total samples low
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 // MD5
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x32, // size = 50
+                            0x64,
+                            0x66,
+                            0x4c,
+                            0x61, // 'dfLa'
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00, // version/flags
+                            0x80,
+                            0x00,
+                            0x00,
+                            0x22, // metadata block header
+                            0x10,
+                            0x00, // min block
+                            0x10,
+                            0x00, // max block
+                            0x00,
+                            0x00,
+                            0x00, // min frame size
+                            0x00,
+                            0x00,
+                            0x00, // max frame size
+                            0x0a,
+                            0xc4,
+                            0x42,
+                            0xf0, // sr (44100), chan (2), bps (16), total samples high
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00, // total samples low
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00,
+                            0x00, // MD5
                         ]);
                         boxData.set(dfLa, i - 4);
                         console.log('[SW Decrypter] Injected synthetic dfLa box successfully.');
-                        
+
                         const remaining = sinfSize - 50;
                         if (remaining >= 8) {
                             view.setUint32(i - 4 + 50, remaining);
@@ -650,24 +712,16 @@ class Mp4DecryptTransformer {
 
     createFallbackStreamInfo() {
         return new Uint8Array([
-            0x80, 0x00, 0x00, 0x22,
-            0x10, 0x00,
-            0x10, 0x00,
-            0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00,
-            0x0a, 0xc4, 0x42, 0xf0,
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
+            0x80, 0x00, 0x00, 0x22, 0x10, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0xc4, 0x42, 0xf0,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
         ]);
     }
 
     parseTfhd(boxData) {
         const view = new DataView(boxData.buffer, boxData.byteOffset);
-        const flags = view.getUint32(8) & 0xFFFFFF;
-        
+        const flags = view.getUint32(8) & 0xffffff;
+
         let offset = 16; // 8 byte header + 4 byte version/flags + 4 byte track_ID
         if (flags & 0x000001) offset += 8; // base_data_offset
         if (flags & 0x000002) offset += 4; // sample_description_index
@@ -679,9 +733,9 @@ class Mp4DecryptTransformer {
 
     parseTrun(boxData) {
         const view = new DataView(boxData.buffer, boxData.byteOffset);
-        const flags = view.getUint32(8) & 0xFFFFFF;
+        const flags = view.getUint32(8) & 0xffffff;
         const sampleCount = view.getUint32(12);
-        
+
         const dataOffsetPresent = (flags & 0x000001) !== 0;
         const firstSampleFlagsPresent = (flags & 0x000004) !== 0;
         const sampleDurationPresent = (flags & 0x000100) !== 0;
@@ -711,11 +765,11 @@ class Mp4DecryptTransformer {
 
     parseSenc(boxData) {
         const view = new DataView(boxData.buffer, boxData.byteOffset);
-        const flags = view.getUint32(8) & 0xFFFFFF;
+        const flags = view.getUint32(8) & 0xffffff;
         const sampleCount = view.getUint32(12);
 
         const ivSize = 8; // Amazon Music usually uses 8-byte IVs for CENC
-        
+
         let offset = 16;
         this.sampleIVs = [];
 
@@ -727,20 +781,21 @@ class Mp4DecryptTransformer {
             this.sampleIVs.push(iv);
             offset += ivSize;
 
-            if (flags & 0x000002) { // Subsample encryption present
+            if (flags & 0x000002) {
+                // Subsample encryption present
                 const subsampleCount = view.getUint16(offset);
-                offset += 2 + (subsampleCount * 6);
+                offset += 2 + subsampleCount * 6;
             }
         }
     }
 
     async decryptSample(sampleData, iv) {
         if (!iv) return sampleData; // Fallback if missing
-        
+
         try {
             const decryptedBuffer = await crypto.subtle.decrypt(
-                { name: 'AES-CTR', counter: iv, length: 64 }, 
-                this.cryptoKey, 
+                { name: 'AES-CTR', counter: iv, length: 64 },
+                this.cryptoKey,
                 sampleData
             );
             return new Uint8Array(decryptedBuffer);
