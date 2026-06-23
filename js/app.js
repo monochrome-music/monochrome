@@ -408,7 +408,8 @@ async function clearDevPwaRuntimeCaches() {
 }
 
 function getAmazonDecrypterServiceWorkerUrl() {
-    const baseUrl = import.meta.env.DEV && isSafari ? '/sw-amazon.js' : import.meta.env.DEV ? '/dev-dist/sw.js' : '/sw.js';
+    const baseUrl =
+        import.meta.env.DEV && isSafari ? '/sw-amazon.js' : import.meta.env.DEV ? '/dev-dist/sw.js' : '/sw.js';
     return `${baseUrl}?amazon-sw=${AMAZON_DECRYPTER_SW_VERSION}`;
 }
 
@@ -457,9 +458,12 @@ async function registerAmazonDecrypterServiceWorkerFallback() {
         });
 
         if (!navigator.serviceWorker.controller) {
-            console.info('[Amazon SW Decrypter] SW registered but this page is not controlled yet; reload manually if playback is not intercepted.', {
-                swVersion: AMAZON_DECRYPTER_SW_VERSION,
-            });
+            console.info(
+                '[Amazon SW Decrypter] SW registered but this page is not controlled yet; reload manually if playback is not intercepted.',
+                {
+                    swVersion: AMAZON_DECRYPTER_SW_VERSION,
+                }
+            );
         }
 
         return registration;
