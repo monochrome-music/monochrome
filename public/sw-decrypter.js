@@ -1,4 +1,4 @@
-self.__AMAZON_SW_DECRYPTER_VERSION__ = '2026-06-23-flac-hls-v6';
+self.__AMAZON_SW_DECRYPTER_VERSION__ = '2026-06-23-flac-hls-v8';
 console.log(`[SW Decrypter] Loaded ${self.__AMAZON_SW_DECRYPTER_VERSION__}`);
 
 self.addEventListener('install', (event) => {
@@ -53,38 +53,22 @@ async function handleDecryptStream(request, streamUrl, keyHex, targetCodec = 'fl
         const transformStream = new TransformStream(new Mp4DecryptTransformer(cryptoKey, targetCodec));
 
         const newHeaders = new Headers(response.headers);
-        const contentLength = newHeaders.get('Content-Length');
         const rawFlacMode = targetCodec === 'flac-raw';
         
-        newHeaders.set('Accept-Ranges', 'bytes');
+        newHeaders.set('Accept-Ranges', 'none');
         newHeaders.set('Content-Type', getDecryptedContentType(targetCodec));
         newHeaders.set('Cache-Control', 'no-store');
         newHeaders.delete('Content-Encoding');
         newHeaders.delete('Content-Disposition');
-        
-        let status = 200;
-        let statusText = 'OK';
-        
-        if (rawFlacMode) {
-            newHeaders.set('Accept-Ranges', 'none');
+        newHeaders.delete('Content-Range');
+
+        if (rawFlacMode || targetCodec === 'flac') {
             newHeaders.delete('Content-Length');
-            newHeaders.delete('Content-Range');
-        } else
-        // Safari strictly requires 206 Partial Content for media playback
-        if (contentLength) {
-            status = 206;
-            statusText = 'Partial Content';
-            newHeaders.set('Content-Range', `bytes 0-${parseInt(contentLength, 10) - 1}/${contentLength}`);
-        } else {
-            // If length is unknown, we can still try 206 with a wildcard
-            status = 206;
-            statusText = 'Partial Content';
-            newHeaders.set('Content-Range', `bytes 0-/*`);
         }
 
         return new Response(response.body.pipeThrough(transformStream), {
-            status,
-            statusText,
+            status: 200,
+            statusText: 'OK',
             headers: newHeaders
         });
     } catch (error) {
@@ -143,7 +127,9 @@ async function handleHlsPlaylist(requestUrl, streamUrl, keyHex) {
             status: 200,
             headers: {
                 'Content-Type': 'application/vnd.apple.mpegurl',
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'no-store, no-cache, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
             },
         });
     } catch (error) {
@@ -166,7 +152,9 @@ async function handleHlsInit(requestUrl, streamUrl, keyHex) {
             headers: {
                 'Content-Type': 'audio/mp4',
                 'Content-Length': String(transformedBytes.length),
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'no-store, no-cache, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
             },
         });
     } catch (error) {
@@ -202,7 +190,9 @@ async function handleHlsSegment(requestUrl, streamUrl, keyHex) {
             headers: {
                 'Content-Type': 'audio/mp4',
                 'Content-Length': String(transformedBytes.length),
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'no-store, no-cache, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
             },
         });
     } catch (error) {

@@ -604,6 +604,7 @@ export class Player {
                 const streamUrl = streamInfo.url;
 
                 if (streamInfo.playbackType?.includes('cenc')) continue;
+                if (this.isNativeAmazonHlsDecryptionUrl(streamUrl)) continue;
 
                 // Warm connection and pre-fetch
                 if (!streamUrl.startsWith('blob:')) {
@@ -701,6 +702,17 @@ export class Player {
     getAmazonNativeDecrypterCodec() {
         const isAacQuality = this.quality === 'HIGH' || this.quality === 'SD_HIGH' || this.quality === 'SD_LOW';
         return isAacQuality ? 'mp4a' : isSafari ? 'flac-hls' : 'flac';
+    }
+
+    isNativeAmazonHlsDecryptionUrl(url) {
+        if (!url || !url.includes('/api/decrypt-stream')) return false;
+
+        try {
+            const parsed = new URL(url, window.location.origin);
+            return parsed.searchParams.get('codec') === 'flac-hls';
+        } catch {
+            return url.includes('codec=flac-hls');
+        }
     }
 
     getNativeAmazonDecryptionUrl(streamInfo, streamUrl) {
@@ -1122,6 +1134,7 @@ export class Player {
             inactiveElement.pause();
             inactiveElement.src = '';
             inactiveElement.removeAttribute('src');
+            inactiveElement.load();
             inactiveElement.style.display = 'none';
             if (inactiveElement.parentElement !== document.body) {
                 document.body.appendChild(inactiveElement);
@@ -1135,6 +1148,7 @@ export class Player {
                 activeElement.pause();
                 activeElement.src = '';
                 activeElement.removeAttribute('src');
+                activeElement.load();
             }
         }
 
