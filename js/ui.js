@@ -362,7 +362,10 @@ export class UIRenderer {
                 if (item.type === 'user-playlist' && !item.cover && item.images && item.images.length > 0) {
                     const images = item.images.slice(0, 4);
                     const imgsHTML = images
-                        .map((src) => `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${this.api.getCoverUrl(src)}" loading="lazy">`)
+                        .map(
+                            (src) =>
+                                `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${this.api.getCoverUrl(src)}" loading="lazy">`
+                        )
                         .join('');
                     iconHTML = `<div class="pinned-item-collage">${imgsHTML}</div>`;
                 } else {
@@ -6357,7 +6360,12 @@ export class UIRenderer {
 
                                 unreleasedContainer.innerHTML = eras
                                     .map((e) =>
-                                        createProjectCardHTML(e, trackerArtistData, sheetId, e.tracks ? e.tracks.length : 0)
+                                        createProjectCardHTML(
+                                            e,
+                                            trackerArtistData,
+                                            sheetId,
+                                            e.tracks ? e.tracks.length : 0
+                                        )
                                     )
                                     .join('');
 
