@@ -648,7 +648,7 @@ export class ListeningPartyManager {
                 const coverUrl = api.getCoverUrl(track.artwork || track.cover || track.album?.cover);
                 display.innerHTML = `
                     <div class="party-now-playing">
-                        <img src="${coverUrl}" class="party-now-playing-cover" alt="">
+                        <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${coverUrl}" class="party-now-playing-cover" alt="">
                         <div class="party-now-playing-info">
                             <div class="party-now-playing-title">${escapeHtml(track.title || '')}</div>
                             <div class="party-now-playing-artist">${escapeHtml(getTrackArtists(track) || '')}</div>
@@ -676,7 +676,7 @@ export class ListeningPartyManager {
         list.innerHTML = this.members
             .map(
                 (m) =>
-                    `<div class="member-item" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--background-secondary); border-radius: var(--radius); border: 1px solid var(--border)"><img src="${m.avatar_url}" style="width: 40px; height: 40px; border-radius: 50%; background: var(--background-modifier-accent)"><div style="flex: 1; overflow: hidden"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">${m.name}</div>${m.is_host ? '<div style="color: var(--primary); font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Host</div>' : '<div style="color: var(--muted-foreground); font-size: 0.7rem">Listening</div>'}</div></div>`
+                    `<div class="member-item" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--background-secondary); border-radius: var(--radius); border: 1px solid var(--border)"><img crossorigin="anonymous" referrerpolicy="no-referrer" src="${m.avatar_url}" style="width: 40px; height: 40px; border-radius: 50%; background: var(--background-modifier-accent)"><div style="flex: 1; overflow: hidden"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">${m.name}</div>${m.is_host ? '<div style="color: var(--primary); font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Host</div>' : '<div style="color: var(--muted-foreground); font-size: 0.7rem">Listening</div>'}</div></div>`
             )
             .join('');
     }
@@ -696,7 +696,7 @@ export class ListeningPartyManager {
                     const artists = getTrackArtists(r.track);
                     const coverUrl = api.getCoverUrl(r.track.artwork || r.track.cover || r.track.album?.cover);
                     return `<div class="track-item" style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-bottom: 1px solid var(--border)">
-                    <img src="${coverUrl}" style="width: 48px; height: 48px; border-radius: 4px; object-fit: cover; flex-shrink: 0;">
+                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${coverUrl}" style="width: 48px; height: 48px; border-radius: 4px; object-fit: cover; flex-shrink: 0;">
                     <div class="track-info" style="flex: 1; min-width: 0;">
                         <div class="track-title" style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${r.track.title || 'Unknown Title'}</div>
                         <div class="track-artist" style="font-size: 0.8rem; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${artists} • Requested By ${r.requested_by || 'Member'}</div>
@@ -735,7 +735,7 @@ export class ListeningPartyManager {
 
         content = content.replace(urlRegex, (url) => {
             if (url.match(/\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/i)) {
-                return `<a href="${url}" target="_blank" class="chat-link">${url}</a><img src="${url}" style="max-width: 100%; border-radius: 8px; margin-top: 8px; display: block; cursor: pointer" onclick="window.open('${url}')">`;
+                return `<a href="${url}" target="_blank" class="chat-link">${url}</a><img crossorigin="anonymous" referrerpolicy="no-referrer" src="${url}" style="max-width: 100%; border-radius: 8px; margin-top: 8px; display: block; cursor: pointer" onclick="window.open('${url}')">`;
             }
             const ytMatch = url.match(
                 /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/i

@@ -266,7 +266,7 @@ export function initializeUIInteractions(player, api, ui) {
                 ${SVG_EQUAL(16)}
             </div>
             <div class="track-item-info">
-                <img src="${coverUrl}"
+                <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${coverUrl}"
                      class="track-item-cover" loading="lazy">
                 <div class="track-item-details">
                     <div class="title">${escapeHtml(trackTitle)} ${qualityBadge}</div>

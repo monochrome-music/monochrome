@@ -1,10 +1,16 @@
 // functions/unreleased/[sheetId].js
 
-const ARTISTS_NDJSON_URL = 'https://assets.artistgrid.cx/artists.ndjson';
+const ARTISTS_CSV_URL = 'https://artists.artistgrid.cx/artists.csv';
 const ASSETS_BASE_URL = 'https://assets.artistgrid.cx';
+
+// Some trackers are hosted at their own domain instead of a Google Sheets URL;
+// the domain itself doubles as the sheetId on the tracker API.
+const SPECIAL_TRACKER_DOMAINS = ['yetracker.net'];
 
 function getSheetId(url) {
     if (!url) return null;
+    const special = SPECIAL_TRACKER_DOMAINS.find((domain) => url.includes(domain));
+    if (special) return special;
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     return match ? match[1] : null;
 }
@@ -13,23 +19,66 @@ function normalizeArtistName(name) {
     return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+// Parse RFC4180-style CSV (quoted fields, escaped "" quotes, commas/newlines inside quotes)
+function parseCSVRows(text) {
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if (inQuotes) {
+            if (char === '"') {
+                if (text[i + 1] === '"') {
+                    field += '"';
+                    i++;
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                field += char;
+            }
+        } else if (char === '"') {
+            inQuotes = true;
+        } else if (char === ',') {
+            row.push(field);
+            field = '';
+        } else if (char === '\n' || char === '\r') {
+            if (char === '\r' && text[i + 1] === '\n') i++;
+            row.push(field);
+            rows.push(row);
+            row = [];
+            field = '';
+        } else {
+            field += char;
+        }
+    }
+    if (field.length > 0 || row.length > 0) {
+        row.push(field);
+        rows.push(row);
+    }
+    return rows;
+}
+
+function parseArtistsCSV(text) {
+    const rows = parseCSVRows(text).filter((r) => r.length > 1 || r[0]);
+    if (rows.length < 2) return [];
+    const headers = rows[0];
+    return rows.slice(1).map((row) => {
+        const obj = {};
+        headers.forEach((header, i) => {
+            obj[header] = row[i] ?? '';
+        });
+        return obj;
+    });
+}
+
 async function loadArtistsData() {
     try {
-        const response = await fetch(ARTISTS_NDJSON_URL);
+        const response = await fetch(ARTISTS_CSV_URL);
         if (!response.ok) throw new Error('Network response was not ok');
         const text = await response.text();
-        return text
-            .trim()
-            .split('\n')
-            .filter((line) => line.trim())
-            .map((line) => {
-                try {
-                    return JSON.parse(line);
-                } catch {
-                    return null;
-                }
-            })
-            .filter((item) => item !== null);
+        return parseArtistsCSV(text);
     } catch (e) {
         console.error('Failed to load Artists List:', e);
         return [];
