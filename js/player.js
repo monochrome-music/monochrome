@@ -402,6 +402,8 @@ export class Player {
                         };
                         if (coverEl.tagName === 'VIDEO') {
                             const img = document.createElement('img');
+                            img.crossOrigin = 'anonymous';
+                            img.referrerPolicy = 'no-referrer';
                             img.className = coverEl.className;
                             img.id = coverEl.id;
                             setImgSrcset(img);
@@ -1188,6 +1190,8 @@ export class Player {
                     let imgEl = coverEl;
                     if (coverEl.tagName === 'VIDEO') {
                         imgEl = document.createElement('img');
+                        imgEl.crossOrigin = 'anonymous';
+                        imgEl.referrerPolicy = 'no-referrer';
                         imgEl.className = coverEl.className;
                         imgEl.id = coverEl.id;
                         coverEl.replaceWith(imgEl);
