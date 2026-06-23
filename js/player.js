@@ -21,7 +21,7 @@ import {
     contentBlockingSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
-import { isIos, isSafari } from './platform-detection.js';
+import { isIos, isSafari, canUseNativeAmazonCenc } from './platform-detection.js';
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
 
@@ -694,6 +694,32 @@ export class Player {
 
     backfillReplayGainFromTrack(_track, _currentSequence) {}
 
+    shouldUseNativeAmazonDecrypter() {
+        return !canUseNativeAmazonCenc;
+    }
+
+    getAmazonNativeDecrypterCodec() {
+        const isAacQuality = this.quality === 'HIGH' || this.quality === 'SD_HIGH' || this.quality === 'SD_LOW';
+        return isAacQuality ? 'mp4a' : isSafari ? 'flac-hls' : 'flac';
+    }
+
+    getNativeAmazonDecryptionUrl(streamInfo, streamUrl) {
+        if (!this.shouldUseNativeAmazonDecrypter()) return null;
+        if (!streamInfo || streamInfo.provider !== 'amazon' || !streamInfo.decryptionKey || !streamUrl) return null;
+        if (streamUrl.includes('/api/decrypt-stream')) return null;
+
+        const sourceUrl = streamInfo.sourceUrl || streamUrl;
+        if (!sourceUrl || sourceUrl.startsWith('blob:') || sourceUrl.includes('.mpd')) return null;
+
+        const params = new URLSearchParams();
+        params.set('url', sourceUrl);
+        params.set('key', streamInfo.decryptionKey);
+        params.set('codec', this.getAmazonNativeDecrypterCodec());
+
+        console.warn('[Amazon SW Decrypter] Player rescued raw Amazon stream URL');
+        return `${window.location.protocol}//${window.location.host}/api/decrypt-stream?${params.toString()}`;
+    }
+
     tryStartPreloadedTrackImmediately({
         track,
         activeElement,
@@ -702,7 +728,11 @@ export class Player {
         startTime = 0,
         recursiveCount = 0,
     }) {
-        const streamInfo = this.preloadCache.get(track.id);
+        const cachedStreamInfo = this.preloadCache.get(track.id);
+        const rescuedStreamUrl = this.getNativeAmazonDecryptionUrl(cachedStreamInfo, cachedStreamInfo?.url);
+        const streamInfo = rescuedStreamUrl
+            ? { ...cachedStreamInfo, url: rescuedStreamUrl, playbackType: [], preloadManager: null, preloader: null }
+            : cachedStreamInfo;
         const streamUrl = streamInfo?.url;
         const canReuseAudioElement = previousActiveElement === this.audio && activeElement === this.audio;
 
@@ -1368,8 +1398,19 @@ export class Player {
                     : this.api.getStreamUrl(track.id, this.quality);
 
                 // We only need the legacy track info if we missed getting ReplayGain from the manifest endpoint
-                const resolvedStreamInfo = await streamInfoPromise;
+                let resolvedStreamInfo = await streamInfoPromise;
                 if (this.playbackSequence !== currentSequence) return;
+
+                const rescuedStreamUrl = this.getNativeAmazonDecryptionUrl(resolvedStreamInfo, resolvedStreamInfo.url);
+                if (rescuedStreamUrl) {
+                    resolvedStreamInfo = {
+                        ...resolvedStreamInfo,
+                        url: rescuedStreamUrl,
+                        playbackType: [],
+                        preloadManager: null,
+                        preloader: null,
+                    };
+                }
 
                 streamUrl = resolvedStreamInfo.url;
                 if (resolvedStreamInfo.provider === 'amazon' && resolvedStreamInfo.quality) {

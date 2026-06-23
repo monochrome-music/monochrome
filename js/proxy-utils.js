@@ -20,6 +20,9 @@ export const isTidalAudioUrl = (url) => {
 };
 
 export const getProxyUrl = (url) => {
+    if (!url) return url;
+    if (url.includes('/api/decrypt-stream')) return url;
+    
     if (isTidalAudioUrl(url)) {
         return `${AUDIO_PROXY_BASE_URL}${url}`;
     }

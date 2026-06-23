@@ -25,8 +25,11 @@ function getGitCommitHash() {
     }
 }
 
-export default defineConfig((_options) => {
+const decrypterVersion = '2026-06-23-flac-hls-v6';
+
+export default defineConfig(({ mode }) => {
     const commitHash = getGitCommitHash();
+    const isDev = mode === 'development';
 
     return {
         test: {
@@ -89,7 +92,16 @@ export default defineConfig((_options) => {
             svgUse(),
             VitePWA({
                 registerType: 'prompt',
+                devOptions: {
+                    enabled: true,
+                    type: 'classic',
+                    disableRuntimeConfig: true,
+                    suppressWarnings: true,
+                },
                 workbox: {
+                    importScripts: [`sw-decrypter.js?v=${decrypterVersion}`],
+                    skipWaiting: true,
+                    clientsClaim: true,
                     globPatterns: ['index.html', 'manifest.json'],
                     cleanupOutdatedCaches: true,
                     maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB limit
@@ -98,7 +110,7 @@ export default defineConfig((_options) => {
                         {
                             urlPattern: ({ request }) =>
                                 request.destination === 'script' || request.destination === 'worker',
-                            handler: 'CacheFirst',
+                            handler: isDev ? 'NetworkFirst' : 'CacheFirst',
                             options: {
                                 cacheName: 'scripts',
                                 expiration: {
