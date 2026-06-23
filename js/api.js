@@ -2502,7 +2502,7 @@ export class LosslessAPI {
             .replace(/\b(explicit|clean|remaster(?:ed)?|deluxe|bonus track|radio edit)\b/g, ' ')
             .replace(/[()[\]{}]/g, ' ')
             .replace(/&/g, ' and ')
-            .replace(/[^a-z0-9]+/g, ' ')
+            .replace(/[^\p{L}\p{N}]+/gu, ' ')
             .trim()
             .replace(/\s+/g, ' ');
     }
@@ -2606,7 +2606,7 @@ export class LosslessAPI {
         const album = this.getAmazonTrackAlbum(track);
         const cacheKey =
             title || artist
-                ? `search:v2:${this.normalizeAmazonSearchText(`${title} ${artist} ${album}`)}:${this.getAmazonTrackDuration(track) || 0}`
+                ? `search:v3:${this.normalizeAmazonSearchText(`${title} ${artist} ${album}`)}:${this.getAmazonTrackDuration(track) || 0}`
                 : `id:${tidalTrackId}`;
         if (this.amazonAsinCache.has(cacheKey)) {
             return this.amazonAsinCache.get(cacheKey);
