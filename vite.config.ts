@@ -25,7 +25,7 @@ function getGitCommitHash() {
     }
 }
 
-const decrypterVersion = '2026-06-23-flac-hls-v6';
+const decrypterVersion = '2026-06-23-flac-hls-v8';
 
 export default defineConfig(({ mode }) => {
     const commitHash = getGitCommitHash();

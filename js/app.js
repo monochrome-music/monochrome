@@ -57,7 +57,7 @@ import {
 } from './icons.js';
 import { HiFiClient } from './HiFi.js';
 
-const AMAZON_DECRYPTER_SW_VERSION = '2026-06-23-flac-hls-v6';
+const AMAZON_DECRYPTER_SW_VERSION = '2026-06-23-flac-hls-v8';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
@@ -456,9 +456,10 @@ async function registerAmazonDecrypterServiceWorkerFallback() {
             controlled: !!navigator.serviceWorker.controller,
         });
 
-        if (!navigator.serviceWorker.controller && sessionStorage.getItem('amazon-sw-reloaded') !== AMAZON_DECRYPTER_SW_VERSION) {
-            sessionStorage.setItem('amazon-sw-reloaded', AMAZON_DECRYPTER_SW_VERSION);
-            setTimeout(() => window.location.reload(), 50);
+        if (!navigator.serviceWorker.controller) {
+            console.info('[Amazon SW Decrypter] SW registered but this page is not controlled yet; reload manually if playback is not intercepted.', {
+                swVersion: AMAZON_DECRYPTER_SW_VERSION,
+            });
         }
 
         return registration;
@@ -2738,7 +2739,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         await disablePwaForAuthGate().catch(console.error);
     } else {
         await clearDevPwaRuntimeCaches();
-        await registerAmazonDecrypterServiceWorkerFallback();
+
+        if (import.meta.env.DEV && isSafari) {
+            await registerAmazonDecrypterServiceWorkerFallback();
+        }
 
         if (import.meta.env.DEV && isSafari) {
             console.log('[Amazon SW Decrypter] Using dedicated root-scope SW in Safari dev mode');
@@ -2753,6 +2757,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     console.warn('Service Worker registration failed:', error);
                 },
                 onNeedRefresh() {
+                    if (import.meta.env.DEV) {
+                        console.info('Service Worker update available in dev; reload manually when ready.');
+                        return;
+                    }
+
                     if (pwaUpdateSettings.isAutoUpdateEnabled()) {
                         // Auto-update: immediately activate the new service worker
                         updateSW(true);
