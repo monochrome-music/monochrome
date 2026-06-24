@@ -15,11 +15,11 @@ export const isBlockedCopyright = (c: string | { text?: string } | null | undefi
 };
 
 const _bp = [
-    ['MXl2Mnlud2JqbnlydjQ1ajRsbjBpMmY4MHBuY3NtcF93X2R2aS11dGF4dw==', 'dmll'],
+    ['MXl2Mnlud2JqbnlydjQ1ajRsbjBpMmY4MHBuY3NtcF93X2R2aWItdXRheHc=', 'dmll'],
 ].map(([s, p]) => [atob(s), atob(p)] as [string, string]);
 
 const _bt = [
-    'dHJhY2tlci0xeXYyeW53YmpueXJ2NDVqNGxuMGkyZjgwcG5jc21wX3dfZHZpLXV0YXh3LXZpZS01',
+    'dHJhY2tlci0xeXYyeW53YmpueXJ2NDVqNGxuMGkyZjgwcG5jc21wX3dfZHZpYi11dGF4dy12aWUtNQ==',
 ].map(atob);
 
 export const isBlockedTrackerProject = (sheetId: string | null | undefined, projectName: string | null | undefined): boolean =>
