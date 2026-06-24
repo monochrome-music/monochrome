@@ -186,6 +186,7 @@ export class AuthManager {
     constructor() {
         this.user = null;
         this.authListeners = [];
+        this.authRefreshId = 0;
         this.setupNativeOAuthListener().catch(console.error);
         this.init().catch(console.error);
     }
@@ -216,19 +217,25 @@ export class AuthManager {
     }
 
     async refreshAuthState() {
+        const refreshId = ++this.authRefreshId;
+        const applyUser = (user) => {
+            if (refreshId !== this.authRefreshId) return false;
+            this.user = normalizeUser(user);
+            this.updateUI(this.user);
+            this.authListeners.forEach((listener) => listener(this.user));
+            return true;
+        };
+
         try {
             const { data: session } = await authClient.getSession();
             const resolvedSession = session?.user ? session : await getSessionFromBearerToken();
-            this.user = normalizeUser(resolvedSession?.user);
-            this.updateUI(this.user);
-            this.authListeners.forEach((listener) => listener(this.user));
+            applyUser(resolvedSession?.user);
         } catch (err) {
             try {
                 const session = await getSessionFromBearerToken();
-                this.user = normalizeUser(session?.user);
-                this.updateUI(this.user);
-                this.authListeners.forEach((listener) => listener(this.user));
+                applyUser(session?.user);
             } catch (fallbackErr) {
+                if (refreshId !== this.authRefreshId) return;
                 console.warn('Session check failed:', fallbackErr || err);
                 this.user = null;
                 this.updateUI(null);
