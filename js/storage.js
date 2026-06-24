@@ -3077,7 +3077,7 @@ export const amazonMusicSettings = {
     CONVERTER_BASE_URL_KEY: 'amazon-music-converter-base-url',
     TURNSTILE_SITE_KEY: 'amazon-music-turnstile-site-key',
     TURNSTILE_BYPASS_TOKEN: 'amazon-music-turnstile-bypass-token',
-    DEFAULT_API_BASE_URL: 'https://amz.binimum.org',
+    DEFAULT_API_BASE_URL: 'https://amz.geeked.wtf',
     DEFAULT_CONVERTER_BASE_URL: 'https://t2a.geeked.wtf',
     DEFAULT_TURNSTILE_SITE_KEY: '0x4AAAAAADgxqF6QVMm0GLHH',
 
