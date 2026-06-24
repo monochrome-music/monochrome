@@ -1803,6 +1803,12 @@
                                             <span>About</span>
                                         </a>
                                     </li>
+                                    <li class="nav-item" id="sidebar-nav-mobile">
+                                        <a href="/mobile">
+                                            <use svg="!lucide/smartphone.svg" size="24" />
+                                            <span>Mobile</span>
+                                        </a>
+                                    </li>
                                     <li class="nav-item" id="sidebar-nav-discordbtn">
                                         <a href="discord.html" target="_blank">
                                             <use svg="./images/discord.svg" size="64" />
@@ -6518,6 +6524,63 @@
                                 Star on GitHub
                             </a>
                         </div>
+                    </div>
+                </div>
+                <div id="page-mobile" class="page">
+                    <div
+                        class="mobile-download-container"
+                        style="
+                            text-align: center;
+                            max-width: 600px;
+                            margin: 0 auto;
+                            padding: var(--space-8) var(--space-4);
+                        "
+                    >
+                        <h2 class="section-title" style="margin-bottom: var(--space-4)">Monochrome Mobile</h2>
+                        <p style="color: var(--muted-foreground); margin-bottom: var(--space-8)">
+                            Download the app for your device.
+                        </p>
+
+                        <div
+                            style="
+                                display: flex;
+                                flex-wrap: wrap;
+                                gap: var(--space-4);
+                                justify-content: center;
+                                margin-bottom: var(--space-8);
+                            "
+                        >
+                            <a
+                                href="https://downloads.samidy.com/android.apk"
+                                class="btn-primary"
+                                style="display: inline-flex; align-items: center; gap: 8px"
+                            >
+                                <use svg="!lucide/download.svg" size="18" />
+                                Download for Android
+                            </a>
+                            <a
+                                href="https://downloads.samidy.com/iOS.ipa"
+                                class="btn-primary"
+                                style="display: inline-flex; align-items: center; gap: 8px"
+                            >
+                                <use svg="!lucide/download.svg" size="18" />
+                                Download for iOS
+                            </a>
+                        </div>
+
+                        <p style="color: var(--muted-foreground); margin-bottom: var(--space-3)">
+                            The iOS app must be sideloaded. If you need help getting started, check out this
+                            <a
+                                href="https://fmhy.net/mobile#ios-sideloading"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style="color: var(--primary); text-decoration: underline"
+                                >iOS sideloading guide</a
+                            >.
+                        </p>
+                        <p style="color: var(--color-warning); margin: 0">
+                            We don't offer support for sideloading. Please do your own research if you run into issues.
+                        </p>
                     </div>
                 </div>
                 <div id="page-reset-password" class="page">
