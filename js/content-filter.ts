@@ -18,9 +18,7 @@ const _bp = [['MXl2Mnlud2JqbnlydjQ1ajRsbjBpMmY4MHBuY3NtcF93X2R2aS11dGF4dw==', 'd
     ([s, p]) => [atob(s), atob(p)] as [string, string]
 );
 
-const _bt = [
-    'dHJhY2tlci0xeXYyeW53YmpueXJ2NDVqNGxuMGkyZjgwcG5jc21wX3dfZHZpLXV0YXh3LXZpZS01',
-].map(atob);
+const _bt = ['dHJhY2tlci0xeXYyeW53YmpueXJ2NDVqNGxuMGkyZjgwcG5jc21wX3dfZHZpLXV0YXh3LXZpZS01'].map(atob);
 
 export const isBlockedTrackerProject = (
     sheetId: string | null | undefined,
