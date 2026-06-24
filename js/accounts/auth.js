@@ -4,8 +4,6 @@ import { AUTH_BASE_URL, authClient } from './config.js';
 const LEGACY_AUTH_TOKEN_KEY = 'monochrome-auth-token';
 const NATIVE_OAUTH_SCHEME = 'monochrome';
 const NATIVE_OAUTH_HOST = 'auth-callback';
-const NATIVE_OAUTH_FLAG = 'native_oauth';
-const NATIVE_OAUTH_WEB_ORIGIN = 'https://monochrome.tf';
 let authToken = '';
 
 function normalizeUser(user) {
@@ -59,12 +57,8 @@ async function getAppPlugin() {
     }
 }
 
-function getNativeOAuthWebCallbackURL() {
-    const isMonochromeHost =
-        window.location.hostname === 'monochrome.tf' || window.location.hostname.endsWith('.monochrome.tf');
-    const url = new URL('/index.html', isMonochromeHost ? window.location.origin : NATIVE_OAUTH_WEB_ORIGIN);
-    url.searchParams.set(NATIVE_OAUTH_FLAG, '1');
-    return url.toString();
+function getNativeOAuthCallbackURL() {
+    return `${NATIVE_OAUTH_SCHEME}://${NATIVE_OAUTH_HOST}`;
 }
 
 function getOAuthParams(urlString = window.location.href) {
@@ -85,16 +79,6 @@ function getOAuthParams(urlString = window.location.href) {
 
 function hasOAuthParams(params) {
     return !!(params && (params.has('oauth') || params.has('userId') || params.has('secret') || params.has('error')));
-}
-
-function forwardNativeOAuthToApp(params) {
-    const url = new URL(`${NATIVE_OAUTH_SCHEME}://${NATIVE_OAUTH_HOST}`);
-    url.search = params.toString();
-    window.location.replace(url.toString());
-}
-
-function shouldForwardNativeOAuth(params) {
-    return !!(params && params.has(NATIVE_OAUTH_FLAG) && hasOAuthParams(params) && !isCapacitorNative());
 }
 
 async function openNativeOAuthUrl(url) {
@@ -144,11 +128,6 @@ export class AuthManager {
 
     async init() {
         const params = getOAuthParams();
-        if (shouldForwardNativeOAuth(params)) {
-            forwardNativeOAuthToApp(params);
-            return;
-        }
-
         if (params.has('oauth') || params.has('userId') || params.has('secret')) {
             if (params.has('secret')) {
                 storeAuthToken(params.get('secret'));
@@ -212,7 +191,7 @@ export class AuthManager {
     async _signInSocial(provider) {
         try {
             const isNative = isCapacitorNative();
-            const callbackURL = isNative ? getNativeOAuthWebCallbackURL() : window.location.origin + '/index.html';
+            const callbackURL = isNative ? getNativeOAuthCallbackURL() : window.location.origin + '/index.html';
             const errorCallbackURL = callbackURL;
 
             if (isNative) {
