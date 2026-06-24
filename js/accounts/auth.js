@@ -2,7 +2,6 @@
 import { AUTH_BASE_URL, authClient } from './config.js';
 
 const LEGACY_AUTH_TOKEN_KEY = 'monochrome-auth-token';
-const NATIVE_OAUTH_HANDLED_URLS_KEY = 'monochrome-native-oauth-handled-urls';
 const NATIVE_OAUTH_SCHEME = 'monochrome';
 const NATIVE_OAUTH_HOST = 'auth-callback';
 let authToken = localStorage.getItem(LEGACY_AUTH_TOKEN_KEY) || '';
@@ -81,26 +80,6 @@ function getOAuthParams(urlString = window.location.href) {
 
 function hasOAuthParams(params) {
     return !!(params && (params.has('oauth') || params.has('userId') || params.has('secret') || params.has('error')));
-}
-
-function getHandledNativeOAuthUrls() {
-    try {
-        const urls = JSON.parse(sessionStorage.getItem(NATIVE_OAUTH_HANDLED_URLS_KEY) || '[]');
-        return Array.isArray(urls) ? urls : [];
-    } catch {
-        return [];
-    }
-}
-
-function wasNativeOAuthUrlHandled(url) {
-    return getHandledNativeOAuthUrls().includes(url);
-}
-
-function markNativeOAuthUrlHandled(url) {
-    if (!url) return;
-    const urls = getHandledNativeOAuthUrls().filter((value) => value !== url);
-    urls.unshift(url);
-    sessionStorage.setItem(NATIVE_OAUTH_HANDLED_URLS_KEY, JSON.stringify(urls.slice(0, 10)));
 }
 
 function getNativeOAuthError(params) {
@@ -182,20 +161,27 @@ async function getSessionFromBearerToken() {
     return response.json();
 }
 
+async function getCurrentSession() {
+    if (isCapacitorNative() && getAuthToken()) {
+        return getSessionFromBearerToken();
+    }
+
+    const { data: session } = await authClient.getSession();
+    if (session?.user) return session;
+
+    return getSessionFromBearerToken();
+}
+
 export class AuthManager {
     constructor() {
         this.user = null;
         this.authListeners = [];
-        this.authRefreshId = 0;
-        this.setupNativeOAuthListener().catch(console.error);
-        this.init().catch(console.error);
+        this.start().catch(console.error);
     }
 
-    async init() {
-        const params = getOAuthParams();
-        if (this.applyOAuthParams(params)) {
-            window.history.replaceState({}, '', window.location.pathname);
-        }
+    async start() {
+        const handledLaunchUrl = await this.setupNativeOAuthListener();
+        if (!handledLaunchUrl && this.applyOAuthParams(getOAuthParams())) this.clearOAuthParamsFromLocation();
 
         await this.refreshAuthState();
     }
@@ -216,59 +202,54 @@ export class AuthManager {
         return true;
     }
 
-    async refreshAuthState() {
-        const refreshId = ++this.authRefreshId;
-        const applyUser = (user) => {
-            if (refreshId !== this.authRefreshId) return false;
-            this.user = normalizeUser(user);
-            this.updateUI(this.user);
-            this.authListeners.forEach((listener) => listener(this.user));
-            return true;
-        };
+    clearOAuthParamsFromLocation() {
+        window.history.replaceState({}, '', window.location.pathname);
+    }
 
+    setUser(user) {
+        this.user = normalizeUser(user);
+        this.updateUI(this.user);
+        this.authListeners.forEach((listener) => listener(this.user));
+    }
+
+    async refreshAuthState() {
         try {
-            const { data: session } = await authClient.getSession();
-            const resolvedSession = session?.user ? session : await getSessionFromBearerToken();
-            applyUser(resolvedSession?.user);
-        } catch (err) {
-            try {
-                const session = await getSessionFromBearerToken();
-                applyUser(session?.user);
-            } catch (fallbackErr) {
-                if (refreshId !== this.authRefreshId) return;
-                console.warn('Session check failed:', fallbackErr || err);
-                this.user = null;
-                this.updateUI(null);
-            }
+            const session = await getCurrentSession();
+            this.setUser(session?.user);
+        } catch (error) {
+            console.warn('Session check failed:', error);
+            this.setUser(null);
         }
     }
 
     async setupNativeOAuthListener() {
-        if (!isCapacitorNative()) return;
+        if (!isCapacitorNative()) return false;
 
         const App = await getAppPlugin();
-        if (!App?.addListener) return;
+        if (!App?.addListener) return false;
 
-        App.addListener('appUrlOpen', (event) => {
-            this.handleNativeOAuthCallback(event?.url);
+        App.addListener('appUrlOpen', async (event) => {
+            await this.handleNativeOAuthCallback(event?.url);
         });
 
         const launchEvent = await App.getLaunchUrl?.();
-        if (launchEvent?.url) this.handleNativeOAuthCallback(launchEvent.url);
+        return launchEvent?.url ? this.consumeNativeOAuthUrl(launchEvent.url) : false;
     }
 
-    handleNativeOAuthCallback(url) {
-        if (!url || wasNativeOAuthUrlHandled(url)) return false;
-
+    consumeNativeOAuthUrl(url) {
         const params = getOAuthParams(url);
         if (!hasOAuthParams(params)) return false;
 
-        markNativeOAuthUrlHandled(url);
-        closeNativeOAuthBrowser();
-
         this.applyOAuthParams(params);
-        window.history.replaceState({}, '', window.location.pathname);
-        this.refreshAuthState().catch(console.error);
+        this.clearOAuthParamsFromLocation();
+        return true;
+    }
+
+    async handleNativeOAuthCallback(url) {
+        if (!this.consumeNativeOAuthUrl(url)) return false;
+
+        await closeNativeOAuthBrowser();
+        await this.refreshAuthState();
         return true;
     }
 
