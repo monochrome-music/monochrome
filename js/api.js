@@ -1950,8 +1950,8 @@ export class LosslessAPI {
     }
 
     clearAmazonTurnstileJwt() {
-        this._turnstileCachedJwt = null;
-        this._turnstileCachedExpiry = 0;
+        localStorage.removeItem('amazon_turnstile_jwt');
+        localStorage.removeItem('amazon_turnstile_expiry');
     }
 
     handleAmazonApiStatus(status, endpointName = 'Amazon Music API') {
@@ -2067,6 +2067,7 @@ export class LosslessAPI {
             panel.style.color = 'var(--foreground)';
             panel.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.28)';
             panel.style.fontSize = '0.8rem';
+            panel.style.display = 'none';
             panel.innerHTML = `
                 <div style="font-weight: 600; margin-bottom: 0.25rem;">Cloudflare verification</div>
                 <div style="color: var(--muted-foreground); margin-bottom: 0.75rem; line-height: 1.35;">
@@ -2113,6 +2114,10 @@ export class LosslessAPI {
                 execution: 'execute',
                 appearance: 'interaction-only',
                 theme: 'auto',
+                'before-interactive-callback': () => {
+                    const p = document.getElementById('amazon-music-turnstile-panel');
+                    if (p) p.style.display = 'block';
+                },
                 callback: (token) => {
                     cleanup();
                     resolve(token);
@@ -2132,45 +2137,62 @@ export class LosslessAPI {
     }
 
     async getTurnstileJwt({ forceRefresh = false } = {}) {
-        if (!forceRefresh && this._turnstileCachedJwt && Date.now() < this._turnstileCachedExpiry) {
-            return this._turnstileCachedJwt;
-        }
-        if (forceRefresh) {
-            this.clearAmazonTurnstileJwt();
-        }
-
-        const apiBaseUrl = amazonMusicSettings.getApiBaseUrl().replace(/\/+$/, '');
-        let response = null;
-
-        for (let attempt = 0; attempt < 2; attempt++) {
-            const turnstileResponse = await this.getTurnstileResponse();
-            if (!turnstileResponse) return null;
-
-            response = await fetch(`${apiBaseUrl}/api/auth/turnstile`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ cf_turnstile_response: turnstileResponse }),
-            });
-
-            this.handleAmazonApiStatus(response.status, 'Amazon Music Turnstile auth');
-            if ((response.status === 401 || response.status === 428) && attempt === 0) {
-                this.clearAmazonTurnstileJwt();
-                continue;
+        if (!forceRefresh) {
+            const cachedJwt = localStorage.getItem('amazon_turnstile_jwt');
+            const cachedExpiry = localStorage.getItem('amazon_turnstile_expiry');
+            if (cachedJwt && cachedExpiry && Date.now() < parseInt(cachedExpiry, 10)) {
+                return cachedJwt;
             }
-            break;
+        }
+        if (this._turnstileJwtPromise && !forceRefresh) {
+            return this._turnstileJwtPromise;
         }
 
-        if (!response.ok) {
-            throw new Error(`Failed to exchange Turnstile token: ${response.status}`);
-        }
+        this._turnstileJwtPromise = (async () => {
+            if (forceRefresh) {
+                this.clearAmazonTurnstileJwt();
+            }
 
-        const data = await response.json();
-        this._turnstileCachedJwt = data.access_token;
-        this._turnstileCachedExpiry = Date.now() + (data.expires_in - 60) * 1000;
+            const apiBaseUrl = amazonMusicSettings.getApiBaseUrl().replace(/\/+$/, '');
+            let response = null;
 
-        return data.access_token;
+            for (let attempt = 0; attempt < 2; attempt++) {
+                const turnstileResponse = await this.getTurnstileResponse();
+                if (!turnstileResponse) return null;
+
+                response = await fetch(`${apiBaseUrl}/api/auth/turnstile`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ cf_turnstile_response: turnstileResponse }),
+                });
+
+                this.handleAmazonApiStatus(response.status, 'Amazon Music Turnstile auth');
+                if ((response.status === 401 || response.status === 428) && attempt === 0) {
+                    this.clearAmazonTurnstileJwt();
+                    continue;
+                }
+                break;
+            }
+
+            if (!response.ok) {
+                throw new Error(`Failed to exchange Turnstile token: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const jwt = data.access_token;
+            const expiry = Date.now() + 60 * 60 * 1000;
+            
+            localStorage.setItem('amazon_turnstile_jwt', jwt);
+            localStorage.setItem('amazon_turnstile_expiry', expiry.toString());
+
+            return jwt;
+        })().finally(() => {
+            this._turnstileJwtPromise = null;
+        });
+
+        return this._turnstileJwtPromise;
     }
 
     bytesToHex(bytes) {
@@ -2680,8 +2702,20 @@ export class LosslessAPI {
 
             const track =
                 options.track || (tidalTrackId ? await this.getTrackMetadata(tidalTrackId).catch(() => null) : null);
+                
+            let turnstileJwtPromise = null;
+            const bypassToken = amazonMusicSettings.getTurnstileBypassToken().trim();
+            if (!bypassToken) {
+                turnstileJwtPromise = this.getTurnstileJwt().catch(() => null);
+            }
+
             const asin = await this.getAmazonAsin(tidalTrackId, track);
             if (!asin) return null;
+            
+            if (turnstileJwtPromise) {
+                await turnstileJwtPromise;
+            }
+            
             const amazonQuality = this.getAmazonMusicQuality(quality, options);
             const apiBaseUrl = amazonMusicSettings.getApiBaseUrl().replace(/\/+$/, '');
 
