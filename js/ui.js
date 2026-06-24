@@ -53,9 +53,13 @@ import {
 } from './tracker.js';
 
 let _isBlockedCopyright = (_c) => false;
+let _isBlockedTrackerProject = (_s, _p) => false;
+let _isBlockedTrackerTrack = (_t) => false;
 import('./content-filter.ts')
     .then((m) => {
         _isBlockedCopyright = m.isBlockedCopyright;
+        _isBlockedTrackerProject = m.isBlockedTrackerProject;
+        _isBlockedTrackerTrack = m.isBlockedTrackerTrack;
     })
     .catch(() => {});
 
@@ -6568,12 +6572,22 @@ export class UIRenderer {
 
     async renderTrackerProjectPage(sheetId, projectName) {
         await this.showPage('album'); // Use album page template
+        if (_isBlockedTrackerProject(sheetId, projectName)) {
+            document.getElementById('page-album').innerHTML =
+                '<p style="padding: 2rem; color: var(--muted-foreground);">This content is unavailable due to a DMCA notice.</p>';
+            return;
+        }
         const container = document.getElementById('album-detail-tracklist');
         await renderTrackerProjectContent(sheetId, projectName, container, this);
     }
 
     async renderTrackerTrackPage(trackId) {
         await this.showPage('album'); // Use album page template
+        if (_isBlockedTrackerTrack(trackId)) {
+            document.getElementById('page-album').innerHTML =
+                '<p style="padding: 2rem; color: var(--muted-foreground);">This content is unavailable due to a DMCA notice.</p>';
+            return;
+        }
         const container = document.getElementById('album-detail-tracklist');
         await renderTrackerTrackContent(trackId, container, this);
     }
