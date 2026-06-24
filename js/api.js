@@ -2183,7 +2183,7 @@ export class LosslessAPI {
             const data = await response.json();
             const jwt = data.access_token;
             const expiry = Date.now() + 60 * 60 * 1000;
-            
+
             localStorage.setItem('amazon_turnstile_jwt', jwt);
             localStorage.setItem('amazon_turnstile_expiry', expiry.toString());
 
@@ -2702,7 +2702,7 @@ export class LosslessAPI {
 
             const track =
                 options.track || (tidalTrackId ? await this.getTrackMetadata(tidalTrackId).catch(() => null) : null);
-                
+
             let turnstileJwtPromise = null;
             const bypassToken = amazonMusicSettings.getTurnstileBypassToken().trim();
             if (!bypassToken) {
@@ -2711,11 +2711,11 @@ export class LosslessAPI {
 
             const asin = await this.getAmazonAsin(tidalTrackId, track);
             if (!asin) return null;
-            
+
             if (turnstileJwtPromise) {
                 await turnstileJwtPromise;
             }
-            
+
             const amazonQuality = this.getAmazonMusicQuality(quality, options);
             const apiBaseUrl = amazonMusicSettings.getApiBaseUrl().replace(/\/+$/, '');
 
