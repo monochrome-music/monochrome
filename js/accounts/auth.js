@@ -2,6 +2,7 @@
 import { AUTH_BASE_URL, authClient } from './config.js';
 
 const LEGACY_AUTH_TOKEN_KEY = 'monochrome-auth-token';
+const NATIVE_OAUTH_HANDLED_URLS_KEY = 'monochrome-native-oauth-handled-urls';
 const NATIVE_OAUTH_SCHEME = 'monochrome';
 const NATIVE_OAUTH_HOST = 'auth-callback';
 let authToken = localStorage.getItem(LEGACY_AUTH_TOKEN_KEY) || '';
@@ -82,6 +83,33 @@ function hasOAuthParams(params) {
     return !!(params && (params.has('oauth') || params.has('userId') || params.has('secret') || params.has('error')));
 }
 
+function getHandledNativeOAuthUrls() {
+    try {
+        const urls = JSON.parse(sessionStorage.getItem(NATIVE_OAUTH_HANDLED_URLS_KEY) || '[]');
+        return Array.isArray(urls) ? urls : [];
+    } catch {
+        return [];
+    }
+}
+
+function wasNativeOAuthUrlHandled(url) {
+    return getHandledNativeOAuthUrls().includes(url);
+}
+
+function markNativeOAuthUrlHandled(url) {
+    if (!url) return;
+    const urls = getHandledNativeOAuthUrls().filter((value) => value !== url);
+    urls.unshift(url);
+    sessionStorage.setItem(NATIVE_OAUTH_HANDLED_URLS_KEY, JSON.stringify(urls.slice(0, 10)));
+}
+
+function getNativeOAuthError(params) {
+    if (!params?.has('error')) return null;
+    const error = params.get('error') || 'unknown_error';
+    const description = params.get('error_description');
+    return description ? `${error}: ${description}` : error;
+}
+
 function getErrorMessage(data, fallback) {
     if (data?.error?.message) return data.error.message;
     if (typeof data?.error === 'string') return data.error;
@@ -154,40 +182,72 @@ async function getSessionFromBearerToken() {
     return response.json();
 }
 
+async function getCurrentSession() {
+    if (isCapacitorNative() && getAuthToken()) {
+        return getSessionFromBearerToken();
+    }
+
+    const { data: session } = await authClient.getSession();
+    if (session?.user) return session;
+
+    return getSessionFromBearerToken();
+}
+
 export class AuthManager {
     constructor() {
         this.user = null;
         this.authListeners = [];
+        this.authRefreshId = 0;
         this.setupNativeOAuthListener().catch(console.error);
         this.init().catch(console.error);
     }
 
     async init() {
         const params = getOAuthParams();
-        if (params.has('oauth') || params.has('userId') || params.has('secret')) {
-            if (params.has('secret')) {
-                storeAuthToken(params.get('secret'));
-            }
+        if (this.applyOAuthParams(params)) {
             window.history.replaceState({}, '', window.location.pathname);
         }
 
+        await this.refreshAuthState();
+    }
+
+    applyOAuthParams(params) {
+        if (!hasOAuthParams(params)) return false;
+
+        const nativeOAuthError = getNativeOAuthError(params);
+        if (nativeOAuthError) {
+            console.error('Native OAuth failed:', nativeOAuthError);
+            alert(`Login failed: ${nativeOAuthError}`);
+            return true;
+        }
+
+        if (params.has('secret')) {
+            storeAuthToken(params.get('secret'));
+        }
+        return true;
+    }
+
+    setUser(user) {
+        this.user = normalizeUser(user);
+        this.updateUI(this.user);
+        this.authListeners.forEach((listener) => listener(this.user));
+    }
+
+    async refreshAuthState() {
+        const refreshId = ++this.authRefreshId;
+        const applyUser = (user) => {
+            if (refreshId !== this.authRefreshId) return false;
+            this.setUser(user);
+            return true;
+        };
+
         try {
-            const { data: session } = await authClient.getSession();
-            const resolvedSession = session?.user ? session : await getSessionFromBearerToken();
-            this.user = normalizeUser(resolvedSession?.user);
-            this.updateUI(this.user);
-            this.authListeners.forEach((listener) => listener(this.user));
-        } catch (err) {
-            try {
-                const session = await getSessionFromBearerToken();
-                this.user = normalizeUser(session?.user);
-                this.updateUI(this.user);
-                this.authListeners.forEach((listener) => listener(this.user));
-            } catch (fallbackErr) {
-                console.warn('Session check failed:', fallbackErr || err);
-                this.user = null;
-                this.updateUI(null);
-            }
+            const session = await getCurrentSession();
+            applyUser(session?.user);
+        } catch (error) {
+            if (refreshId !== this.authRefreshId) return;
+            console.warn('Session check failed:', error);
+            this.setUser(null);
         }
     }
 
@@ -197,23 +257,33 @@ export class AuthManager {
         const App = await getAppPlugin();
         if (!App?.addListener) return;
 
-        App.addListener('appUrlOpen', (event) => {
-            this.handleNativeOAuthCallback(event?.url);
+        App.addListener('appUrlOpen', async (event) => {
+            await this.handleNativeOAuthCallback(event?.url);
         });
 
         const launchEvent = await App.getLaunchUrl?.();
         if (launchEvent?.url) this.handleNativeOAuthCallback(launchEvent.url);
     }
 
-    handleNativeOAuthCallback(url) {
+    async handleNativeOAuthCallback(url) {
+        if (!url || wasNativeOAuthUrlHandled(url)) return false;
+
         const params = getOAuthParams(url);
         if (!hasOAuthParams(params)) return false;
 
-        closeNativeOAuthBrowser();
+        markNativeOAuthUrlHandled(url);
+        await closeNativeOAuthBrowser();
 
-        const target = new URL('/index.html', window.location.href);
-        target.search = params.toString();
-        window.location.href = target.toString();
+        const shouldReload = params.has('secret') && !params.has('error');
+        this.applyOAuthParams(params);
+        window.history.replaceState({}, '', window.location.pathname);
+
+        if (shouldReload) {
+            window.location.reload();
+            return true;
+        }
+
+        await this.refreshAuthState();
         return true;
     }
 
