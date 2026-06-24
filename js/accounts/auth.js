@@ -4,7 +4,7 @@ import { AUTH_BASE_URL, authClient } from './config.js';
 const LEGACY_AUTH_TOKEN_KEY = 'monochrome-auth-token';
 const NATIVE_OAUTH_SCHEME = 'monochrome';
 const NATIVE_OAUTH_HOST = 'auth-callback';
-let authToken = '';
+let authToken = localStorage.getItem(LEGACY_AUTH_TOKEN_KEY) || '';
 
 function normalizeUser(user) {
     if (!user) return null;
@@ -17,7 +17,8 @@ export function getAuthToken() {
 
 function storeAuthToken(token) {
     authToken = token || '';
-    localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+    if (authToken) localStorage.setItem(LEGACY_AUTH_TOKEN_KEY, authToken);
+    else localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
 }
 
 function clearAuthToken() {
