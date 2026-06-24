@@ -81,6 +81,41 @@ function hasOAuthParams(params) {
     return !!(params && (params.has('oauth') || params.has('userId') || params.has('secret') || params.has('error')));
 }
 
+function getErrorMessage(data, fallback) {
+    if (data?.error?.message) return data.error.message;
+    if (typeof data?.error === 'string') return data.error;
+    if (data?.message) return data.message;
+    if (typeof data === 'string' && data.trim()) return data;
+    return fallback;
+}
+
+function findOAuthUrl(data, response) {
+    const candidates = [
+        data?.url,
+        data?.data?.url,
+        data?.redirectURL,
+        data?.redirectUrl,
+        data?.data?.redirectURL,
+        data?.data?.redirectUrl,
+        response?.redirected ? response.url : null,
+    ];
+
+    return candidates.find((value) => typeof value === 'string' && /^https?:\/\//i.test(value));
+}
+
+async function readAuthResponse(response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) return response.json();
+
+    const text = await response.text();
+    if (!text) return null;
+
+    try {
+        return JSON.parse(text);
+    } catch {
+        return text;
+    }
+}
 async function openNativeOAuthUrl(url) {
     const Browser = await getBrowserPlugin();
     if (Browser?.open) {
@@ -198,18 +233,19 @@ export class AuthManager {
                 const res = await fetch(`${AUTH_BASE_URL}/api/auth/sign-in/social`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider, callbackURL, errorCallbackURL }),
+                    body: JSON.stringify({ provider, callbackURL, errorCallbackURL, disableRedirect: true }),
                     credentials: 'include',
                 });
-                const data = await res.json();
-                if (data.url) {
-                    await openNativeOAuthUrl(data.url);
+                const data = await readAuthResponse(res);
+                const oauthUrl = findOAuthUrl(data, res);
+                if (oauthUrl) {
+                    await openNativeOAuthUrl(oauthUrl);
                     return;
                 }
-                if (data.error) {
-                    throw new Error(data.error.message || 'OAuth URL fetch failed');
+                if (!res.ok || data?.error || data?.message) {
+                    throw new Error(getErrorMessage(data, `OAuth URL fetch failed (${res.status})`));
                 }
-                throw new Error('Unexpected response from auth server');
+                throw new Error(`Unexpected response from auth server: ${JSON.stringify(data)}`);
             }
 
             await authClient.signIn.social({
