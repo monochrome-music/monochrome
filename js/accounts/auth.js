@@ -58,7 +58,7 @@ async function getAppPlugin() {
 }
 
 function getNativeOAuthCallbackURL() {
-    return `${NATIVE_OAUTH_SCHEME}://${NATIVE_OAUTH_HOST}`;
+    return `${AUTH_BASE_URL}/api/native/oauth/callback`;
 }
 
 function getOAuthParams(urlString = window.location.href) {
