@@ -15,6 +15,7 @@ import {
     pwaUpdateSettings,
     modalSettings,
     keyboardShortcuts,
+    amazonMusicSettings,
 } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
@@ -567,6 +568,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await MusicAPI.initialize(apiSettings);
+    
+    if (amazonMusicSettings.isEnabled() && !amazonMusicSettings.getTurnstileBypassToken().trim()) {
+        MusicAPI.instance.tidalAPI.getTurnstileJwt().catch(() => null);
+    }
 
     const audioPlayer = document.getElementById('audio-player');
 
