@@ -568,7 +568,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await MusicAPI.initialize(apiSettings);
-    
+
     if (amazonMusicSettings.isEnabled() && !amazonMusicSettings.getTurnstileBypassToken().trim()) {
         MusicAPI.instance.tidalAPI.getTurnstileJwt().catch(() => null);
     }

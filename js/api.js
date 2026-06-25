@@ -2093,7 +2093,7 @@ export class LosslessAPI {
 
         const playBtns = document.querySelectorAll('.play-pause-btn, #fs-play-pause-btn');
         const oldHtmls = new Map();
-        playBtns.forEach(btn => {
+        playBtns.forEach((btn) => {
             oldHtmls.set(btn, btn.innerHTML);
             btn.innerHTML = `<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>`;
         });
@@ -2102,7 +2102,7 @@ export class LosslessAPI {
             let timeoutId;
             let widgetId;
             const cleanup = () => {
-                playBtns.forEach(btn => {
+                playBtns.forEach((btn) => {
                     if (oldHtmls.has(btn)) {
                         btn.innerHTML = oldHtmls.get(btn);
                     }
