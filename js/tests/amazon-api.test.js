@@ -146,6 +146,63 @@ describe('Amazon Music source selection', () => {
     });
 });
 
+describe('Amazon Music combined API lookup', () => {
+    let api;
+
+    beforeEach(() => {
+        api = new LosslessAPI({});
+        localStorage.setItem('amazon-music-enabled', 'true');
+        localStorage.setItem('amazon-music-api-base-url', 'https://amz.geeked.wtf');
+        localStorage.setItem('amazon-music-turnstile-bypass-token', 'trusted-token');
+        localStorage.removeItem('amazon-music-rate-limited-until');
+    });
+
+    afterEach(() => {
+        localStorage.removeItem('amazon-music-api-base-url');
+        localStorage.removeItem('amazon-music-turnstile-bypass-token');
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    test('requests the combined metadata-to-stream endpoint', async () => {
+        api.getAmazonCencMp4Info = vi.fn(() => Promise.resolve(null));
+        const fetchMock = vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                status: 200,
+                json: () =>
+                    Promise.resolve({
+                        stream_url: 'https://amazon.example/audio.mp4',
+                        quality_selected: 'HD',
+                    }),
+            })
+        );
+        vi.stubGlobal('fetch', fetchMock);
+
+        const result = await api.getAmazonMusicStreamUrl('71513806', 'LOSSLESS', {
+            track: {
+                title: 'Song & More',
+                artist: { name: 'Artist Name' },
+                album: { title: 'Album Title' },
+                duration: 183.4,
+            },
+        });
+
+        expect(result.provider).toBe('amazon');
+        expect(result.sourceUrl).toBe('https://amazon.example/audio.mp4');
+
+        const requestUrl = new URL(fetchMock.mock.calls[0][0]);
+        expect(requestUrl.origin).toBe('https://amz.geeked.wtf');
+        expect(requestUrl.pathname).toBe('/api/track/');
+        expect(requestUrl.searchParams.get('track')).toBe('Song & More');
+        expect(requestUrl.searchParams.get('duration')).toBe('183');
+        expect(requestUrl.searchParams.get('album')).toBe('Album Title');
+        expect(requestUrl.searchParams.get('artist')).toBe('Artist Name');
+        expect(requestUrl.searchParams.get('quality')).toBe('HD');
+        expect(requestUrl.searchParams.get('bypass_token')).toBe('trusted-token');
+    });
+});
+
 describe('Amazon Music Turnstile auth', () => {
     let api;
 

@@ -61,7 +61,6 @@ export class LosslessAPI {
             ttl: 1000 * 60 * 30,
         });
         this.streamCache = new Map();
-        this.amazonAsinCache = new Map();
         this.turnstileLoadPromise = null;
 
         setInterval(
@@ -2528,157 +2527,40 @@ export class LosslessAPI {
         return duration > 10000 ? duration / 1000 : duration;
     }
 
-    normalizeAmazonSearchText(value) {
-        return String(value || '')
-            .normalize('NFKD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .toLowerCase()
-            .replace(/\b(explicit|clean|remaster(?:ed)?|deluxe|bonus track|radio edit)\b/g, ' ')
-            .replace(/[()[\]{}]/g, ' ')
-            .replace(/&/g, ' and ')
-            .replace(/[^\p{L}\p{N}]+/gu, ' ')
-            .trim()
-            .replace(/\s+/g, ' ');
-    }
-
-    scoreAmazonTextMatch(expected, actual, weight) {
-        const left = this.normalizeAmazonSearchText(expected);
-        const right = this.normalizeAmazonSearchText(actual);
-        if (!left || !right) return 0;
-        if (left === right) return weight;
-        if (right.includes(left) || left.includes(right)) return weight * 0.78;
-
-        const leftTokens = new Set(left.split(' ').filter(Boolean));
-        const rightTokens = new Set(right.split(' ').filter(Boolean));
-        if (!leftTokens.size || !rightTokens.size) return 0;
-
-        let overlap = 0;
-        for (const token of leftTokens) {
-            if (rightTokens.has(token)) overlap++;
-        }
-        return weight * (overlap / Math.max(leftTokens.size, rightTokens.size));
-    }
-
-    scoreAmazonDurationMatch(expectedDuration, actualDuration) {
-        const expected = Number(expectedDuration);
-        const actual = Number(actualDuration);
-        if (!Number.isFinite(expected) || !Number.isFinite(actual) || expected <= 0 || actual <= 0) {
-            return 0;
-        }
-
-        const diff = Math.abs(expected - actual);
-        if (diff <= 2) return 15;
-        if (diff <= 5) return 12;
-        if (diff <= 10) return 8;
-        if (diff <= 20) return 4;
-        return 0;
-    }
-
-    scoreAmazonSearchResult(track, candidate) {
-        const titleScore = this.scoreAmazonTextMatch(this.getAmazonTrackTitle(track), candidate?.title, 45);
-        const artistScore = this.scoreAmazonTextMatch(
-            this.getAmazonTrackArtist(track),
-            this.getAmazonTrackArtist(candidate),
-            25
-        );
-        const albumScore = this.scoreAmazonTextMatch(
-            this.getAmazonTrackAlbum(track),
-            this.getAmazonTrackAlbum(candidate),
-            15
-        );
-        const durationScore = this.scoreAmazonDurationMatch(
-            this.getAmazonTrackDuration(track),
-            this.getAmazonTrackDuration(candidate)
-        );
-        const score = titleScore + artistScore + albumScore + durationScore;
-
-        return {
-            candidate,
-            score,
-            titleScore,
-            artistScore,
-            albumScore,
-            durationScore,
-        };
-    }
-
-    getBestAmazonSearchResult(track, results) {
-        if (!Array.isArray(results) || results.length === 0) return null;
-
-        const ranked = results
-            .filter((candidate) => candidate?.id)
-            .map((candidate) => this.scoreAmazonSearchResult(track, candidate))
-            .sort((a, b) => b.score - a.score);
-        const best = ranked[0];
-        if (!best) return null;
-
-        const strongTitle = best.titleScore >= 35;
-        const strongArtist = best.artistScore >= 19;
-        const closeDuration =
-            !this.getAmazonTrackDuration(track) ||
-            !this.getAmazonTrackDuration(best.candidate) ||
-            best.durationScore >= 8;
-        if (best.score < 62 || !strongTitle || !strongArtist || !closeDuration) {
-            console.debug('Amazon Music search had no confident match:', {
-                track: {
-                    title: this.getAmazonTrackTitle(track),
-                    artist: this.getAmazonTrackArtist(track),
-                    album: this.getAmazonTrackAlbum(track),
-                    duration: this.getAmazonTrackDuration(track),
-                },
-                best,
-            });
-            return null;
-        }
-
-        return best.candidate;
-    }
-
-    async getAmazonAsin(tidalTrackId, track = null) {
+    buildAmazonTrackLookupParams(track, amazonQuality) {
         const title = this.getAmazonTrackTitle(track);
         const artist = this.getAmazonTrackArtist(track);
         const album = this.getAmazonTrackAlbum(track);
-        const cacheKey =
-            title || artist
-                ? `search:v3:${this.normalizeAmazonSearchText(`${title} ${artist} ${album}`)}:${this.getAmazonTrackDuration(track) || 0}`
-                : `id:${tidalTrackId}`;
-        if (this.amazonAsinCache.has(cacheKey)) {
-            return this.amazonAsinCache.get(cacheKey);
-        }
+        const duration = this.getAmazonTrackDuration(track);
 
         if (!title || !artist) {
-            throw new Error('Amazon Music search requires a track title and artist');
+            throw new Error('Amazon Music lookup requires a track title and artist');
         }
 
-        const converterBaseUrl = amazonMusicSettings.getConverterBaseUrl().replace(/\/+$/, '');
-        const params = new URLSearchParams({ query: `${title} ${artist}`.trim() });
-        const response = await this.fetchWithTimeout(
-            `${converterBaseUrl}/api/search/songs?${params.toString()}`,
-            {},
-            8000
-        );
-        this.handleAmazonApiStatus(response.status, 'Amazon Music search');
-        if (!response.ok) {
-            throw new Error(`Amazon Music search failed: ${response.status}`);
+        const params = new URLSearchParams({
+            track: title,
+            duration: duration ? String(Math.round(duration)) : '',
+            album,
+            artist,
+        });
+
+        if (amazonQuality) {
+            params.set('quality', amazonQuality);
         }
 
-        const data = await response.json();
-        if (data?.success === false) {
-            throw new Error('Amazon Music search returned unsuccessful response');
-        }
-
-        const match = this.getBestAmazonSearchResult(track, data?.data);
-        const asin = match?.id;
-        if (!asin) {
-            return null;
-        }
-
-        this.amazonAsinCache.set(cacheKey, asin);
-        return asin;
+        return params;
     }
 
-    async fetchAmazonTrackApi(apiBaseUrl, asin, amazonQuality, { forceTurnstile = false } = {}) {
-        const params = new URLSearchParams({ quality: amazonQuality });
+    getAmazonTrackApiPayload(data) {
+        if (data?.stream_url) return data;
+        if (data?.data?.stream_url) return data.data;
+        if (data?.track?.stream_url) return data.track;
+        if (data?.result?.stream_url) return data.result;
+        return data;
+    }
+
+    async fetchAmazonTrackApi(apiBaseUrl, track, amazonQuality, { forceTurnstile = false } = {}) {
+        const params = this.buildAmazonTrackLookupParams(track, amazonQuality);
         const headers = {};
         const bypassToken = amazonMusicSettings.getTurnstileBypassToken().trim();
 
@@ -2693,7 +2575,7 @@ export class LosslessAPI {
         }
 
         const response = await this.fetchWithTimeout(
-            `${apiBaseUrl}/api/track/${asin}?${params.toString()}`,
+            `${apiBaseUrl}/api/track/?${params.toString()}`,
             {
                 headers,
             },
@@ -2714,15 +2596,15 @@ export class LosslessAPI {
 
             const track =
                 options.track || (tidalTrackId ? await this.getTrackMetadata(tidalTrackId).catch(() => null) : null);
+            if (!track) {
+                return null;
+            }
 
             let turnstileJwtPromise = null;
             const bypassToken = amazonMusicSettings.getTurnstileBypassToken().trim();
             if (!bypassToken) {
                 turnstileJwtPromise = this.getTurnstileJwt().catch(() => null);
             }
-
-            const asin = await this.getAmazonAsin(tidalTrackId, track);
-            if (!asin) return null;
 
             if (turnstileJwtPromise) {
                 await turnstileJwtPromise;
@@ -2731,10 +2613,10 @@ export class LosslessAPI {
             const amazonQuality = this.getAmazonMusicQuality(quality, options);
             const apiBaseUrl = amazonMusicSettings.getApiBaseUrl().replace(/\/+$/, '');
 
-            let response = await this.fetchAmazonTrackApi(apiBaseUrl, asin, amazonQuality);
+            let response = await this.fetchAmazonTrackApi(apiBaseUrl, track, amazonQuality);
             if (response && (response.status === 401 || response.status === 428)) {
                 this.clearAmazonTurnstileJwt();
-                response = await this.fetchAmazonTrackApi(apiBaseUrl, asin, amazonQuality, { forceTurnstile: true });
+                response = await this.fetchAmazonTrackApi(apiBaseUrl, track, amazonQuality, { forceTurnstile: true });
             }
             if (!response) return null;
 
@@ -2742,7 +2624,7 @@ export class LosslessAPI {
                 throw new Error(`Amazon Music API failed: ${response.status}`);
             }
 
-            const data = await response.json();
+            const data = this.getAmazonTrackApiPayload(await response.json());
             if (!data?.stream_url) {
                 throw new Error('Amazon Music API returned no stream URL');
             }
@@ -2763,7 +2645,7 @@ export class LosslessAPI {
             return {
                 url: manifestUrl,
                 sourceUrl: data.stream_url,
-                asin,
+                asin: data.asin || data.id || null,
                 provider: 'amazon',
                 playbackType: mp4Info ? (mp4Info.keyId ? 'dash-cenc' : 'dash') : 'direct',
                 quality: data.quality_selected || amazonQuality,
