@@ -182,7 +182,9 @@ describe('Amazon Music combined API lookup', () => {
         const result = await api.getAmazonMusicStreamUrl('71513806', 'LOSSLESS', {
             track: {
                 title: 'Song & More',
+                version: 'Live',
                 artist: { name: 'Artist Name' },
+                artists: [{ name: 'Artist Name' }, { name: 'Featured Name' }],
                 album: { title: 'Album Title' },
                 duration: 183.4,
             },
@@ -194,10 +196,10 @@ describe('Amazon Music combined API lookup', () => {
         const requestUrl = new URL(fetchMock.mock.calls[0][0]);
         expect(requestUrl.origin).toBe('https://amz.geeked.wtf');
         expect(requestUrl.pathname).toBe('/api/track/');
-        expect(requestUrl.searchParams.get('track')).toBe('Song & More');
+        expect(requestUrl.searchParams.get('track')).toBe('Song & More (Live)');
         expect(requestUrl.searchParams.get('duration')).toBe('183');
         expect(requestUrl.searchParams.get('album')).toBe('Album Title');
-        expect(requestUrl.searchParams.get('artist')).toBe('Artist Name');
+        expect(requestUrl.searchParams.get('artist')).toBe('Artist Name, Featured Name');
         expect(requestUrl.searchParams.get('quality')).toBe('HD');
         expect(requestUrl.searchParams.get('bypass_token')).toBe('trusted-token');
     });
