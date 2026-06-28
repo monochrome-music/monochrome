@@ -2500,19 +2500,21 @@ export class LosslessAPI {
     }
 
     getAmazonTrackTitle(track) {
-        return String(track?.title || track?.name || '').trim();
+        const title = String(track?.title || track?.name || '').trim();
+        const version = String(track?.version || '').trim();
+        return title && version ? `${title} (${version})` : title;
     }
 
     getAmazonTrackArtist(track) {
+        if (Array.isArray(track?.artists) && track.artists.length > 0) {
+            const artists = track.artists
+                .map((artist) => (typeof artist === 'string' ? artist : artist?.name || artist?.title))
+                .map((name) => String(name || '').trim())
+                .filter(Boolean);
+            if (artists.length > 0) return artists.join(', ');
+        }
         if (typeof track?.artist === 'string') return track.artist.trim();
         if (track?.artist?.name) return String(track.artist.name).trim();
-        if (Array.isArray(track?.artists) && track.artists.length > 0) {
-            return track.artists
-                .map((artist) => (typeof artist === 'string' ? artist : artist?.name || artist?.title))
-                .filter(Boolean)
-                .join(' ')
-                .trim();
-        }
         return '';
     }
 
