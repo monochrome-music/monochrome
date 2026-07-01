@@ -18,3 +18,12 @@ export const isSafari =
 
 /** If the browser is Chrome. */
 export const isChrome = lowerCaseOriginalUserAgent.includes('chrome') || lowerCaseOriginalUserAgent.includes('crios');
+
+const chromiumBrandPattern = /chromium|chrome|edge|opera|brave/i;
+const userAgentBrands = (navigator as any).userAgentData?.brands || [];
+
+/** If this browser has Chromium's native ClearKey/CENC behavior we rely on for Amazon streams. */
+export const canUseNativeAmazonCenc =
+    !isIos &&
+    !isSafari &&
+    (userAgentBrands.some((brand) => chromiumBrandPattern.test(brand.brand)) || !!(globalThis as any).chrome);

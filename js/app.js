@@ -15,6 +15,7 @@ import {
     pwaUpdateSettings,
     modalSettings,
     keyboardShortcuts,
+    amazonMusicSettings,
 } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
@@ -56,6 +57,8 @@ import {
     SVG_RESET,
 } from './icons.js';
 import { HiFiClient } from './HiFi.js';
+
+const AMAZON_DECRYPTER_SW_VERSION = '2026-06-23-flac-hls-v8';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
@@ -141,7 +144,7 @@ async function fetchcontributors() {
             const userDIV = document.createElement('div');
             userDIV.innerHTML = `
             <a href="${user.html_url}" target="_blank">
-            <img src="${user.avatar_url}&s=50" alt="${user.login}" width="50" height="50" style="border-radius: 50%;" loading="lazy">
+            <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${user.avatar_url}&s=50" alt="${user.login}" width="50" height="50" style="border-radius: 50%;" loading="lazy">
             <span>${user.login}</span>
             <span class="contrib">Contributions: ${user.contributions}</span>
             </a>
@@ -395,6 +398,87 @@ async function disablePwaForAuthGate() {
     }
 }
 
+async function clearDevPwaRuntimeCaches() {
+    if (!import.meta.env.DEV || !('caches' in window)) return;
+
+    try {
+        await Promise.all(['scripts', 'static-resources', 'images', 'media'].map((key) => caches.delete(key)));
+    } catch (error) {
+        console.warn('Failed to clear dev PWA runtime caches:', error);
+    }
+}
+
+function getAmazonDecrypterServiceWorkerUrl() {
+    const baseUrl =
+        import.meta.env.DEV && isSafari ? '/sw-amazon.js' : import.meta.env.DEV ? '/dev-dist/sw.js' : '/sw.js';
+    return `${baseUrl}?amazon-sw=${AMAZON_DECRYPTER_SW_VERSION}`;
+}
+
+async function registerAmazonDecrypterServiceWorkerFallback() {
+    const diagnostic = {
+        origin: window.location.origin,
+        protocol: window.location.protocol,
+        isSecureContext: window.isSecureContext,
+        hasServiceWorkerApi: 'serviceWorker' in navigator,
+        authGate: !!window.__AUTH_GATE__,
+        dev: import.meta.env.DEV,
+        safari: isSafari,
+    };
+
+    console.log('[Amazon SW Decrypter] SW registration probe', diagnostic);
+
+    if (!('serviceWorker' in navigator)) {
+        console.warn('[Amazon SW Decrypter] Service Worker API unavailable.', diagnostic);
+        return null;
+    }
+
+    if (!window.isSecureContext) {
+        console.warn('[Amazon SW Decrypter] Service Worker blocked because this is not a secure context.', diagnostic);
+        return null;
+    }
+
+    const swUrl = getAmazonDecrypterServiceWorkerUrl();
+
+    try {
+        const registration = await navigator.serviceWorker.register(swUrl, {
+            scope: '/',
+            updateViaCache: 'none',
+        });
+
+        await registration.update().catch((error) => {
+            console.warn('[Amazon SW Decrypter] Manual SW update failed:', error);
+        });
+
+        console.log('[Amazon SW Decrypter] Manual SW registration succeeded', {
+            swUrl,
+            scope: registration.scope,
+            active: !!registration.active,
+            installing: !!registration.installing,
+            waiting: !!registration.waiting,
+            controlled: !!navigator.serviceWorker.controller,
+        });
+
+        if (!navigator.serviceWorker.controller) {
+            console.info(
+                '[Amazon SW Decrypter] SW registered but this page is not controlled yet; reload manually if playback is not intercepted.',
+                {
+                    swVersion: AMAZON_DECRYPTER_SW_VERSION,
+                }
+            );
+        }
+
+        return registration;
+    } catch (error) {
+        console.warn('[Amazon SW Decrypter] Manual SW registration failed', {
+            swUrl,
+            errorName: error?.name,
+            errorMessage: error?.message,
+            ...diagnostic,
+        });
+        return null;
+    }
+}
+
 async function uploadCoverImage(file) {
     try {
         const response = await fetch(`https://worker.uploads.monochrome.qzz.io/${file.name}`, {
@@ -484,6 +568,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await MusicAPI.initialize(apiSettings);
+
+    if (amazonMusicSettings.isEnabled() && !amazonMusicSettings.getTurnstileBypassToken().trim()) {
+        MusicAPI.instance.tidalAPI.getTurnstileJwt().catch(() => null);
+    }
 
     const audioPlayer = document.getElementById('audio-player');
 
@@ -2653,26 +2741,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch {}
 
     if (isNativeApp) {
+        console.log('[Amazon SW Decrypter] PWA disabled for native app shell');
         await disablePwaForAuthGate().catch(console.error);
     } else if (window.__AUTH_GATE__) {
+        console.log('[Amazon SW Decrypter] PWA disabled for auth gate');
         await disablePwaForAuthGate().catch(console.error);
     } else {
-        const updateSW = registerSW({
-            onNeedRefresh() {
-                if (pwaUpdateSettings.isAutoUpdateEnabled()) {
-                    // Auto-update: immediately activate the new service worker
-                    updateSW(true);
-                } else {
-                    // Show notification with Update button and dismiss option
-                    showUpdateNotification(() => {
-                        updateSW(true);
+        await clearDevPwaRuntimeCaches();
+
+        if (import.meta.env.DEV && isSafari) {
+            await registerAmazonDecrypterServiceWorkerFallback();
+        }
+
+        if (import.meta.env.DEV && isSafari) {
+            console.log('[Amazon SW Decrypter] Using dedicated root-scope SW in Safari dev mode');
+        } else {
+            const updateSW = registerSW({
+                onRegisteredSW(swScriptUrl, registration) {
+                    console.log('Service Worker registered:', swScriptUrl, registration?.scope, {
+                        controlled: !!navigator.serviceWorker.controller,
                     });
-                }
-            },
-            onOfflineReady() {
-                console.log('App ready to work offline');
-            },
-        });
+                },
+                onRegisterError(error) {
+                    console.warn('Service Worker registration failed:', error);
+                },
+                onNeedRefresh() {
+                    if (import.meta.env.DEV) {
+                        console.info('Service Worker update available in dev; reload manually when ready.');
+                        return;
+                    }
+
+                    if (pwaUpdateSettings.isAutoUpdateEnabled()) {
+                        // Auto-update: immediately activate the new service worker
+                        updateSW(true);
+                    } else {
+                        // Show notification with Update button and dismiss option
+                        showUpdateNotification(() => {
+                            updateSW(true);
+                        });
+                    }
+                },
+                onOfflineReady() {
+                    console.log('App ready to work offline');
+                },
+            });
+        }
     }
 
     document.getElementById('show-shortcuts-btn')?.addEventListener('click', () => {
