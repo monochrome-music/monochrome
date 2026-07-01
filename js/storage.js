@@ -2475,6 +2475,7 @@ export const sidebarSectionSettings = {
         'sidebar-nav-donate',
         'sidebar-nav-settings',
         'sidebar-nav-about-bottom',
+        'sidebar-nav-mobile',
         'sidebar-nav-discordbtn',
         'sidebar-nav-party',
         'sidebar-nav-githubbtn',
@@ -2627,7 +2628,14 @@ export const sidebarSectionSettings = {
         try {
             const stored = localStorage.getItem(this.ORDER_KEY);
             if (stored) {
-                return this.normalizeOrder(JSON.parse(stored));
+                let order = JSON.parse(stored);
+                if (Array.isArray(order) && !order.includes('sidebar-nav-mobile')) {
+                    const aboutIndex = order.indexOf('sidebar-nav-about-bottom');
+                    if (aboutIndex !== -1) {
+                        order.splice(aboutIndex + 1, 0, 'sidebar-nav-mobile');
+                    }
+                }
+                return this.normalizeOrder(order);
             }
         } catch {
             // ignore
@@ -2673,6 +2681,7 @@ export const sidebarSectionSettings = {
             { id: 'sidebar-nav-donate', check: this.shouldShowDonate() },
             { id: 'sidebar-nav-settings', check: this.shouldShowSettings() },
             { id: 'sidebar-nav-about-bottom', check: this.shouldShowAbout() },
+            { id: 'sidebar-nav-mobile', check: true },
             { id: 'sidebar-nav-discordbtn', check: this.shouldShowDiscord() },
             { id: 'sidebar-nav-party', check: this.shouldShowParty() },
             { id: 'sidebar-nav-githubbtn', check: this.shouldShowGithub() },
@@ -3074,11 +3083,9 @@ export const musicProviderSettings = {
 export const amazonMusicSettings = {
     ENABLED_KEY: 'amazon-music-enabled',
     API_BASE_URL_KEY: 'amazon-music-api-base-url',
-    CONVERTER_BASE_URL_KEY: 'amazon-music-converter-base-url',
     TURNSTILE_SITE_KEY: 'amazon-music-turnstile-site-key',
     TURNSTILE_BYPASS_TOKEN: 'amazon-music-turnstile-bypass-token',
     DEFAULT_API_BASE_URL: 'https://amz.geeked.wtf',
-    DEFAULT_CONVERTER_BASE_URL: 'https://t2a.geeked.wtf',
     DEFAULT_TURNSTILE_SITE_KEY: '0x4AAAAAADgxqF6QVMm0GLHH',
 
     isEnabled() {
@@ -3103,18 +3110,6 @@ export const amazonMusicSettings = {
 
     setApiBaseUrl(url) {
         localStorage.setItem(this.API_BASE_URL_KEY, url || this.DEFAULT_API_BASE_URL);
-    },
-
-    getConverterBaseUrl() {
-        try {
-            return localStorage.getItem(this.CONVERTER_BASE_URL_KEY) || this.DEFAULT_CONVERTER_BASE_URL;
-        } catch {
-            return this.DEFAULT_CONVERTER_BASE_URL;
-        }
-    },
-
-    setConverterBaseUrl(url) {
-        localStorage.setItem(this.CONVERTER_BASE_URL_KEY, url || this.DEFAULT_CONVERTER_BASE_URL);
     },
 
     getTurnstileSiteKey() {

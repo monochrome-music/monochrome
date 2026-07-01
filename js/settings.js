@@ -856,14 +856,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    const amazonConverterBaseUrlInput = document.getElementById('amazon-music-converter-base-url');
-    if (amazonConverterBaseUrlInput) {
-        amazonConverterBaseUrlInput.value = amazonMusicSettings.getConverterBaseUrl();
-        amazonConverterBaseUrlInput.addEventListener('change', (e) => {
-            amazonMusicSettings.setConverterBaseUrl(e.target.value.trim());
-        });
-    }
-
     const amazonTurnstileSiteKeyInput = document.getElementById('amazon-music-turnstile-site-key');
     if (amazonTurnstileSiteKeyInput) {
         amazonTurnstileSiteKeyInput.value = amazonMusicSettings.getTurnstileSiteKey();

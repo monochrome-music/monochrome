@@ -2,7 +2,10 @@
 import { AUTH_BASE_URL, authClient } from './config.js';
 
 const LEGACY_AUTH_TOKEN_KEY = 'monochrome-auth-token';
-let authToken = '';
+const NATIVE_OAUTH_HANDLED_URLS_KEY = 'monochrome-native-oauth-handled-urls';
+const NATIVE_OAUTH_SCHEME = 'monochrome';
+const NATIVE_OAUTH_HOST = 'auth-callback';
+let authToken = localStorage.getItem(LEGACY_AUTH_TOKEN_KEY) || '';
 
 function normalizeUser(user) {
     if (!user) return null;
@@ -15,12 +18,152 @@ export function getAuthToken() {
 
 function storeAuthToken(token) {
     authToken = token || '';
-    localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+    if (authToken) localStorage.setItem(LEGACY_AUTH_TOKEN_KEY, authToken);
+    else localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
 }
 
 function clearAuthToken() {
     authToken = '';
     localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+}
+
+function isCapacitorNative() {
+    return !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web');
+}
+
+function getCapacitorPlugin(name) {
+    return window.Capacitor?.Plugins?.[name];
+}
+
+async function getBrowserPlugin() {
+    const plugin = getCapacitorPlugin('Browser');
+    if (plugin?.open) return plugin;
+
+    try {
+        const { Browser } = await import('@capacitor/browser');
+        return Browser;
+    } catch {
+        return plugin;
+    }
+}
+
+async function getAppPlugin() {
+    const plugin = getCapacitorPlugin('App');
+    if (plugin?.addListener) return plugin;
+
+    try {
+        const { App } = await import('@capacitor/app');
+        return App;
+    } catch {
+        return plugin;
+    }
+}
+
+function getNativeOAuthCallbackURL() {
+    return `${AUTH_BASE_URL}/api/native/oauth/callback`;
+}
+
+function getOAuthParams(urlString = window.location.href) {
+    let url;
+    try {
+        url = new URL(urlString);
+    } catch {
+        return null;
+    }
+
+    const params = new URLSearchParams(url.search);
+    if (!params.size && url.hash?.startsWith('#')) {
+        const hashParams = new URLSearchParams(url.hash.slice(1));
+        if (hashParams.size) return hashParams;
+    }
+    return params;
+}
+
+function hasOAuthParams(params) {
+    return !!(params && (params.has('oauth') || params.has('userId') || params.has('secret') || params.has('error')));
+}
+
+function getHandledNativeOAuthUrls() {
+    try {
+        const urls = JSON.parse(sessionStorage.getItem(NATIVE_OAUTH_HANDLED_URLS_KEY) || '[]');
+        return Array.isArray(urls) ? urls : [];
+    } catch {
+        return [];
+    }
+}
+
+function wasNativeOAuthUrlHandled(url) {
+    return getHandledNativeOAuthUrls().includes(url);
+}
+
+function markNativeOAuthUrlHandled(url) {
+    if (!url) return;
+    const urls = getHandledNativeOAuthUrls().filter((value) => value !== url);
+    urls.unshift(url);
+    sessionStorage.setItem(NATIVE_OAUTH_HANDLED_URLS_KEY, JSON.stringify(urls.slice(0, 10)));
+}
+
+function getNativeOAuthError(params) {
+    if (!params?.has('error')) return null;
+    const error = params.get('error') || 'unknown_error';
+    const description = params.get('error_description');
+    return description ? `${error}: ${description}` : error;
+}
+
+function getErrorMessage(data, fallback) {
+    if (data?.error?.message) return data.error.message;
+    if (typeof data?.error === 'string') return data.error;
+    if (data?.message) return data.message;
+    if (typeof data === 'string' && data.trim()) return data;
+    return fallback;
+}
+
+function findOAuthUrl(data, response) {
+    const candidates = [
+        data?.url,
+        data?.data?.url,
+        data?.redirectURL,
+        data?.redirectUrl,
+        data?.data?.redirectURL,
+        data?.data?.redirectUrl,
+        response?.redirected ? response.url : null,
+    ];
+
+    return candidates.find((value) => typeof value === 'string' && /^https?:\/\//i.test(value));
+}
+
+async function readAuthResponse(response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) return response.json();
+
+    const text = await response.text();
+    if (!text) return null;
+
+    try {
+        return JSON.parse(text);
+    } catch {
+        return text;
+    }
+}
+async function openNativeOAuthUrl(url) {
+    const Browser = await getBrowserPlugin();
+    if (Browser?.open) {
+        await Browser.open({ url, presentationStyle: 'fullscreen' });
+        return;
+    }
+
+    const opened = window.open(url, '_system');
+    if (!opened) {
+        window.location.href = url;
+    }
+}
+
+async function closeNativeOAuthBrowser() {
+    try {
+        await (await getBrowserPlugin())?.close?.();
+    } catch {
+        // Browser.close throws on Android when no custom tab is active.
+    }
 }
 
 async function getSessionFromBearerToken() {
@@ -39,40 +182,109 @@ async function getSessionFromBearerToken() {
     return response.json();
 }
 
+async function getCurrentSession() {
+    if (isCapacitorNative() && getAuthToken()) {
+        return getSessionFromBearerToken();
+    }
+
+    const { data: session } = await authClient.getSession();
+    if (session?.user) return session;
+
+    return getSessionFromBearerToken();
+}
+
 export class AuthManager {
     constructor() {
         this.user = null;
         this.authListeners = [];
+        this.authRefreshId = 0;
+        this.setupNativeOAuthListener().catch(console.error);
         this.init().catch(console.error);
     }
 
     async init() {
-        const params = new URLSearchParams(window.location.search);
-        if (params.has('oauth') || params.has('userId') || params.has('secret')) {
-            if (params.has('secret')) {
-                storeAuthToken(params.get('secret'));
-            }
+        const params = getOAuthParams();
+        if (this.applyOAuthParams(params)) {
             window.history.replaceState({}, '', window.location.pathname);
         }
 
-        try {
-            const { data: session } = await authClient.getSession();
-            const resolvedSession = session?.user ? session : await getSessionFromBearerToken();
-            this.user = normalizeUser(resolvedSession?.user);
-            this.updateUI(this.user);
-            this.authListeners.forEach((listener) => listener(this.user));
-        } catch (err) {
-            try {
-                const session = await getSessionFromBearerToken();
-                this.user = normalizeUser(session?.user);
-                this.updateUI(this.user);
-                this.authListeners.forEach((listener) => listener(this.user));
-            } catch (fallbackErr) {
-                console.warn('Session check failed:', fallbackErr || err);
-                this.user = null;
-                this.updateUI(null);
-            }
+        await this.refreshAuthState();
+    }
+
+    applyOAuthParams(params) {
+        if (!hasOAuthParams(params)) return false;
+
+        const nativeOAuthError = getNativeOAuthError(params);
+        if (nativeOAuthError) {
+            console.error('Native OAuth failed:', nativeOAuthError);
+            alert(`Login failed: ${nativeOAuthError}`);
+            return true;
         }
+
+        if (params.has('secret')) {
+            storeAuthToken(params.get('secret'));
+        }
+        return true;
+    }
+
+    setUser(user) {
+        this.user = normalizeUser(user);
+        this.updateUI(this.user);
+        this.authListeners.forEach((listener) => listener(this.user));
+    }
+
+    async refreshAuthState() {
+        const refreshId = ++this.authRefreshId;
+        const applyUser = (user) => {
+            if (refreshId !== this.authRefreshId) return false;
+            this.setUser(user);
+            return true;
+        };
+
+        try {
+            const session = await getCurrentSession();
+            applyUser(session?.user);
+        } catch (error) {
+            if (refreshId !== this.authRefreshId) return;
+            console.warn('Session check failed:', error);
+            this.setUser(null);
+        }
+    }
+
+    async setupNativeOAuthListener() {
+        if (!isCapacitorNative()) return;
+
+        const App = await getAppPlugin();
+        if (!App?.addListener) return;
+
+        App.addListener('appUrlOpen', async (event) => {
+            await this.handleNativeOAuthCallback(event?.url);
+        });
+
+        const launchEvent = await App.getLaunchUrl?.();
+        if (launchEvent?.url) this.handleNativeOAuthCallback(launchEvent.url);
+    }
+
+    async handleNativeOAuthCallback(url) {
+        if (!url || wasNativeOAuthUrlHandled(url)) return false;
+
+        const params = getOAuthParams(url);
+        if (!hasOAuthParams(params)) return false;
+
+        markNativeOAuthUrlHandled(url);
+        await closeNativeOAuthBrowser();
+
+        const shouldReload = params.has('secret') && !params.has('error');
+        this.applyOAuthParams(params);
+        window.history.replaceState({}, '', window.location.pathname);
+
+        if (shouldReload) {
+            window.location.reload();
+            return true;
+        }
+
+        await this.refreshAuthState();
+        return true;
     }
 
     onAuthStateChanged(callback) {
@@ -84,31 +296,27 @@ export class AuthManager {
 
     async _signInSocial(provider) {
         try {
-            const callbackURL = window.location.origin + '/index.html';
-            const errorCallbackURL = window.location.origin + '/index.html';
+            const isNative = isCapacitorNative();
+            const callbackURL = isNative ? getNativeOAuthCallbackURL() : window.location.origin + '/index.html';
+            const errorCallbackURL = callbackURL;
 
-            const isCapacitorNative = !!(
-                window.Capacitor &&
-                window.Capacitor.getPlatform &&
-                window.Capacitor.getPlatform() !== 'web'
-            );
-
-            if (isCapacitorNative) {
+            if (isNative) {
                 const res = await fetch(`${AUTH_BASE_URL}/api/auth/sign-in/social`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider, callbackURL, errorCallbackURL }),
+                    body: JSON.stringify({ provider, callbackURL, errorCallbackURL, disableRedirect: true }),
                     credentials: 'include',
                 });
-                const data = await res.json();
-                if (data.url && data.redirect) {
-                    window.open(data.url, '_system');
+                const data = await readAuthResponse(res);
+                const oauthUrl = findOAuthUrl(data, res);
+                if (oauthUrl) {
+                    await openNativeOAuthUrl(oauthUrl);
                     return;
                 }
-                if (data.error) {
-                    throw new Error(data.error.message || 'OAuth URL fetch failed');
+                if (!res.ok || data?.error || data?.message) {
+                    throw new Error(getErrorMessage(data, `OAuth URL fetch failed (${res.status})`));
                 }
-                throw new Error('Unexpected response from auth server');
+                throw new Error(`Unexpected response from auth server: ${JSON.stringify(data)}`);
             }
 
             await authClient.signIn.social({

@@ -46,23 +46,66 @@ async function loadArtistsPopularity() {
     }
 }
 
+// Parse RFC4180-style CSV (quoted fields, escaped "" quotes, commas/newlines inside quotes)
+function parseCSVRows(text) {
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if (inQuotes) {
+            if (char === '"') {
+                if (text[i + 1] === '"') {
+                    field += '"';
+                    i++;
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                field += char;
+            }
+        } else if (char === '"') {
+            inQuotes = true;
+        } else if (char === ',') {
+            row.push(field);
+            field = '';
+        } else if (char === '\n' || char === '\r') {
+            if (char === '\r' && text[i + 1] === '\n') i++;
+            row.push(field);
+            rows.push(row);
+            row = [];
+            field = '';
+        } else {
+            field += char;
+        }
+    }
+    if (field.length > 0 || row.length > 0) {
+        row.push(field);
+        rows.push(row);
+    }
+    return rows;
+}
+
+function parseArtistsCSV(text) {
+    const rows = parseCSVRows(text).filter((r) => r.length > 1 || r[0]);
+    if (rows.length < 2) return [];
+    const headers = rows[0];
+    return rows.slice(1).map((row) => {
+        const obj = {};
+        headers.forEach((header, i) => {
+            obj[header] = row[i] ?? '';
+        });
+        return obj;
+    });
+}
+
 async function loadArtistsData() {
     try {
-        const response = await fetch('https://assets.artistgrid.cx/artists.ndjson');
+        const response = await fetch('https://artists.artistgrid.cx/artists.csv');
         if (!response.ok) throw new Error('Network response was not ok');
         const text = await response.text();
-        artistsData = text
-            .trim()
-            .split('\n')
-            .filter((line) => line.trim())
-            .map((line) => {
-                try {
-                    return JSON.parse(line);
-                } catch {
-                    return null;
-                }
-            })
-            .filter((item) => item !== null);
+        artistsData = parseArtistsCSV(text);
 
         // Sort by popularity if available
         artistsData.sort((a, b) => {
@@ -84,62 +127,41 @@ async function loadArtistsData() {
     }
 }
 
+// Some trackers are hosted at their own domain instead of a Google Sheets URL;
+// the domain itself doubles as the sheetId on the tracker API.
+const SPECIAL_TRACKER_DOMAINS = ['yetracker.net'];
+
 function getSheetId(url) {
     if (!url) return null;
+    const special = SPECIAL_TRACKER_DOMAINS.find((domain) => url.includes(domain));
+    if (special) return special;
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     return match ? match[1] : null;
 }
 
-function transformImageUrl(url) {
-    if (!url) return url;
-    return url.replace('https://s3.sad.ovh/trackerapi/', 'https://r2.artistgrid.cx/');
-}
+const TRACKER_API_BASE = 'https://trackerapi.artistgrid.cx/sh/';
 
-function transformErasImages(eras) {
-    if (!eras) return eras;
-    for (const eraName in eras) {
-        const era = eras[eraName];
-        if (era.image) {
-            era.image = transformImageUrl(era.image);
-        }
-    }
-    return eras;
+// Short label for a project card/header (the full `timeline` field is a long historical blurb)
+function eraSubtitle(era) {
+    return (era.aka && era.aka[0]) || 'Unreleased';
 }
 
 async function fetchTrackerData(sheetId) {
-    const endpoints = [
-        'https://trackerapi-1.artistgrid.cx/get/',
-        'https://trackerapi-2.artistgrid.cx/get/',
-        'https://trackerapi-3.artistgrid.cx/get/',
-    ];
-
-    let lastError = null;
-    for (const baseUrl of endpoints) {
-        try {
-            const response = await fetch(`${baseUrl}${sheetId}`);
-            if (!response.ok) {
-                lastError = new Error(`HTTP ${response.status}`);
-                continue;
-            }
-            const data = await response.json();
-            if (data.eras) {
-                transformErasImages(data.eras);
-            }
-            return data;
-        } catch (e) {
-            lastError = e;
-            console.warn(`Failed to fetch from ${baseUrl}, trying next...`);
-        }
+    try {
+        const response = await fetch(`${TRACKER_API_BASE}${sheetId}/`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    } catch (e) {
+        console.error('Failed to fetch tracker data', e);
+        return null;
     }
-    console.error('Failed to fetch tracker data from all endpoints', lastError);
-    return null;
 }
 
 function parseDuration(durationStr) {
     if (!durationStr || durationStr === 'N/A') return 0;
-    const parts = durationStr.split(':');
+    const parts = durationStr.replace(/[^0-9:]/g, '').split(':');
     if (parts.length === 2) {
-        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        return (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
     }
     return 0;
 }
@@ -171,14 +193,16 @@ function getDirectUrl(rawUrl) {
 // Convert tracker song to standard track format
 export function createTrackFromSong(song, era, artistName, index, sheetId = '') {
     const isValidUrl = (u) => u && typeof u === 'string' && u.trim().length > 0;
-    const rawUrl = (isValidUrl(song.url) ? song.url : null) || (song.urls ? song.urls.find(isValidUrl) : null);
+    const rawUrl = song.links && song.links.length ? song.links.find(isValidUrl) : null;
     const directUrl = getDirectUrl(rawUrl);
     const duration = parseDuration(song.track_length);
-    const cleanTitle = cleanSongTitle(song.name);
+    const title = (song.name && (song.name.title || song.name.raw)) || 'Unknown';
+    const cleanTitle = cleanSongTitle(title);
+    const category = song.quality && song.quality !== 'Not Available' ? song.quality : song.available_length || '';
 
     return {
         id: `tracker-${sheetId}-${era.name}-${index}`,
-        title: song.name,
+        title: title,
         cleanTitle: cleanTitle,
         artist: {
             name: artistName,
@@ -190,7 +214,7 @@ export function createTrackFromSong(song, era, artistName, index, sheetId = '') 
         ],
         album: {
             title: era.name,
-            cover: era.image,
+            cover: era.cover_art,
         },
         duration: duration,
         trackNumber: index + 1,
@@ -202,10 +226,10 @@ export function createTrackFromSong(song, era, artistName, index, sheetId = '') 
         // Additional tracker-specific data for context menu
         trackerInfo: {
             sheetId: sheetId,
-            timeline: era.timeline,
-            description: song.desc || song.description || '',
+            timeline: eraSubtitle(era),
+            description: song.notes || '',
             sourceUrl: rawUrl,
-            category: song.category || '',
+            category: category,
         },
     };
 }
@@ -293,9 +317,9 @@ export function createProjectCardHTML(era, _artist, sheetId, trackCount) {
     return `
         <div class="card" data-tracker-project-id="${encodeURIComponent(era.name)}" data-sheet-id="${sheetId}" style="cursor: pointer;">
             <div class="card-image-wrapper">
-                <img src="${era.image || 'assets/logo.svg'}" 
-                     alt="${escapeHtml(era.name)}" 
-                     class="card-image" 
+                <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${era.cover_art || 'assets/logo.svg'}"
+                     alt="${escapeHtml(era.name)}"
+                     class="card-image"
                      loading="lazy"
                      onerror="this.src='assets/logo.svg'">
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="tracker-project" title="Add to Liked">
@@ -305,7 +329,7 @@ export function createProjectCardHTML(era, _artist, sheetId, trackCount) {
             </div>
             <div class="card-info">
                 <h3 class="card-title">${escapeHtml(era.name)}</h3>
-                <p class="card-subtitle">${era.timeline || 'Unreleased'} • ${trackCount} tracks</p>
+                <p class="card-subtitle">${escapeHtml(eraSubtitle(era))} • ${trackCount} tracks</p>
             </div>
         </div>
     `;
@@ -334,7 +358,7 @@ export async function renderTrackerArtistPage(sheetId, container) {
     // Cache songs for search
     allSongsCache.set(sheetId, { artist, eras: trackerData.eras });
 
-    const eras = Object.values(trackerData.eras);
+    const eras = trackerData.eras;
 
     // Set up header
     const imageEl = document.getElementById('tracker-artist-detail-image');
@@ -357,14 +381,10 @@ export async function renderTrackerArtistPage(sheetId, container) {
         playBtn.onclick = async () => {
             let allTracks = [];
             eras.forEach((era) => {
-                if (era.data) {
-                    Object.values(era.data).forEach((songs) => {
-                        if (songs && songs.length) {
-                            songs.forEach((song) => {
-                                const track = createTrackFromSong(song, era, artist.name, allTracks.length, sheetId);
-                                allTracks.push(track);
-                            });
-                        }
+                if (era.tracks && era.tracks.length) {
+                    era.tracks.forEach((song) => {
+                        const track = createTrackFromSong(song, era, artist.name, allTracks.length, sheetId);
+                        allTracks.push(track);
                     });
                 }
             });
@@ -415,14 +435,7 @@ export async function renderTrackerArtistPage(sheetId, container) {
     projectsContainer.className = 'card-grid';
 
     eras.forEach((era) => {
-        let trackCount = 0;
-        if (era.data) {
-            Object.values(era.data).forEach((songs) => {
-                if (songs && songs.length) {
-                    trackCount += songs.length;
-                }
-            });
-        }
+        const trackCount = era.tracks ? era.tracks.length : 0;
 
         if (trackCount === 0) return;
 
@@ -438,14 +451,10 @@ export async function renderTrackerArtistPage(sheetId, container) {
             if (e.target.closest('.card-play-btn')) {
                 e.stopPropagation();
                 let eraTracks = [];
-                if (era.data) {
-                    Object.values(era.data).forEach((songs) => {
-                        if (songs && songs.length) {
-                            songs.forEach((song) => {
-                                const track = createTrackFromSong(song, era, artist.name, eraTracks.length, sheetId);
-                                eraTracks.push(track);
-                            });
-                        }
+                if (era.tracks && era.tracks.length) {
+                    era.tracks.forEach((song) => {
+                        const track = createTrackFromSong(song, era, artist.name, eraTracks.length, sheetId);
+                        eraTracks.push(track);
                     });
                 }
                 const availableTracks = eraTracks.filter((t) => !t.unavailable);
@@ -475,14 +484,11 @@ export async function renderTrackerArtistPage(sheetId, container) {
         // Search through all songs
         let matches = [];
         eras.forEach((era) => {
-            if (era.data) {
-                Object.values(era.data).forEach((songs) => {
-                    if (songs && songs.length) {
-                        songs.forEach((song, index) => {
-                            if (song.name?.toLowerCase().includes(query)) {
-                                matches.push({ song, era, index });
-                            }
-                        });
+            if (era.tracks && era.tracks.length) {
+                era.tracks.forEach((song, index) => {
+                    const title = song.name && (song.name.title || song.name.raw);
+                    if (title?.toLowerCase().includes(query)) {
+                        matches.push({ song, era, index });
                     }
                 });
             }
@@ -550,7 +556,7 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
         return;
     }
 
-    const era = Object.values(trackerData.eras).find((e) => e.name === projectName);
+    const era = trackerData.eras.find((e) => e.name === projectName);
     if (!era) {
         container.innerHTML = '<p style="text-align: center; padding: 2rem;">Project not found.</p>';
         return;
@@ -558,14 +564,10 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
 
     // Collect all tracks for this era
     let eraTracks = [];
-    if (era.data) {
-        Object.values(era.data).forEach((songs) => {
-            if (songs && songs.length) {
-                songs.forEach((song) => {
-                    const track = createTrackFromSong(song, era, artist.name, eraTracks.length, sheetId);
-                    eraTracks.push(track);
-                });
-            }
+    if (era.tracks && era.tracks.length) {
+        era.tracks.forEach((song) => {
+            const track = createTrackFromSong(song, era, artist.name, eraTracks.length, sheetId);
+            eraTracks.push(track);
         });
     }
 
@@ -585,14 +587,14 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
     const addToPlaylistBtn = document.getElementById('add-album-to-playlist-btn');
 
     // Set album page content
-    imageEl.src = era.image || 'assets/logo.svg';
+    imageEl.src = era.cover_art || 'assets/logo.svg';
     imageEl.style.backgroundColor = '';
     imageEl.onerror = function () {
         this.src = 'assets/logo.svg';
     };
 
     titleEl.textContent = era.name;
-    metaEl.innerHTML = `${era.timeline || 'Unreleased'} • ${eraTracks.length} tracks • ${availableCount} available`;
+    metaEl.innerHTML = `${escapeHtml(eraSubtitle(era))} • ${eraTracks.length} tracks • ${availableCount} available`;
     prodEl.innerHTML = `By <a href="/unreleased/${sheetId}">${artist.name}</a>`;
 
     // Setup buttons
@@ -655,18 +657,10 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
     const moreAlbumsTitle = document.getElementById('album-title-more-albums');
 
     if (moreAlbumsSection && moreAlbumsContainer) {
-        const otherEras = Object.values(trackerData.eras).filter((e) => e.name !== projectName);
+        const otherEras = trackerData.eras.filter((e) => e.name !== projectName);
         if (otherEras.length > 0) {
             moreAlbumsContainer.innerHTML = otherEras
-                .map((e) => {
-                    let trackCount = 0;
-                    if (e.data) {
-                        Object.values(e.data).forEach((songs) => {
-                            if (songs && songs.length) trackCount += songs.length;
-                        });
-                    }
-                    return createProjectCardHTML(e, artist, sheetId, trackCount);
-                })
+                .map((e) => createProjectCardHTML(e, artist, sheetId, e.tracks ? e.tracks.length : 0))
                 .join('');
 
             if (moreAlbumsTitle) {
@@ -677,27 +671,23 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
             // Add click handlers for recommendation cards
             moreAlbumsContainer.querySelectorAll('.card').forEach((card) => {
                 const eraName = decodeURIComponent(card.dataset.trackerProjectId);
-                const era = trackerData.eras[eraName];
+                const era = trackerData.eras.find((e) => e.name === eraName);
                 if (!era) return;
 
                 card.onclick = (e) => {
                     if (e.target.closest('.card-play-btn')) {
                         e.stopPropagation();
                         let otherEraTracks = [];
-                        if (era.data) {
-                            Object.values(era.data).forEach((songs) => {
-                                if (songs && songs.length) {
-                                    songs.forEach((song) => {
-                                        const track = createTrackFromSong(
-                                            song,
-                                            era,
-                                            artist.name,
-                                            otherEraTracks.length,
-                                            sheetId
-                                        );
-                                        otherEraTracks.push(track);
-                                    });
-                                }
+                        if (era.tracks && era.tracks.length) {
+                            era.tracks.forEach((song) => {
+                                const track = createTrackFromSong(
+                                    song,
+                                    era,
+                                    artist.name,
+                                    otherEraTracks.length,
+                                    sheetId
+                                );
+                                otherEraTracks.push(track);
                             });
                         }
                         const availableTracks = otherEraTracks.filter((t) => !t.unavailable);
@@ -781,7 +771,7 @@ export async function renderUnreleasedPage(container) {
 
         artistCard.innerHTML = `
             <div class="card-image-wrapper">
-                <img class="card-image" src="${coverImage}" alt="${artist.name}" loading="lazy" onerror="this.src='assets/logo.svg'">
+                <img crossorigin="anonymous" referrerpolicy="no-referrer" class="card-image" src="${coverImage}" alt="${artist.name}" loading="lazy" onerror="this.src='assets/logo.svg'">
             </div>
             <div class="card-info">
                 <h3 class="card-title">${artist.name}</h3>
@@ -856,8 +846,8 @@ export async function renderTrackerTrackPage(trackId, container, _ui) {
         return;
     }
 
-    const era = trackerData.eras[eraName];
-    if (!era || !era.data) {
+    const era = trackerData.eras.find((e) => e.name === eraName);
+    if (!era || !era.tracks) {
         container.innerHTML = '<p style="text-align: center; padding: 2rem;">Track not found.</p>';
         return;
     }
@@ -866,15 +856,11 @@ export async function renderTrackerTrackPage(trackId, container, _ui) {
     let currentTrack = null;
     let allTracks = [];
 
-    Object.values(era.data).forEach((songs) => {
-        if (songs && songs.length) {
-            songs.forEach((song) => {
-                const track = createTrackFromSong(song, era, artist.name, allTracks.length, sheetId);
-                allTracks.push(track);
-                if (allTracks.length - 1 === trackIndex) {
-                    currentTrack = track;
-                }
-            });
+    era.tracks.forEach((song) => {
+        const track = createTrackFromSong(song, era, artist.name, allTracks.length, sheetId);
+        allTracks.push(track);
+        if (allTracks.length - 1 === trackIndex) {
+            currentTrack = track;
         }
     });
 
@@ -891,14 +877,14 @@ export async function renderTrackerTrackPage(trackId, container, _ui) {
     const tracklistContainer = document.getElementById('album-detail-tracklist');
     const playBtn = document.getElementById('play-album-btn');
 
-    imageEl.src = era.image || 'assets/logo.svg';
+    imageEl.src = era.cover_art || 'assets/logo.svg';
     imageEl.style.backgroundColor = '';
     imageEl.onerror = function () {
         this.src = 'assets/logo.svg';
     };
 
     titleEl.textContent = currentTrack.title;
-    metaEl.innerHTML = `${era.timeline || 'Unreleased'} • ${formatTime(currentTrack.duration)}`;
+    metaEl.innerHTML = `${escapeHtml(eraSubtitle(era))} • ${formatTime(currentTrack.duration)}`;
     prodEl.innerHTML = `By <a href="/unreleased/${sheetId}">${artist.name}</a> • From <a href="/unreleased/${sheetId}/${encodeURIComponent(era.name)}">${era.name}</a>`;
 
     if (playBtn) {
@@ -950,18 +936,10 @@ export async function renderTrackerTrackPage(trackId, container, _ui) {
     const moreAlbumsTitle = document.getElementById('album-title-more-albums');
 
     if (moreAlbumsSection && moreAlbumsContainer) {
-        const otherEras = Object.values(trackerData.eras).filter((e) => e.name !== eraName);
+        const otherEras = trackerData.eras.filter((e) => e.name !== eraName);
         if (otherEras.length > 0) {
             moreAlbumsContainer.innerHTML = otherEras
-                .map((e) => {
-                    let trackCount = 0;
-                    if (e.data) {
-                        Object.values(e.data).forEach((songs) => {
-                            if (songs && songs.length) trackCount += songs.length;
-                        });
-                    }
-                    return createProjectCardHTML(e, artist, sheetId, trackCount);
-                })
+                .map((e) => createProjectCardHTML(e, artist, sheetId, e.tracks ? e.tracks.length : 0))
                 .join('');
 
             if (moreAlbumsTitle) moreAlbumsTitle.textContent = `More unreleased from ${artist.name}`;
@@ -1019,6 +997,6 @@ export async function getArtistUnreleasedProjects(artistName) {
     return {
         artist,
         sheetId,
-        eras: Object.values(trackerData.eras),
+        eras: trackerData.eras,
     };
 }

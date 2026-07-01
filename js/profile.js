@@ -196,6 +196,8 @@ export async function loadProfile(username) {
             label.textContent = 'Listening to:';
 
             const img = document.createElement('img');
+            img.crossOrigin = 'anonymous';
+            img.referrerPolicy = 'no-referrer';
             img.src = statusObj.image;
             img.style.cssText =
                 'width: 20px; height: 20px; border-radius: 2px; vertical-align: middle; margin-right: 0.5rem;';
@@ -239,7 +241,7 @@ export async function loadProfile(username) {
                     <div class="favorite-album-item" style="display: flex; gap: 1rem; margin-bottom: 1rem; background: var(--card); padding: 1rem; border-radius: var(--radius); border: 1px solid var(--border);">
                         <div class="card" style="width: 120px; flex-shrink: 0; padding: 0; border: none; background: transparent; cursor: pointer;" onclick="window.location.hash='/album/${album.id}'">
                             <div class="card-image-wrapper" style="margin-bottom: 0.5rem;">
-                                <img src="${image}" class="card-image" loading="lazy" style="border-radius: var(--radius);">
+                                <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${image}" class="card-image" loading="lazy" style="border-radius: var(--radius);">
                             </div>
                             <div class="card-info">
                                 <div class="card-title" style="font-size: 0.9rem;">${escapeHtml(album.title)}</div>
@@ -290,7 +292,7 @@ export async function loadProfile(username) {
 
                             return `
                         <div class="track-item lastfm-track" data-title="${escapeHtml(track.name)}" data-artist="${escapeHtml(track.artist?.['#text'] || track.artist?.name || '')}" style="grid-template-columns: 40px 1fr auto; cursor: pointer;">
-                            <img id="${track._imgId}" src="${image}" class="track-item-cover" style="width: 40px; height: 40px; border-radius: 4px;" loading="lazy" onerror="this.src='/assets/appicon.png'">
+                            <img crossorigin="anonymous" referrerpolicy="no-referrer" id="${track._imgId}" src="${image}" class="track-item-cover" style="width: 40px; height: 40px; border-radius: 4px;" loading="lazy" onerror="this.src='/assets/appicon.png'">
                             <div class="track-item-info">
                                 <div class="track-item-details">
                                     <div class="title">${track.name}</div>
@@ -341,7 +343,7 @@ export async function loadProfile(username) {
                             return `
                         <div class="card artist lastfm-card" data-name="${escapeHtml(artist.name)}" style="cursor: pointer;">
                             <div class="card-image-wrapper">
-                                <img id="${imgId}" src="${image}" class="card-image" loading="lazy" onerror="this.src='/assets/appicon.png'">
+                                <img crossorigin="anonymous" referrerpolicy="no-referrer" id="${imgId}" src="${image}" class="card-image" loading="lazy" onerror="this.src='/assets/appicon.png'">
                             </div>
                             <div class="card-info">
                                 <div class="card-title">${artist.name}</div>
@@ -392,7 +394,7 @@ export async function loadProfile(username) {
                             return `
                         <div class="card lastfm-card" data-name="${escapeHtml(album.name)}" data-artist="${escapeHtml(artistName)}" style="cursor: pointer;">
                             <div class="card-image-wrapper">
-                                <img id="${imgId}" src="${image}" class="card-image" loading="lazy" onerror="this.src='/assets/appicon.png'">
+                                <img crossorigin="anonymous" referrerpolicy="no-referrer" id="${imgId}" src="${image}" class="card-image" loading="lazy" onerror="this.src='/assets/appicon.png'">
                             </div>
                             <div class="card-info">
                                 <div class="card-title">${album.name}</div>
@@ -442,7 +444,7 @@ export async function loadProfile(username) {
 
                             return `
                         <div class="track-item lastfm-track" data-title="${escapeHtml(track.name)}" data-artist="${escapeHtml(artistName)}" style="grid-template-columns: 40px 1fr auto; cursor: pointer;">
-                            <img id="${imgId}" src="${image}" class="track-item-cover" style="width: 40px; height: 40px; border-radius: 4px;" loading="lazy" onerror="this.src='/assets/appicon.png'">
+                            <img crossorigin="anonymous" referrerpolicy="no-referrer" id="${imgId}" src="${image}" class="track-item-cover" style="width: 40px; height: 40px; border-radius: 4px;" loading="lazy" onerror="this.src='/assets/appicon.png'">
                             <div class="track-item-info">
                                 <div class="track-item-details">
                                     <div class="title">${track.name}</div>
@@ -491,7 +493,7 @@ export async function loadProfile(username) {
             card.className = 'card';
             card.innerHTML = `
                 <div class="card-image-wrapper">
-                    <img class="card-image" loading="lazy">
+                    <img crossorigin="anonymous" referrerpolicy="no-referrer" class="card-image" loading="lazy">
                 </div>
                 <div class="card-info">
                     <div class="card-title"></div>
@@ -673,7 +675,7 @@ const performStatusSearch = debounce(async (query) => {
             const image = api.getCoverUrl(item.album?.cover || item.cover);
 
             div.innerHTML = `
-                <img src="${image}">
+                <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${image}">
                 <div class="search-result-info">
                     <div class="search-result-title">${title}</div>
                     <div class="search-result-subtitle">${type === 'track' ? 'Song' : 'Album'} • ${subtitle}</div>
@@ -719,7 +721,7 @@ function renderEditFavoriteAlbums() {
             (album, index) => `
         <div class="edit-favorite-album-item" style="background: var(--secondary); padding: 0.5rem; border-radius: var(--radius); border: 1px solid var(--border);">
             <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <img src="${api.getCoverUrl(album.cover)}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;">
+                <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${api.getCoverUrl(album.cover)}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;">
                 <div style="flex: 1; min-width: 0;">
                     <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(album.title)}</div>
                     <div style="font-size: 0.8rem; color: var(--muted-foreground);">${escapeHtml(album.artist)}</div>
@@ -777,7 +779,7 @@ const performFavoriteAlbumSearch = debounce(async (query) => {
             const image = api.getCoverUrl(album.cover);
 
             div.innerHTML = `
-                <img src="${image}">
+                <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${image}">
                 <div class="search-result-info">
                     <div class="search-result-title">${album.title}</div>
                     <div class="search-result-subtitle">${album.artist?.name || 'Unknown Artist'}</div>

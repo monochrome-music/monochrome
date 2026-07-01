@@ -1,15 +1,17 @@
 // functions/unreleased/[sheetId]/[projectName].js
 
-const ARTISTS_NDJSON_URL = 'https://assets.artistgrid.cx/artists.ndjson';
+const ARTISTS_CSV_URL = 'https://artists.artistgrid.cx/artists.csv';
 const _ASSETS_BASE_URL = 'https://assets.artistgrid.cx';
-const TRACKER_API_ENDPOINTS = [
-    'https://trackerapi-1.artistgrid.cx/get/',
-    'https://trackerapi-2.artistgrid.cx/get/',
-    'https://trackerapi-3.artistgrid.cx/get/',
-];
+const TRACKER_API_BASE = 'https://trackerapi.artistgrid.cx/sh/';
+
+// Some trackers are hosted at their own domain instead of a Google Sheets URL;
+// the domain itself doubles as the sheetId on the tracker API.
+const SPECIAL_TRACKER_DOMAINS = ['yetracker.net'];
 
 function getSheetId(url) {
     if (!url) return null;
+    const special = SPECIAL_TRACKER_DOMAINS.find((domain) => url.includes(domain));
+    if (special) return special;
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     return match ? match[1] : null;
 }
@@ -18,28 +20,66 @@ function _normalizeArtistName(name) {
     return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function transformImageUrl(url) {
-    if (!url) return url;
-    return url.replace('https://s3.sad.ovh/trackerapi/', 'https://r2.artistgrid.cx/');
+// Parse RFC4180-style CSV (quoted fields, escaped "" quotes, commas/newlines inside quotes)
+function parseCSVRows(text) {
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if (inQuotes) {
+            if (char === '"') {
+                if (text[i + 1] === '"') {
+                    field += '"';
+                    i++;
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                field += char;
+            }
+        } else if (char === '"') {
+            inQuotes = true;
+        } else if (char === ',') {
+            row.push(field);
+            field = '';
+        } else if (char === '\n' || char === '\r') {
+            if (char === '\r' && text[i + 1] === '\n') i++;
+            row.push(field);
+            rows.push(row);
+            row = [];
+            field = '';
+        } else {
+            field += char;
+        }
+    }
+    if (field.length > 0 || row.length > 0) {
+        row.push(field);
+        rows.push(row);
+    }
+    return rows;
+}
+
+function parseArtistsCSV(text) {
+    const rows = parseCSVRows(text).filter((r) => r.length > 1 || r[0]);
+    if (rows.length < 2) return [];
+    const headers = rows[0];
+    return rows.slice(1).map((row) => {
+        const obj = {};
+        headers.forEach((header, i) => {
+            obj[header] = row[i] ?? '';
+        });
+        return obj;
+    });
 }
 
 async function loadArtistsData() {
     try {
-        const response = await fetch(ARTISTS_NDJSON_URL);
+        const response = await fetch(ARTISTS_CSV_URL);
         if (!response.ok) throw new Error('Network response was not ok');
         const text = await response.text();
-        return text
-            .trim()
-            .split('\n')
-            .filter((line) => line.trim())
-            .map((line) => {
-                try {
-                    return JSON.parse(line);
-                } catch {
-                    return null;
-                }
-            })
-            .filter((item) => item !== null);
+        return parseArtistsCSV(text);
     } catch (e) {
         console.error('Failed to load Artists List:', e);
         return [];
@@ -47,25 +87,14 @@ async function loadArtistsData() {
 }
 
 async function fetchTrackerData(sheetId) {
-    for (const baseUrl of TRACKER_API_ENDPOINTS) {
-        try {
-            const response = await fetch(`${baseUrl}${sheetId}`);
-            if (!response.ok) continue;
-            const data = await response.json();
-            if (data.eras) {
-                for (const eraName in data.eras) {
-                    const era = data.eras[eraName];
-                    if (era.image) {
-                        era.image = transformImageUrl(era.image);
-                    }
-                }
-            }
-            return data;
-        } catch (e) {
-            console.warn(`Failed to fetch from ${baseUrl}, trying next...`, e);
-        }
+    try {
+        const response = await fetch(`${TRACKER_API_BASE}${sheetId}/`);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (e) {
+        console.warn(`Failed to fetch tracker data for ${sheetId}`, e);
+        return null;
     }
-    return null;
 }
 
 export async function onRequest(context) {
@@ -85,8 +114,8 @@ export async function onRequest(context) {
             const trackerData = await fetchTrackerData(sheetId);
 
             if (artist && artist.name && trackerData && trackerData.eras) {
-                const era = trackerData.eras[projectName];
-                const imageUrl = era && era.image ? era.image : 'https://monochrome.tf/assets/appicon.png';
+                const era = trackerData.eras.find((e) => e.name === projectName);
+                const imageUrl = era && era.cover_art ? era.cover_art : 'https://monochrome.tf/assets/appicon.png';
                 const pageUrl = new URL(request.url).href;
                 const title = `${projectName} - ${artist.name}`;
                 const description = `Stream ${projectName} by ${artist.name} on Monochrome`;

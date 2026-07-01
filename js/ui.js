@@ -53,9 +53,13 @@ import {
 } from './tracker.js';
 
 let _isBlockedCopyright = (_c) => false;
+let _isBlockedTrackerProject = (_s, _p) => false;
+let _isBlockedTrackerTrack = (_t) => false;
 import('./content-filter.ts')
     .then((m) => {
         _isBlockedCopyright = m.isBlockedCopyright;
+        _isBlockedTrackerProject = m.isBlockedTrackerProject;
+        _isBlockedTrackerTrack = m.isBlockedTrackerTrack;
     })
     .catch(() => {});
 
@@ -362,7 +366,10 @@ export class UIRenderer {
                 if (item.type === 'user-playlist' && !item.cover && item.images && item.images.length > 0) {
                     const images = item.images.slice(0, 4);
                     const imgsHTML = images
-                        .map((src) => `<img src="${this.api.getCoverUrl(src)}" loading="lazy">`)
+                        .map(
+                            (src) =>
+                                `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${this.api.getCoverUrl(src)}" loading="lazy">`
+                        )
                         .join('');
                     iconHTML = `<div class="pinned-item-collage">${imgsHTML}</div>`;
                 } else {
@@ -371,7 +378,7 @@ export class UIRenderer {
                             ? this.api.getArtistPictureUrl(item.cover)
                             : this.api.getCoverUrl(item.cover);
                     const coverClass = item.type === 'artist' ? 'artist' : '';
-                    iconHTML = `<img src="${coverUrl}" class="pinned-item-cover ${coverClass}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='assets/logo.svg'">`;
+                    iconHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${coverUrl}" class="pinned-item-cover ${coverClass}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='assets/logo.svg'">`;
                 }
 
                 return `
@@ -503,14 +510,14 @@ export class UIRenderer {
             if (isVideo && this.currentPage === 'playlist') {
                 const videoCoverUrl = this.api.getVideoCoverUrl(track.imageId);
                 if (videoCoverUrl) {
-                    trackImageHTML = `<img src="${videoCoverUrl}" alt="" class="track-item-cover" loading="lazy">`;
+                    trackImageHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${videoCoverUrl}" alt="" class="track-item-cover" loading="lazy">`;
                 } else {
                     trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);">${SVG_VIDEO(20, { style: 'opacity: 0.7;' })}</div>`;
                 }
             } else if (isVideo && (this.currentPage === 'search' || this.currentPage === 'library')) {
                 const videoCoverUrl = this.api.getVideoCoverUrl(track.imageId);
                 if (videoCoverUrl) {
-                    trackImageHTML = `<img src="${videoCoverUrl}" alt="" class="track-item-cover" loading="lazy">`;
+                    trackImageHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${videoCoverUrl}" alt="" class="track-item-cover" loading="lazy">`;
                 } else {
                     trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);">${SVG_PLAY(16, { style: 'opacity: 0.7;' })}</div>`;
                 }
@@ -648,10 +655,10 @@ export class UIRenderer {
             const tidalUrl = `https://resources.tidal.com/images/${formattedId}/320x320.jpg`;
             const wsrvUrl = `https://wsrv.nl/?url=${encodeURIComponent(tidalUrl)}&w=250&h=250&output=webp`;
             const fetchPriorityAttr = loading === 'eager' ? ' fetchpriority="high"' : '';
-            return `<img src="${wsrvUrl}" class="${className}" alt="${alt}" loading="${loading}"${fetchPriorityAttr}>`;
+            return `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${wsrvUrl}" class="${className}" alt="${alt}" loading="${loading}"${fetchPriorityAttr}>`;
         }
 
-        return `<img src="${imageUrl}" class="${className}" alt="${alt}" loading="${loading}">`;
+        return `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${imageUrl}" class="${className}" alt="${alt}" loading="${loading}">`;
     }
 
     createBaseCardHTML({
@@ -711,7 +718,7 @@ export class UIRenderer {
             href: `/playlist/${playlist.uuid}`,
             title: playlist.title,
             subtitle: `${playlist.numberOfTracks || 0} tracks`,
-            imageHTML: `<img src="${this.api.getCoverUrl(imageId)}" alt="${playlist.title}" class="card-image" loading="lazy">`,
+            imageHTML: `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${this.api.getCoverUrl(imageId)}" alt="${playlist.title}" class="card-image" loading="lazy">`,
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="playlist" title="Add to Liked">
                     ${this.createHeartIcon(false)}
@@ -731,7 +738,7 @@ export class UIRenderer {
             href: `/folder/${folder.id}`,
             title: escapeHtml(folder.name),
             subtitle: `${folder.playlists ? folder.playlists.length : 0} playlists`,
-            imageHTML: `<img src="${imageSrc}" alt="${escapeHtml(folder.name)}" class="card-image" loading="lazy" onerror="this.src='/assets/folder.png'">`,
+            imageHTML: `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${imageSrc}" alt="${escapeHtml(folder.name)}" class="card-image" loading="lazy" onerror="this.src='/assets/folder.png'">`,
             actionButtonsHTML: '',
             isCompact,
         });
@@ -748,7 +755,7 @@ export class UIRenderer {
             href: `/mix/${mix.id}`,
             title: mix.title,
             subtitle: description,
-            imageHTML: `<img src="${imageSrc}" alt="${mix.title}" class="card-image" loading="lazy">`,
+            imageHTML: `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${imageSrc}" alt="${mix.title}" class="card-image" loading="lazy">`,
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="mix" title="Add to Liked">
                     ${this.createHeartIcon(false)}
@@ -792,13 +799,13 @@ export class UIRenderer {
                 const covers = uniqueCovers.slice(0, 4);
                 imageHTML = `
                     <div class="card-image card-collage ${itemsClass}">
-                        ${covers.map((cover) => `<img src="${this.api.getCoverUrl(cover)}" alt="" loading="lazy">`).join('')}
+                        ${covers.map((cover) => `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${this.api.getCoverUrl(cover)}" alt="" loading="lazy">`).join('')}
                     </div>
                 `;
             } else if (uniqueCovers.length > 0) {
-                imageHTML = `<img src="${this.api.getCoverUrl(uniqueCovers[0])}" alt="${playlist.name}" class="card-image" loading="lazy">`;
+                imageHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${this.api.getCoverUrl(uniqueCovers[0])}" alt="${playlist.name}" class="card-image" loading="lazy">`;
             } else {
-                imageHTML = `<img src="/assets/appicon.png" alt="${playlist.name}" class="card-image" loading="lazy">`;
+                imageHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="/assets/appicon.png" alt="${playlist.name}" class="card-image" loading="lazy">`;
             }
         }
 
@@ -899,7 +906,7 @@ export class UIRenderer {
         let imageHTML;
 
         if (videoCoverUrl) {
-            imageHTML = `<img src="${videoCoverUrl}" alt="${escapeHtml(video.title)}" class="card-image" loading="lazy">`;
+            imageHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${videoCoverUrl}" alt="${escapeHtml(video.title)}" class="card-image" loading="lazy">`;
         } else if (coverPrimitive) {
             imageHTML = this.getCoverHTML(coverPrimitive, escapeHtml(video.title));
         } else {
@@ -1388,6 +1395,8 @@ export class UIRenderer {
             } else {
                 if (currentImage.tagName === 'VIDEO') {
                     const img = document.createElement('img');
+                    img.crossOrigin = 'anonymous';
+                    img.referrerPolicy = 'no-referrer';
                     img.src = coverUrl;
                     img.id = currentImage.id;
                     img.className = currentImage.className;
@@ -3280,6 +3289,8 @@ export class UIRenderer {
                 el.style.cssText =
                     'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;';
                 const img = document.createElement('img');
+                img.crossOrigin = 'anonymous';
+                img.referrerPolicy = 'no-referrer';
                 img.src = item.image || 'assets/logo.svg';
                 img.width = 88;
                 img.height = 56;
@@ -3357,6 +3368,8 @@ export class UIRenderer {
                     el.style.cssText =
                         'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);cursor:pointer;';
                     const thumb = document.createElement('img');
+                    thumb.crossOrigin = 'anonymous';
+                    thumb.referrerPolicy = 'no-referrer';
                     thumb.src = entry.cover || 'assets/logo.svg';
                     thumb.width = 44;
                     thumb.height = 44;
@@ -3443,7 +3456,7 @@ export class UIRenderer {
 
                 row.innerHTML = `
                     <span style="font-size:0.8rem;font-weight:700;color:var(--primary);min-width:2rem;text-align:right;flex-shrink:0;">#${escapeHtml(item.rank || '')}</span>
-                    <img src="${item.cover || 'assets/logo.svg'}" width="48" height="48"
+                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${item.cover || 'assets/logo.svg'}" width="48" height="48"
                         style="border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);"
                         loading="lazy" onerror="this.src='assets/logo.svg';this.onerror=null;">
                     <div style="flex:1;min-width:0;">
@@ -3573,7 +3586,7 @@ export class UIRenderer {
     createAOTYAlbumCardHTML(album, isUpcoming = false) {
         const title = escapeHtml(album.title || 'Unknown Album');
         const artist = escapeHtml(album.artist || '');
-        const cover = `<img src="${album.cover || 'assets/logo.svg'}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='assets/logo.svg'">`;
+        const cover = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${album.cover || 'assets/logo.svg'}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='assets/logo.svg'">`;
 
         const scoreParts = [];
         if (album.criticScore) scoreParts.push(`${album.criticScore} critic`);
@@ -4727,6 +4740,8 @@ export class UIRenderer {
             } else {
                 if (imageEl.tagName === 'VIDEO') {
                     const img = document.createElement('img');
+                    img.crossOrigin = 'anonymous';
+                    img.referrerPolicy = 'no-referrer';
                     img.src = coverUrl;
                     img.className = imageEl.className;
                     img.id = imageEl.id;
@@ -4838,7 +4853,7 @@ export class UIRenderer {
                                 const author = decodeHtml(review.author || '');
                                 const quote = decodeHtml(review.text || 'No review text available.');
                                 reviewdiv.innerHTML = `
-                                <img src="${review.image || ''}" width="50" height="50" style="border-radius:8px;object-fit:cover;background:var(--highlight);flex-shrink:0;"
+                                <img crossorigin="anonymous" src="${review.image || ''}" width="50" height="50" style="border-radius:8px;object-fit:cover;background:var(--highlight);flex-shrink:0;"
                                      onerror="this.src='images/monochrome-logo.svg';this.onerror=null;" loading="lazy" referrerpolicy="no-referrer">
                                 <div style="flex:1;">
                                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.25rem;">
@@ -5229,6 +5244,8 @@ export class UIRenderer {
                         }
                         imagesToRender.forEach((cover) => {
                             const img = document.createElement('img');
+                            img.crossOrigin = 'anonymous';
+                            img.referrerPolicy = 'no-referrer';
                             img.src = this.api.getCoverUrl(cover);
                             collageEl.appendChild(img);
                         });
@@ -5616,6 +5633,8 @@ export class UIRenderer {
                     } else {
                         if (imageEl.tagName === 'VIDEO') {
                             const img = document.createElement('img');
+                            img.crossOrigin = 'anonymous';
+                            img.referrerPolicy = 'no-referrer';
                             img.src = coverUrl;
                             img.className = imageEl.className;
                             img.id = imageEl.id;
@@ -6344,15 +6363,14 @@ export class UIRenderer {
                                 const { artist: trackerArtistData, sheetId, eras } = unreleasedData;
 
                                 unreleasedContainer.innerHTML = eras
-                                    .map((e) => {
-                                        let trackCount = 0;
-                                        if (e.data) {
-                                            Object.values(e.data).forEach((songs) => {
-                                                if (songs && songs.length) trackCount += songs.length;
-                                            });
-                                        }
-                                        return createProjectCardHTML(e, trackerArtistData, sheetId, trackCount);
-                                    })
+                                    .map((e) =>
+                                        createProjectCardHTML(
+                                            e,
+                                            trackerArtistData,
+                                            sheetId,
+                                            e.tracks ? e.tracks.length : 0
+                                        )
+                                    )
                                     .join('');
 
                                 unreleasedSection.style.display = 'block';
@@ -6369,20 +6387,16 @@ export class UIRenderer {
                                         if (e.target.closest('.card-play-btn')) {
                                             e.stopPropagation();
                                             let eraTracks = [];
-                                            if (era.data) {
-                                                Object.values(era.data).forEach((songs) => {
-                                                    if (songs && songs.length) {
-                                                        songs.forEach((song) => {
-                                                            const track = createTrackFromSong(
-                                                                song,
-                                                                era,
-                                                                trackerArtistData.name,
-                                                                eraTracks.length,
-                                                                sheetId
-                                                            );
-                                                            eraTracks.push(track);
-                                                        });
-                                                    }
+                                            if (era.tracks && era.tracks.length) {
+                                                era.tracks.forEach((song) => {
+                                                    const track = createTrackFromSong(
+                                                        song,
+                                                        era,
+                                                        trackerArtistData.name,
+                                                        eraTracks.length,
+                                                        sheetId
+                                                    );
+                                                    eraTracks.push(track);
                                                 });
                                             }
                                             const availableTracks = eraTracks.filter((t) => !t.unavailable);
@@ -6558,12 +6572,22 @@ export class UIRenderer {
 
     async renderTrackerProjectPage(sheetId, projectName) {
         await this.showPage('album'); // Use album page template
+        if (_isBlockedTrackerProject(sheetId, projectName)) {
+            document.getElementById('page-album').innerHTML =
+                '<p style="padding: 2rem; color: var(--muted-foreground);">This content is unavailable due to a DMCA notice.</p>';
+            return;
+        }
         const container = document.getElementById('album-detail-tracklist');
         await renderTrackerProjectContent(sheetId, projectName, container, this);
     }
 
     async renderTrackerTrackPage(trackId) {
         await this.showPage('album'); // Use album page template
+        if (_isBlockedTrackerTrack(trackId)) {
+            document.getElementById('page-album').innerHTML =
+                '<p style="padding: 2rem; color: var(--muted-foreground);">This content is unavailable due to a DMCA notice.</p>';
+            return;
+        }
         const container = document.getElementById('album-detail-tracklist');
         await renderTrackerTrackContent(trackId, container, this);
     }
@@ -7076,6 +7100,8 @@ export class UIRenderer {
             } else {
                 if (imageEl.tagName === 'VIDEO') {
                     const img = document.createElement('img');
+                    img.crossOrigin = 'anonymous';
+                    img.referrerPolicy = 'no-referrer';
                     img.src = coverUrl;
                     img.className = imageEl.className;
                     img.id = imageEl.id;
@@ -7286,7 +7312,7 @@ export class UIRenderer {
         return `
             <div class="card" data-podcast-id="${podcast.id}">
                 <div class="card-image-container">
-                    <img src="${image}" alt="${title}" loading="lazy" onerror="this.style.display='none'" />
+                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${image}" alt="${title}" loading="lazy" onerror="this.style.display='none'" />
                     <div class="card-image-placeholder" ${image ? 'style="display:none"' : ''}>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23333" width="100" height="100"/><circle cx="50" cy="45" r="20" fill="%23666"/><rect x="35" y="70" width="30" height="15" rx="3" fill="%23666"/></svg>
                     </div>
