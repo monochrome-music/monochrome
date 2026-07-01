@@ -12,7 +12,9 @@ import {
 import { ffmpegInfo, ffmpegNewContainer, ffmpeg } from './ffmpeg';
 
 export function triggerDownload(blob: Blob, filename: string): void {
-    const dl = (window as unknown as { AndroidDownload?: { saveDownload: (b64: string, n: string, m: string) => void } }).AndroidDownload;
+    const dl = (
+        window as unknown as { AndroidDownload?: { saveDownload: (b64: string, n: string, m: string) => void } }
+    ).AndroidDownload;
     if (dl && typeof dl.saveDownload === 'function') {
         const r = new FileReader();
         r.onloadend = () => {
