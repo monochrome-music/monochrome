@@ -709,6 +709,40 @@ export class LosslessAPI {
         }
     }
 
+    async searchTracksByIsrc(isrc, options = {}) {
+        const normalizedIsrc = String(isrc || '').trim();
+        if (!normalizedIsrc) return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
+
+        const cacheKey = `isrc:${normalizedIsrc}`;
+        const cached = await this.cache.get('search_tracks', cacheKey);
+        if (cached) return cached;
+
+        try {
+            const response = await this.fetchWithRetry(
+                `/search/?i=${encodeURIComponent(normalizedIsrc)}`,
+                options
+            );
+            const data = await response.json();
+            const normalized = this.normalizeSearchResponse(data, 'tracks');
+            const preparedTracks = normalized.items.map((t) => this.prepareTrack(t));
+            const dateEnriched = await this.enrichTracksWithAlbumDates(preparedTracks);
+            const enrichedTracks = await this.enrichTracksWithAlbumCover(dateEnriched);
+            const result = {
+                ...normalized,
+                items: enrichedTracks,
+            };
+
+            if (!(response instanceof TidalResponse)) {
+                await this.cache.set('search_tracks', cacheKey, result);
+            }
+            return result;
+        } catch (error) {
+            if (error.name === 'AbortError') throw error;
+            console.error('ISRC track search failed:', error);
+            return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
+        }
+    }
+
     async searchArtists(query, options = {}) {
         const cached = await this.cache.get('search_artists', query);
         if (cached) return cached;
