@@ -2106,7 +2106,15 @@ export class UIRenderer {
         }
 
         let lastPausedState = null;
+        const SPINNER_32 = '<svg class="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
         const updatePlayBtn = () => {
+            if (this.player.isLoadingTrack) {
+                if (lastPausedState !== 'loading') {
+                    playBtn.innerHTML = SPINNER_32;
+                    lastPausedState = 'loading';
+                }
+                return;
+            }
             const activeEl = this.player.activeElement;
             const isPaused = activeEl.paused;
             if (isPaused === lastPausedState) return;

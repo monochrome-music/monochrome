@@ -25,7 +25,7 @@ import { isIos, isSafari, canUseNativeAmazonCenc } from './platform-detection.js
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
 
-import { SVG_CLOCK, SVG_ATMOS, SVG_TRIANGLE_ALERT } from './icons.js';
+import { SVG_CLOCK, SVG_ATMOS, SVG_TRIANGLE_ALERT, SVG_PLAY, SVG_PAUSE } from './icons.js';
 import { UIRenderer } from './ui.js';
 import { MediaSession } from '@capgo/capacitor-media-session';
 
@@ -61,6 +61,7 @@ export class Player {
         this.isFallbackRetry = false;
         this.isFallbackInProgress = false;
         this.autoplayBlocked = false;
+        this.isLoadingTrack = false;
         this.isIOS = isIos;
         this.isPwa =
             typeof window !== 'undefined' &&
@@ -1061,6 +1062,8 @@ export class Player {
             return;
         }
 
+        this.setLoadingState(true);
+
         const previousActiveElement = this.activeElement;
         const shouldPreserveGestureToken =
             preserveGestureToken && previousActiveElement === this.audio && track.type !== 'video';
@@ -1566,6 +1569,25 @@ export class Player {
             }
 
             console.error(`Could not play track: ${trackTitle}`, error);
+        } finally {
+            if (this.playbackSequence === currentSequence) {
+                this.setLoadingState(false);
+            }
+        }
+    }
+
+    setLoadingState(isLoading) {
+        this.isLoadingTrack = isLoading;
+        const playPauseBtn = document.querySelector('.now-playing-bar .play-pause-btn');
+        const SPINNER_20 = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
+        const SPINNER_32 = '<svg class="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
+        if (isLoading) {
+            if (playPauseBtn) playPauseBtn.innerHTML = SPINNER_20;
+            const fsBtn = document.getElementById('fs-play-pause-btn');
+            if (fsBtn) fsBtn.innerHTML = SPINNER_32;
+        } else {
+            const isPaused = this.activeElement?.paused ?? true;
+            if (playPauseBtn) playPauseBtn.innerHTML = isPaused ? SVG_PLAY(20) : SVG_PAUSE(20);
         }
     }
 
