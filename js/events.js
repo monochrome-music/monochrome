@@ -401,6 +401,8 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
         element.addEventListener('play', async () => {
             if (player.activeElement !== element) return;
 
+            player.isLoadingTrack = false;
+
             if (!audioContextManager.isReady()) {
                 audioContextManager.init(element);
             }
@@ -448,7 +450,9 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
 
         element.addEventListener('pause', () => {
             if (player.activeElement !== element) return;
-            playPauseBtn.innerHTML = SVG_PLAY(20);
+            if (!player.isLoadingTrack) {
+                playPauseBtn.innerHTML = SVG_PLAY(20);
+            }
             player.updateMediaSessionPlaybackState();
             player.updateMediaSessionPositionState();
         });
@@ -524,6 +528,7 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
             }
 
             console.error(`Media playback error (${element.id}):`, errorMsg, e);
+            player.isLoadingTrack = false;
             playPauseBtn.innerHTML = SVG_PLAY(20);
 
             const canFallback =
