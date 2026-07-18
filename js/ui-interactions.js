@@ -24,6 +24,25 @@ import {
     SVG_TRIANGLE_ALERT,
 } from './icons.js';
 import { hapticSuccess } from './haptics.js';
+import { getLocalFilesSupportInfo } from './platform-detection.js';
+
+export function updateLocalFilesSupportUI() {
+    const selectBtn = document.getElementById('select-local-folder-btn');
+    const warning = document.getElementById('local-browser-warning');
+    if (!selectBtn || !warning) return;
+
+    const { supported, message } = getLocalFilesSupportInfo();
+
+    if (supported) {
+        selectBtn.style.display = '';
+        warning.style.display = 'none';
+        return;
+    }
+
+    selectBtn.style.display = 'none';
+    if (message) warning.innerHTML = message;
+    warning.style.display = 'block';
+}
 
 export function initializeUIInteractions(player, api, ui) {
     const sidebar = document.querySelector('.sidebar');
@@ -544,6 +563,10 @@ export function initializeUIInteractions(player, api, ui) {
             const prefix = page.id === 'page-library' ? 'library-tab-' : 'search-tab-';
             const contentId = `${prefix}${tab.dataset.tab}`;
             document.getElementById(contentId)?.classList.add('active');
+
+            if (tab.dataset.tab === 'local') {
+                updateLocalFilesSupportUI();
+            }
         });
     });
 
