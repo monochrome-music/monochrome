@@ -136,10 +136,56 @@ function getSheetId(url) {
     const special = SPECIAL_TRACKER_DOMAINS.find((domain) => url.includes(domain));
     if (special) return special;
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : null;
+    if (match) return match[1];
+    // The artists CSV now provides bare sheet IDs instead of full URLs
+    const bare = url.trim();
+    if (/^[a-zA-Z0-9-_]+$/.test(bare)) return bare;
+    return null;
 }
 
 const TRACKER_API_BASE = 'https://trackerapi.artistgrid.cx/sh/';
+const ASSETS_BASE_URL = 'https://assets.artistgrid.cx';
+
+// Artist images live at assets.artistgrid.cx/{format}/{normalizedname}.{format}
+function artistImageUrl(name, format) {
+    return `${ASSETS_BASE_URL}/${format}/${normalizeArtistName(name)}.${format}`;
+}
+
+function artistPictureHTML(name, imgAttrs = '') {
+    return `
+        <picture style="display: contents;">
+            <source srcset="${artistImageUrl(name, 'jxl')}" type="image/jxl">
+            <source srcset="${artistImageUrl(name, 'webp')}" type="image/webp">
+            <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${artistImageUrl(name, 'jpg')}" alt="${escapeHtml(name)}" ${imgAttrs} onerror="this.src='assets/logo.svg'">
+        </picture>
+    `;
+}
+
+// Wrap an existing <img> element in a <picture> with jxl/webp sources
+function setArtistHeaderImage(imgEl, name) {
+    let picture = imgEl.parentElement;
+    if (!picture || picture.tagName !== 'PICTURE') {
+        picture = document.createElement('picture');
+        picture.style.display = 'contents';
+        imgEl.replaceWith(picture);
+        picture.appendChild(imgEl);
+    }
+    picture.querySelectorAll('source').forEach((s) => s.remove());
+    const jxlSource = document.createElement('source');
+    jxlSource.srcset = artistImageUrl(name, 'jxl');
+    jxlSource.type = 'image/jxl';
+    const webpSource = document.createElement('source');
+    webpSource.srcset = artistImageUrl(name, 'webp');
+    webpSource.type = 'image/webp';
+    picture.insertBefore(webpSource, imgEl);
+    picture.insertBefore(jxlSource, webpSource);
+    imgEl.onerror = function () {
+        picture.querySelectorAll('source').forEach((s) => s.remove());
+        this.onerror = null;
+        this.src = 'assets/logo.svg';
+    };
+    imgEl.src = artistImageUrl(name, 'jpg');
+}
 
 // Short label for a project card/header (the full `timeline` field is a long historical blurb)
 function eraSubtitle(era) {
@@ -368,11 +414,7 @@ export async function renderTrackerArtistPage(sheetId, container) {
     const playBtn = document.getElementById('play-tracker-artist-btn');
     const downloadBtn = document.getElementById('download-tracker-artist-btn');
 
-    const normalizedName = normalizeArtistName(artist.name);
-    imageEl.src = `https://assets.artistgrid.cx/${normalizedName}.webp`;
-    imageEl.onerror = function () {
-        this.src = 'assets/logo.svg';
-    };
+    setArtistHeaderImage(imageEl, artist.name);
     nameEl.textContent = artist.name;
     metaEl.innerHTML = `<span>${eras.length} unreleased projects</span>`;
 
@@ -766,12 +808,9 @@ export async function renderUnreleasedPage(container) {
         artistCard.style.cursor = 'pointer';
         artistCard.dataset.artistName = artist.name.toLowerCase();
 
-        const normalizedName = normalizeArtistName(artist.name);
-        const coverImage = `https://assets.artistgrid.cx/${normalizedName}.webp`;
-
         artistCard.innerHTML = `
             <div class="card-image-wrapper">
-                <img crossorigin="anonymous" referrerpolicy="no-referrer" class="card-image" src="${coverImage}" alt="${artist.name}" loading="lazy" onerror="this.src='assets/logo.svg'">
+                ${artistPictureHTML(artist.name, 'class="card-image" loading="lazy"')}
             </div>
             <div class="card-info">
                 <h3 class="card-title">${artist.name}</h3>
