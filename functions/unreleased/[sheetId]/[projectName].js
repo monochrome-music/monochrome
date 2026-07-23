@@ -13,7 +13,11 @@ function getSheetId(url) {
     const special = SPECIAL_TRACKER_DOMAINS.find((domain) => url.includes(domain));
     if (special) return special;
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : null;
+    if (match) return match[1];
+    // The artists CSV now provides bare sheet IDs instead of full URLs
+    const bare = url.trim();
+    if (/^[a-zA-Z0-9-_]+$/.test(bare)) return bare;
+    return null;
 }
 
 function _normalizeArtistName(name) {
