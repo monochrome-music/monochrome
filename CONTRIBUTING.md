@@ -20,8 +20,8 @@ Thank you for your interest in contributing to Monochrome! This guide will help 
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (Version 22+ recommended)
-- [Bun](https://bun.sh/) (preferred) or [npm](https://www.npmjs.com/)
+- [Bun](https://bun.sh/) (preferred) OR [Node.js](https://nodejs.org/) (Version 22+ recommended)
+- [Git](https://git-scm.com/)
 
 ### Quick Start
 
@@ -94,22 +94,6 @@ bun run lint:css
 > ⚠️ **Important:** A GitHub Action automatically runs `bun run lint` on every push and pull request. Please ensure all checks pass before committing.
 
 ---
-
-## Project Structure
-
-```
-monochrome/
-├── 📁 js/                    # Application source code
-│   └── ...
-├── 📁 public/               # Static assets
-│   ├── assets/             # Images, icons, fonts
-│   ├── manifest.json       # PWA manifest
-│   └── instances.json      # API instances configuration (deprecated)
-├── 📄 index.html           # Application entry point
-├── 📄 vite.config.js       # Build and PWA configuration
-├── 📄 package.json         # Dependencies and scripts
-└── 📄 README.md            # Project documentation
-```
 
 ### Key Directories
 

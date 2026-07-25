@@ -91,6 +91,11 @@ enum Detection {
     OGG_320,
     OGG_256,
     OGG_128,
+    OPUS_320,
+    OPUS_256,
+    OPUS_128,
+    OPUS_160,
+    OPUS_96,
 }
 
 suite('Track Downloads', async () => {
@@ -273,6 +278,51 @@ suite('Track Downloads', async () => {
             detection: Detection.OGG_128,
             ffmpegCalls: 1,
         },
+        {
+            display_quality: 'Opus 320',
+            quality: 'FFMPEG_OPUS_320',
+            container: 'flac',
+            preferDolbyAtmos: false,
+            trackId: SILENCE_TRACK,
+            detection: Detection.OPUS_320,
+            ffmpegCalls: 1,
+        },
+        {
+            display_quality: 'Opus 256',
+            quality: 'FFMPEG_OPUS_256',
+            container: 'flac',
+            preferDolbyAtmos: false,
+            trackId: SILENCE_TRACK,
+            detection: Detection.OPUS_256,
+            ffmpegCalls: 1,
+        },
+        {
+            display_quality: 'Opus 128',
+            quality: 'FFMPEG_OPUS_128',
+            container: 'flac',
+            preferDolbyAtmos: false,
+            trackId: SILENCE_TRACK,
+            detection: Detection.OPUS_128,
+            ffmpegCalls: 1,
+        },
+        {
+            display_quality: 'Opus 160',
+            quality: 'FFMPEG_OPUS_160',
+            container: 'flac',
+            preferDolbyAtmos: false,
+            trackId: SILENCE_TRACK,
+            detection: Detection.OPUS_160,
+            ffmpegCalls: 1,
+        },
+        {
+            display_quality: 'Opus 96',
+            quality: 'FFMPEG_OPUS_96',
+            container: 'flac',
+            preferDolbyAtmos: false,
+            trackId: SILENCE_TRACK,
+            detection: Detection.OPUS_96,
+            ffmpegCalls: 1,
+        },
     ])('$display_quality', async ({ quality, container, preferDolbyAtmos, trackId, detection, ffmpegCalls }) => {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         vi.mocked(preferDolbyAtmosSettings.isEnabled).mockReturnValue(preferDolbyAtmos);
@@ -446,6 +496,46 @@ suite('Track Downloads', async () => {
                 const ogg = file.file() as OggFile;
                 expect(ogg.audioProperties().sampleRate).toBe(44100);
                 expect(ogg.audioProperties().bitrate).toBe(130);
+                break;
+            }
+
+            case Detection.OPUS_320: {
+                expect(file.file()).toBeInstanceOf(OggFile);
+                const ogg = file.file() as OggFile;
+                expect(ogg.audioProperties().sampleRate).toBe(48000);
+                expect(ogg.audioProperties().bitrate).toBe(320);
+                break;
+            }
+
+            case Detection.OPUS_256: {
+                expect(file.file()).toBeInstanceOf(OggFile);
+                const ogg = file.file() as OggFile;
+                expect(ogg.audioProperties().sampleRate).toBe(48000);
+                expect(ogg.audioProperties().bitrate).toBe(256);
+                break;
+            }
+
+            case Detection.OPUS_128: {
+                expect(file.file()).toBeInstanceOf(OggFile);
+                const ogg = file.file() as OggFile;
+                expect(ogg.audioProperties().sampleRate).toBe(48000);
+                expect(ogg.audioProperties().bitrate).toBe(128);
+                break;
+            }
+
+            case Detection.OPUS_160: {
+                expect(file.file()).toBeInstanceOf(OggFile);
+                const ogg = file.file() as OggFile;
+                expect(ogg.audioProperties().sampleRate).toBe(48000);
+                expect(ogg.audioProperties().bitrate).toBe(160);
+                break;
+            }
+
+            case Detection.OPUS_96: {
+                expect(file.file()).toBeInstanceOf(OggFile);
+                const ogg = file.file() as OggFile;
+                expect(ogg.audioProperties().sampleRate).toBe(48000);
+                expect(ogg.audioProperties().bitrate).toBe(96);
                 break;
             }
 

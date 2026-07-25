@@ -1019,7 +1019,7 @@ class CommandPalette {
 
         let iconHtml = '';
         if (item.image) {
-            iconHtml = `<div class="cmdk-item-icon"><img src="${escapeHtml(item.image)}" crossorigin="anonymous" alt="" loading="lazy" /></div>`;
+            iconHtml = `<div class="cmdk-item-icon"><img referrerpolicy="no-referrer" src="${escapeHtml(item.image)}" crossorigin="anonymous" alt="" loading="lazy" /></div>`;
         } else if (item.icon && ICONS[item.icon]) {
             iconHtml = `<div class="cmdk-item-icon">${ICONS[item.icon](ICON_SIZE)}</div>`;
         }

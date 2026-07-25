@@ -2,7 +2,6 @@
 import discordSvg from '../images/discord.svg?svg&size=22';
 import googleSvg from '../images/google.svg?svg&size=22';
 import githubSvg from '../images/github.svg?svg&size=22';
-import spotifySvg from '../images/spotify.svg?svg&size=22';
 import { isIos, isSafari } from './platform-detection.js';
 import { hapticLight } from './haptics.js';
 import { MusicAPI } from './music-api.js';
@@ -16,6 +15,7 @@ import {
     pwaUpdateSettings,
     modalSettings,
     keyboardShortcuts,
+    amazonMusicSettings,
 } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
@@ -23,7 +23,7 @@ import { MultiScrobbler } from './multi-scrobbler.js';
 import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
 import { createRouter, updateTabTitle, navigate } from './router.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
-import { initializeUIInteractions } from './ui-interactions.js';
+import { initializeUIInteractions, updateLocalFilesSupportUI } from './ui-interactions.js';
 import { debounce, getShareUrl, sanitizeForFilename } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
@@ -57,6 +57,8 @@ import {
     SVG_RESET,
 } from './icons.js';
 import { HiFiClient } from './HiFi.js';
+
+const AMAZON_DECRYPTER_SW_VERSION = '2026-06-23-flac-hls-v8';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
@@ -106,12 +108,22 @@ async function loadDownloadsModule() {
     return downloadsModule;
 }
 
+let contributorsLoaded = false;
+
 async function fetchcontributors() {
+    if (contributorsLoaded) return;
+    contributorsLoaded = true;
     try {
         const response = await fetch('https://api.samidy.com/api/contributors');
-        if (!response.ok) return;
+        if (!response.ok) {
+            contributorsLoaded = false;
+            return;
+        }
         const data1 = await response.json();
-        if (!Array.isArray(data1)) return;
+        if (!Array.isArray(data1)) {
+            contributorsLoaded = false;
+            return;
+        }
 
         let data = data1.filter(
             (user) => user.type !== 'Bot' && user.login !== 'edidealt' && user.login !== 'satanyahoo'
@@ -132,7 +144,7 @@ async function fetchcontributors() {
             const userDIV = document.createElement('div');
             userDIV.innerHTML = `
             <a href="${user.html_url}" target="_blank">
-            <img src="${user.avatar_url}&s=50" alt="${user.login}" width="50" height="50" style="border-radius: 50%;" loading="lazy">
+            <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${user.avatar_url}&s=50" alt="${user.login}" width="50" height="50" style="border-radius: 50%;" loading="lazy">
             <span>${user.login}</span>
             <span class="contrib">Contributions: ${user.contributions}</span>
             </a>
@@ -140,13 +152,12 @@ async function fetchcontributors() {
             con.appendChild(userDIV);
         });
     } catch (e) {
+        contributorsLoaded = false;
         const con = document.querySelector('.about-contributors-failed');
         if (!con) return;
-        const userDIV = document.createElement('div');
-        userDIV.innerHTML = `
+        con.innerHTML = `
         <h4 style="text-align: center; color: var(--muted-foreground);">Failed to Fetch Contributor List</h4>
         `;
-        con.appendChild(userDIV);
     }
 }
 
@@ -387,6 +398,87 @@ async function disablePwaForAuthGate() {
     }
 }
 
+async function clearDevPwaRuntimeCaches() {
+    if (!import.meta.env.DEV || !('caches' in window)) return;
+
+    try {
+        await Promise.all(['scripts', 'static-resources', 'images', 'media'].map((key) => caches.delete(key)));
+    } catch (error) {
+        console.warn('Failed to clear dev PWA runtime caches:', error);
+    }
+}
+
+function getAmazonDecrypterServiceWorkerUrl() {
+    const baseUrl =
+        import.meta.env.DEV && isSafari ? '/sw-amazon.js' : import.meta.env.DEV ? '/dev-dist/sw.js' : '/sw.js';
+    return `${baseUrl}?amazon-sw=${AMAZON_DECRYPTER_SW_VERSION}`;
+}
+
+async function registerAmazonDecrypterServiceWorkerFallback() {
+    const diagnostic = {
+        origin: window.location.origin,
+        protocol: window.location.protocol,
+        isSecureContext: window.isSecureContext,
+        hasServiceWorkerApi: 'serviceWorker' in navigator,
+        authGate: !!window.__AUTH_GATE__,
+        dev: import.meta.env.DEV,
+        safari: isSafari,
+    };
+
+    console.log('[Amazon SW Decrypter] SW registration probe', diagnostic);
+
+    if (!('serviceWorker' in navigator)) {
+        console.warn('[Amazon SW Decrypter] Service Worker API unavailable.', diagnostic);
+        return null;
+    }
+
+    if (!window.isSecureContext) {
+        console.warn('[Amazon SW Decrypter] Service Worker blocked because this is not a secure context.', diagnostic);
+        return null;
+    }
+
+    const swUrl = getAmazonDecrypterServiceWorkerUrl();
+
+    try {
+        const registration = await navigator.serviceWorker.register(swUrl, {
+            scope: '/',
+            updateViaCache: 'none',
+        });
+
+        await registration.update().catch((error) => {
+            console.warn('[Amazon SW Decrypter] Manual SW update failed:', error);
+        });
+
+        console.log('[Amazon SW Decrypter] Manual SW registration succeeded', {
+            swUrl,
+            scope: registration.scope,
+            active: !!registration.active,
+            installing: !!registration.installing,
+            waiting: !!registration.waiting,
+            controlled: !!navigator.serviceWorker.controller,
+        });
+
+        if (!navigator.serviceWorker.controller) {
+            console.info(
+                '[Amazon SW Decrypter] SW registered but this page is not controlled yet; reload manually if playback is not intercepted.',
+                {
+                    swVersion: AMAZON_DECRYPTER_SW_VERSION,
+                }
+            );
+        }
+
+        return registration;
+    } catch (error) {
+        console.warn('[Amazon SW Decrypter] Manual SW registration failed', {
+            swUrl,
+            errorName: error?.name,
+            errorMessage: error?.message,
+            ...diagnostic,
+        });
+        return null;
+    }
+}
+
 async function uploadCoverImage(file) {
     try {
         const response = await fetch(`https://worker.uploads.monochrome.qzz.io/${file.name}`, {
@@ -455,23 +547,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     new ThemeStore();
 
-    await HiFiClient.initialize({
-        storage: [
-            localStorage,
-            ...(import.meta.env.DEV
-                ? [
-                      {
-                          setItem: (key, value) => console.debug(`HiFiClient storage set: ${key} = ${value}`),
-                          removeItem: (key) => console.debug(`HiFiClient storage remove: ${key}`),
-                      },
-                  ]
-                : []),
-        ],
-        token: localStorage.getItem('hifi_token') || undefined,
-        tokenExpiry: parseInt(localStorage.getItem('hifi_token_expiry') || '0'),
-    });
+    try {
+        await HiFiClient.initialize({
+            storage: [
+                localStorage,
+                ...(import.meta.env.DEV
+                    ? [
+                          {
+                              setItem: (key, value) => console.debug(`HiFiClient storage set: ${key} = ${value}`),
+                              removeItem: (key) => console.debug(`HiFiClient storage remove: ${key}`),
+                          },
+                      ]
+                    : []),
+            ],
+            token: localStorage.getItem('hifi_token') || undefined,
+            tokenExpiry: parseInt(localStorage.getItem('hifi_token_expiry') || '0'),
+        });
+    } catch (err) {
+        console.error('Failed to initialize HiFiClient:', err);
+    }
 
     await MusicAPI.initialize(apiSettings);
+
+    if (amazonMusicSettings.isEnabled() && !amazonMusicSettings.getTurnstileBypassToken().trim()) {
+        MusicAPI.instance.tidalAPI.getTurnstileJwt().catch(() => null);
+    }
 
     const audioPlayer = document.getElementById('audio-player');
 
@@ -482,7 +582,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize tracker
     initTracker().catch(console.error);
 
-    await fetchcontributors();
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
 
@@ -605,20 +704,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const lyricsManager = await LyricsManager.initialize(MusicAPI.instance);
     UIRenderer.instance.lyricsManager = lyricsManager;
 
-    // Check browser support for local files
-    const selectLocalBtn = document.getElementById('select-local-folder-btn');
-    const browserWarning = document.getElementById('local-browser-warning');
-
-    if (selectLocalBtn && browserWarning) {
-        const ua = navigator.userAgent;
-        const isChromeOrEdge = (ua.indexOf('Chrome') > -1 || ua.indexOf('Edg') > -1) && !/Mobile|Android/.test(ua);
-        const hasFileSystemApi = 'showDirectoryPicker' in window;
-
-        if (!isChromeOrEdge || !hasFileSystemApi) {
-            selectLocalBtn.style.display = 'none';
-            browserWarning.style.display = 'block';
-        }
-    }
+    updateLocalFilesSupportUI();
 
     // Kuroshiro is now loaded on-demand only when needed for Asian text with Romaji mode enabled
 
@@ -1072,7 +1158,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
 
                     Player.instance.setQueue(sortedTracks, 0);
-                    Player.instance.enableAutoplay();
                     const shuffleBtn = document.getElementById('shuffle-btn');
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
                     Player.instance.shuffleActive = false;
@@ -1104,7 +1189,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (tracks && tracks.length > 0) {
                     const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
                     Player.instance.setQueue(shuffledTracks, 0);
-                    Player.instance.enableAutoplay();
                     const shuffleBtn = document.getElementById('shuffle-btn');
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
                     Player.instance.shuffleActive = false;
@@ -1173,7 +1257,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const shuffledTracks = [...allTracks].sort(() => Math.random() - 0.5);
                 Player.instance.setQueue(shuffledTracks, 0);
-                Player.instance.enableAutoplay();
                 const shuffleBtn = document.getElementById('shuffle-btn');
                 if (shuffleBtn) shuffleBtn.classList.remove('active');
                 Player.instance.shuffleActive = false;
@@ -2609,6 +2692,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         await router();
+        if (window.location.pathname.replace(/\/+$/, '') === '/about') {
+            fetchcontributors();
+        }
         updateTabTitle(Player.instance);
     };
 
@@ -2635,25 +2721,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // PWA Update Logic
-    if (window.__AUTH_GATE__) {
+    let isNativeApp = false;
+    try {
+        const { Capacitor } = await import('@capacitor/core');
+        isNativeApp = Capacitor.isNativePlatform();
+    } catch {}
+
+    if (isNativeApp) {
+        console.log('[Amazon SW Decrypter] PWA disabled for native app shell');
+        await disablePwaForAuthGate().catch(console.error);
+    } else if (window.__AUTH_GATE__) {
+        console.log('[Amazon SW Decrypter] PWA disabled for auth gate');
         await disablePwaForAuthGate().catch(console.error);
     } else {
-        const updateSW = registerSW({
-            onNeedRefresh() {
-                if (pwaUpdateSettings.isAutoUpdateEnabled()) {
-                    // Auto-update: immediately activate the new service worker
-                    updateSW(true);
-                } else {
-                    // Show notification with Update button and dismiss option
-                    showUpdateNotification(() => {
-                        updateSW(true);
+        await clearDevPwaRuntimeCaches();
+
+        if (import.meta.env.DEV && isSafari) {
+            await registerAmazonDecrypterServiceWorkerFallback();
+        }
+
+        if (import.meta.env.DEV && isSafari) {
+            console.log('[Amazon SW Decrypter] Using dedicated root-scope SW in Safari dev mode');
+        } else {
+            const updateSW = registerSW({
+                onRegisteredSW(swScriptUrl, registration) {
+                    console.log('Service Worker registered:', swScriptUrl, registration?.scope, {
+                        controlled: !!navigator.serviceWorker.controller,
                     });
-                }
-            },
-            onOfflineReady() {
-                console.log('App ready to work offline');
-            },
-        });
+                },
+                onRegisterError(error) {
+                    console.warn('Service Worker registration failed:', error);
+                },
+                onNeedRefresh() {
+                    if (import.meta.env.DEV) {
+                        console.info('Service Worker update available in dev; reload manually when ready.');
+                        return;
+                    }
+
+                    if (pwaUpdateSettings.isAutoUpdateEnabled()) {
+                        // Auto-update: immediately activate the new service worker
+                        updateSW(true);
+                    } else {
+                        // Show notification with Update button and dismiss option
+                        showUpdateNotification(() => {
+                            updateSW(true);
+                        });
+                    }
+                },
+                onOfflineReady() {
+                    console.log('App ready to work offline');
+                },
+            });
+        }
     }
 
     document.getElementById('show-shortcuts-btn')?.addEventListener('click', () => {
@@ -2769,27 +2888,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (!user) {
                 const iconBtnStyle =
-                    'background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;transition:opacity 0.15s';
+                    'background:none;border:none;cursor:pointer;width:32px;height:32px;padding:0;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;transition:opacity 0.15s';
                 headerAccountDropdown.innerHTML = `
                     <span style="font-size:0.75rem;color:var(--muted-foreground);padding:0.25rem 0.5rem">Connect with</span>
-                    <div style="display:flex;gap:0.5rem;padding:0.25rem 0.5rem;align-items:center">
+                    <div style="display:flex;width:100%;justify-content:space-evenly;padding:0.25rem 0.5rem;align-items:center">
                         <button id="header-discord-auth" title="Discord" style="${iconBtnStyle}">${discordSvg}</button>
                         <button id="header-google-auth" title="Google" style="${iconBtnStyle}">${googleSvg}</button>
                         <button id="header-github-auth" title="GitHub" style="${iconBtnStyle}">${githubSvg}</button>
-                        <button id="header-spotify-auth" title="Spotify" style="${iconBtnStyle}">${spotifySvg}</button>
                     </div>
                     <hr style="border:none;border-top:1px solid var(--border);margin:0.25rem 0">
                     <button class="btn-secondary" id="header-email-auth">Connect with Email</button>
                 `;
 
-                for (const id of [
-                    'header-discord-auth',
-                    'header-google-auth',
-                    'header-github-auth',
-                    'header-spotify-auth',
-                ]) {
+                for (const id of ['header-discord-auth', 'header-google-auth', 'header-github-auth']) {
                     const btn = document.getElementById(id);
                     const svg = btn.querySelector('svg');
+                    svg.style.display = 'block';
                     svg.style.filter = 'brightness(0) invert(1)';
                     svg.style.transition = 'filter 0.15s';
                     btn.addEventListener('mouseenter', () => {
@@ -2803,7 +2917,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('header-google-auth').onclick = () => authManager.signInWithGoogle();
                 document.getElementById('header-github-auth').onclick = () => authManager.signInWithGitHub();
                 document.getElementById('header-discord-auth').onclick = () => authManager.signInWithDiscord();
-                document.getElementById('header-spotify-auth').onclick = () => authManager.signInWithSpotify();
                 document.getElementById('header-email-auth').onclick = () => {
                     document.getElementById('email-auth-modal').classList.add('active');
                     headerAccountDropdown.classList.remove('active');

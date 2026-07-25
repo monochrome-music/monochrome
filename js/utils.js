@@ -291,6 +291,14 @@ export const normalizeQualityToken = (value) => {
 export const createQualityBadgeHTML = (track) => {
     if (!qualityBadgeSettings.isEnabled()) return '';
 
+    if (track?.amazonMusicQualitySelected) {
+        const quality = String(track.amazonMusicQualitySelected);
+        const label =
+            track.amazonMusicQualityDisplay ||
+            quality.replace(/^UHD_/, 'UHD ').replace(/^HD_/, 'HD ').replace(/_/g, ' ');
+        return `<span class="quality-badge quality-hires" title="Amazon Music ${escapeHtml(quality)}">${escapeHtml(label)}</span>`;
+    }
+
     const quality = deriveTrackQuality(track);
     if (quality === 'DOLBY_ATMOS') {
         return `<span class="quality-badge quality-atmos" title="Dolby Atmos">${SVG_ATMOS(20)}</span>`;

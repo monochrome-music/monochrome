@@ -154,6 +154,11 @@ For development mode and advanced setups, see [DOCKER.md](DOCKER.md).
 #### Prerequisites
 
 - [Bun](https://bun.sh/) (Preferred) or [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
+- [Git](https://git-scm.com/)
+
+#### PocketBase Schema
+
+The current PocketBase collection schema is stored in [`database/pb_schema.json`](database/pb_schema.json). Import this schema into a fresh PocketBase instance when setting up account data storage.
 
 #### Local Development
 

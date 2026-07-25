@@ -10138,6 +10138,16 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     gap: 1.5rem;
     margin-bottom: 1.5rem;
     border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.home-header-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.home-tab {
+    white-space: nowrap;
 }
 
 .home-tab {
@@ -10514,6 +10524,10 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     margin: 0 auto;
 }
 
+#party-chat-messages > :first-child {
+    margin-top: auto;
+}
+
 .party-content-layout {
     display: grid;
     grid-template-columns: 1fr 350px;
@@ -10526,77 +10540,153 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     }
 }
 
-.party-indicator-card {
-    position: fixed;
-    bottom: calc(var(--player-bar-height-desktop) + 1.5rem);
-    right: 1.5rem;
+.party-now-playing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.5rem;
+    padding: 2rem;
     background: var(--card);
     border: 1px solid var(--border);
-    border-right: 4px solid var(--primary);
-    border-radius: var(--radius-md);
-    padding: 0.6rem 1rem;
+    border-radius: var(--radius);
+}
+
+.party-now-playing-cover {
+    width: 100%;
+    max-width: 250px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--radius);
+    object-fit: cover;
+    box-shadow: 0 10px 30px rgb(0, 0, 0, 0.3);
+}
+
+.party-now-playing-info {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.party-now-playing-title {
+    font-size: clamp(1.25rem, 4vw, 1.8rem);
+    font-weight: var(--font-bold);
+    line-height: var(--leading-tight);
+    margin-bottom: 0.35rem;
+    overflow-wrap: anywhere;
+}
+
+.party-now-playing-artist {
+    font-size: clamp(0.95rem, 3vw, 1.2rem);
+    color: var(--muted-foreground);
+    line-height: var(--leading-snug);
+    overflow-wrap: anywhere;
+}
+
+.party-now-playing-paused {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    z-index: 2000;
-    box-shadow: var(--shadow-lg);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    max-width: 280px;
-}
-
-.party-indicator-card:hover {
-    background: var(--secondary);
-}
-
-.party-indicator-content {
-    flex: 1;
-    min-width: 0;
-    text-align: right;
-}
-
-.party-indicator-label {
-    color: var(--muted-foreground);
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    display: block;
-    margin-bottom: 2px;
-}
-
-.party-indicator-name {
-    font-size: 0.85rem;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.party-indicator-count {
-    background: var(--secondary);
+    gap: 0.5rem;
     color: var(--primary);
-    font-size: 0.75rem;
-    font-weight: 800;
-    padding: 2px 8px;
-    border-radius: 10px;
-    min-width: 24px;
+    font-weight: var(--font-semibold);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+}
+
+.party-now-playing-empty {
+    padding: 4rem 2rem;
     text-align: center;
-    order: -1;
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px dashed var(--border);
+    color: var(--muted-foreground);
+    font-size: 1.2rem;
 }
 
 @media (max-width: 768px) {
-    .party-indicator-card {
-        bottom: calc(var(--player-bar-height-mobile) + 1rem);
-        left: 1rem;
-        right: 1rem;
-        max-width: none;
+    .party-container {
+        padding: 1rem;
+    }
+
+    .party-now-playing {
+        padding: 1.25rem;
+        gap: 1rem;
+    }
+
+    .party-now-playing-empty {
+        padding: 2.5rem 1rem;
+        font-size: 1rem;
     }
 }
 
 .chat-msg {
     margin-bottom: 0.5rem;
     animation: fade-in 0.2s ease-out;
+}
+
+.party-typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-md);
+    color: var(--muted-foreground);
+    font-size: var(--text-xs);
+    line-height: 1;
+    min-height: 22px;
+    animation: fade-in 0.15s ease-out;
+}
+
+.party-typing-indicator[hidden] {
+    display: none;
+}
+
+.party-typing-text {
+    font-style: italic;
+}
+
+.party-typing-dots {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 10px;
+}
+
+.party-typing-dots span {
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: var(--radius-full);
+    background: var(--muted-foreground);
+    animation: party-typing-bounce 1.2s var(--ease-in-out) infinite;
+}
+
+.party-typing-dots span:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.party-typing-dots span:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+@keyframes party-typing-bounce {
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+
+    30% {
+        transform: translateY(-4px);
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .party-typing-dots span {
+        animation: none;
+        opacity: 0.7;
+    }
 }
 
 @keyframes fade-in {
@@ -11677,4 +11767,341 @@ img.cd {
     height: 23.5%;
     border-radius: 50%;
     border: 0.125vw solid #ccc;
+}
+
+/* creator of CSS gotta be a nazi icl css can SUCK MY ASS */
+
+.donate-page-wrapper {
+    text-align: center;
+    padding: 2rem;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.donate-page-title {
+    margin-bottom: 1.5rem;
+}
+
+.donate-page-desc {
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+}
+
+.donate-goal-card {
+    background: rgb(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    text-align: left;
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(8px);
+}
+
+.donate-goal-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.donate-goal-card-label {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--foreground);
+}
+
+.donate-goal-card-percent {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.donate-goal-track {
+    width: 100%;
+    height: 8px;
+    background: var(--muted);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.donate-goal-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--primary);
+    border-radius: 999px;
+}
+
+.donate-goal-card-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+}
+
+.donate-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.donate-actions[hidden] {
+    display: none;
+}
+
+.donate-kofi-btn {
+    text-decoration: none;
+}
+
+.donate-crypto-btn {
+    background-color: var(--secondary);
+    color: var(--foreground);
+}
+
+.donate-crypto-section {
+    margin-bottom: 2rem;
+}
+
+.donate-crypto-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--foreground);
+    margin-bottom: 0.25rem;
+    text-align: center;
+}
+
+.donate-crypto-subtitle {
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+    margin-bottom: 1.25rem;
+    text-align: center;
+}
+
+.donate-crypto-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.crypto-wallet {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    background: rgb(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    cursor: pointer;
+    text-align: left;
+    color: var(--foreground);
+    font: inherit;
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast);
+}
+
+.crypto-wallet:hover {
+    background: var(--secondary);
+    border-color: var(--primary);
+}
+
+.crypto-wallet-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.crypto-wallet-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.crypto-wallet-addr {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.crypto-wallet-copy-icon {
+    flex-shrink: 0;
+    color: var(--muted-foreground);
+    pointer-events: none;
+}
+
+.crypto-wallet:hover .crypto-wallet-copy-icon {
+    color: var(--primary);
+}
+
+.donate-alt-section {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.donate-alt-text {
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+    margin-bottom: 1rem;
+}
+
+.donate-github-btn {
+    text-decoration: none;
+}
+
+#sidebar-nav-donate {
+    border-radius: var(--radius);
+    transition:
+        background-color var(--transition-fast),
+        color var(--transition-fast),
+        transform var(--transition-fast);
+    cursor: pointer;
+    color: var(--muted-foreground);
+    padding-bottom: 0.4rem;
+}
+
+#sidebar-nav-donate:hover {
+    background-color: var(--secondary);
+    color: var(--foreground);
+    transform: translateX(4px);
+}
+
+#sidebar-nav-donate:has(a.active) {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
+#sidebar-nav-donate a {
+    background-color: transparent !important;
+    transform: none !important;
+    color: inherit;
+    border-radius: 0;
+}
+
+#sidebar-nav-donate a:hover {
+    background-color: transparent !important;
+    color: inherit;
+    transform: none !important;
+}
+
+#sidebar-nav-donate a.active {
+    background-color: transparent !important;
+    color: inherit;
+}
+
+.sidebar-donate-goal {
+    font-size: 0.65rem;
+    color: inherit;
+    opacity: 0.75;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    pointer-events: none;
+    padding: 0 0.75rem;
+    margin-left: 2rem;
+}
+
+.sidebar-donate-goal-track {
+    width: 45px;
+    height: 3px;
+    background: rgb(128, 128, 128, 0.3);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.sidebar-donate-goal-fill {
+    width: 0%;
+    height: 100%;
+    background: currentcolor;
+    border-radius: 99px;
+}
+
+body.sidebar-collapsed .sidebar-donate-goal {
+    display: none;
+}
+
+body.sidebar-collapsed #sidebar-nav-donate {
+    padding-bottom: 0;
+}
+
+.deezer-hires-warning {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+    color: #f59e0b;
+    cursor: help;
+}
+
+.deezer-hires-warning svg {
+    height: 0.85rem;
+    width: auto;
+}
+
+.deezer-hires-warning:focus-visible {
+    outline: 2px solid #f59e0b;
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+}
+
+#hires-fallback-tooltip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: max-content;
+    max-width: 280px;
+    background: var(--card);
+    color: var(--card-foreground);
+    padding: 0.7rem 0.8rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(5px) scale(0.96);
+    transform-origin: bottom center;
+    transition:
+        opacity 0.14s ease,
+        transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    will-change: transform, opacity;
+}
+
+#hires-fallback-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+#hires-fallback-tooltip .hires-fallback-title {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #f59e0b;
+    margin-bottom: 0.3rem;
+}
+
+#hires-fallback-tooltip .hires-fallback-title svg {
+    height: 0.9rem;
+    width: auto;
+}
+
+#hires-fallback-tooltip .hires-fallback-body {
+    font-size: 0.76rem;
+    line-height: 1.45;
+    color: var(--muted-foreground);
 }

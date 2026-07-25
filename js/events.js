@@ -31,6 +31,55 @@ import { Player } from './player.js';
 
 let currentTrackIdForWaveform = null;
 
+const DONATION_PROMPT_EVERY = 50;
+const DONATION_PLAY_COUNT_KEY = 'donation-prompt-play-count';
+
+function showDonationPrompt() {
+    let container = document.getElementById('download-notifications');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'download-notifications';
+        document.body.appendChild(container);
+    }
+    const el = document.createElement('div');
+    el.className = 'download-task';
+    el.innerHTML = `
+        <div style="font-weight: 600; margin-bottom: 0.4rem;">Support Monochrome</div>
+        <p style="margin: 0 0 0.75rem; font-size: 0.85rem; line-height: 1.5; color: var(--muted-foreground);">
+            Enjoying the music? Monochrome is free, has no ads, and runs entirely on donations.
+        </p>
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+            <button class="btn-secondary" data-action="dismiss" style="padding: 0.35rem 0.8rem; font-size: 0.8rem;">Maybe Later</button>
+            <button class="btn-primary" data-action="donate" style="padding: 0.35rem 0.8rem; font-size: 0.8rem;">Donate</button>
+        </div>
+    `;
+    const dismiss = () => {
+        el.style.animation = 'slide-out 0.3s ease forwards';
+        setTimeout(() => el.remove(), 300);
+    };
+    el.querySelector('[data-action="dismiss"]').onclick = dismiss;
+    el.querySelector('[data-action="donate"]').onclick = () => {
+        dismiss();
+        navigate('/donate');
+    };
+    container.appendChild(el);
+}
+
+function countPlayForDonationPrompt() {
+    let count = 0;
+    try {
+        count = parseInt(localStorage.getItem(DONATION_PLAY_COUNT_KEY), 10) || 0;
+    } catch {}
+    count++;
+    if (count >= DONATION_PROMPT_EVERY) {
+        count = 0;
+        showDonationPrompt();
+    }
+    try {
+        localStorage.setItem(DONATION_PLAY_COUNT_KEY, String(count));
+    } catch {}
+}
+
 const trackSelection = {
     selectedIds: new Set(),
     lastClickedId: null,
@@ -401,6 +450,8 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
         element.addEventListener('play', async () => {
             if (player.activeElement !== element) return;
 
+            player.isLoadingTrack = false;
+
             if (!audioContextManager.isReady()) {
                 audioContextManager.init(element);
             }
@@ -425,6 +476,7 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
                     _previousTrackId = currentId;
                     listeningTracker.onTrackStart(player.currentTrack);
                     _trackPlayStartTime = Date.now();
+                    countPlayForDonationPrompt();
                 }
 
                 if (scrobbler.isAuthenticated()) {
@@ -448,7 +500,9 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
 
         element.addEventListener('pause', () => {
             if (player.activeElement !== element) return;
-            playPauseBtn.innerHTML = SVG_PLAY(20);
+            if (!player.isLoadingTrack) {
+                playPauseBtn.innerHTML = SVG_PLAY(20);
+            }
             player.updateMediaSessionPlaybackState();
             player.updateMediaSessionPositionState();
         });
@@ -524,6 +578,7 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
             }
 
             console.error(`Media playback error (${element.id}):`, errorMsg, e);
+            player.isLoadingTrack = false;
             playPauseBtn.innerHTML = SVG_PLAY(20);
 
             const canFallback =
@@ -2179,7 +2234,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                         player.playVideo(clickedTrack);
                     } else {
                         player.setQueue([clickedTrack], 0);
-                        player.enableAutoplay();
                         document.getElementById('shuffle-btn').classList.remove('active');
                         player.playTrackFromQueue();
 
@@ -2213,7 +2267,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
 
                     player.setQueue(trackList, startIndex);
-                    player.enableAutoplay();
 
                     if (ui.currentPage === 'artist' && ui.currentArtistId) {
                         player.setArtistPopularTracksContext(ui.currentArtistId, trackList, trackList.length, true);
@@ -2264,7 +2317,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 if (trackList.length === 0) return;
                 const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
                 player.setQueue(trackList, startIndex);
-                player.enableAutoplay();
                 if (ui.currentPage === 'artist' && ui.currentArtistId) {
                     player.setArtistPopularTracksContext(ui.currentArtistId, trackList, trackList.length, true);
                 }

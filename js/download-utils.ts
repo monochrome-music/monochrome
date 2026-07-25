@@ -11,10 +11,22 @@ import {
 } from './ffmpegFormats';
 import { ffmpegInfo, ffmpegNewContainer, ffmpeg } from './ffmpeg';
 
-/**
- * Triggers a browser file download for the given blob.
- */
 export function triggerDownload(blob: Blob, filename: string): void {
+    const dl = (
+        window as unknown as { AndroidDownload?: { saveDownload: (b64: string, n: string, m: string) => void } }
+    ).AndroidDownload;
+    if (dl && typeof dl.saveDownload === 'function') {
+        const r = new FileReader();
+        r.onloadend = () => {
+            const s = (r.result as string) || '';
+            const c = s.indexOf(',');
+            const b64 = c >= 0 ? s.substring(c + 1) : s;
+            dl.saveDownload(b64, filename, blob.type || 'application/octet-stream');
+        };
+        r.readAsDataURL(blob);
+        return;
+    }
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

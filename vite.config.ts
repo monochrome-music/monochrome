@@ -25,8 +25,11 @@ function getGitCommitHash() {
     }
 }
 
-export default defineConfig((_options) => {
+const decrypterVersion = '2026-06-23-flac-hls-v8';
+
+export default defineConfig(({ mode }) => {
     const commitHash = getGitCommitHash();
+    const isDev = mode === 'development';
 
     return {
         test: {
@@ -89,12 +92,45 @@ export default defineConfig((_options) => {
             svgUse(),
             VitePWA({
                 registerType: 'prompt',
+                devOptions: {
+                    enabled: true,
+                    type: 'classic',
+                    disableRuntimeConfig: true,
+                    suppressWarnings: true,
+                },
                 workbox: {
-                    globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+                    importScripts: [`sw-decrypter.js?v=${decrypterVersion}`],
+                    skipWaiting: true,
+                    clientsClaim: true,
+                    globPatterns: ['index.html', 'manifest.json'],
                     cleanupOutdatedCaches: true,
                     maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB limit
                     // Define runtime caching strategies
                     runtimeCaching: [
+                        {
+                            urlPattern: ({ request }) =>
+                                request.destination === 'script' || request.destination === 'worker',
+                            handler: isDev ? 'NetworkFirst' : 'CacheFirst',
+                            options: {
+                                cacheName: 'scripts',
+                                expiration: {
+                                    maxEntries: 200,
+                                    maxAgeSeconds: 60 * 24 * 60 * 60,
+                                },
+                            },
+                        },
+                        {
+                            urlPattern: ({ request }) =>
+                                request.destination === 'style' || request.destination === 'font',
+                            handler: 'CacheFirst',
+                            options: {
+                                cacheName: 'static-resources',
+                                expiration: {
+                                    maxEntries: 60,
+                                    maxAgeSeconds: 60 * 24 * 60 * 60,
+                                },
+                            },
+                        },
                         {
                             urlPattern: ({ request }) => request.destination === 'image',
                             handler: 'CacheFirst',

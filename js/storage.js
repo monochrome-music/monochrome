@@ -96,10 +96,7 @@ export const apiSettings = {
                         { url: 'https://hund.qqdl.site', version: '2.6' },
                         { url: 'https://wolf.qqdl.site', version: '2.6' },
                     ],
-                    qobuz: [
-                        { url: 'https://qdl-api.monochrome.tf', version: '1.0' },
-                        { url: 'https://qobuz.kennyy.com.br', version: '1.0' },
-                    ],
+                    qobuz: [{ url: 'https://qobuz.kennyy.com.br', version: '1.0' }],
                 };
                 this.instancesLoaded = true;
                 this._loadPromise = null;
@@ -129,7 +126,7 @@ export const apiSettings = {
 
             // Ensure default Qobuz instance is always available
             if (groupedInstances.qobuz.length === 0) {
-                groupedInstances.qobuz = [{ url: 'https://qdl-api.monochrome.tf', version: '1.0' }];
+                groupedInstances.qobuz = [{ url: 'https://qobuz.kennyy.com.br', version: '1.0' }];
             }
 
             this.defaultInstances = groupedInstances;
@@ -2401,16 +2398,25 @@ export const radioSettings = {
     },
 };
 
+// fuck you binimum for adding this bullshit
+
+try {
+    const RESET_FLAG = 'autoplay-enabled-reset-v1';
+    if (!localStorage.getItem(RESET_FLAG)) {
+        localStorage.removeItem('autoplay-enabled');
+        localStorage.setItem(RESET_FLAG, '1');
+    }
+} catch {}
+
 export const autoplaySettings = {
     ENABLED_KEY: 'autoplay-enabled',
     SMART_RECS_KEY: 'smart-recommendations-enabled',
 
     isEnabled() {
         try {
-            const val = localStorage.getItem(this.ENABLED_KEY);
-            return val === null ? true : val === 'true';
+            return localStorage.getItem(this.ENABLED_KEY) === 'true';
         } catch {
-            return true;
+            return false;
         }
     },
 
@@ -2469,6 +2475,7 @@ export const sidebarSectionSettings = {
         'sidebar-nav-donate',
         'sidebar-nav-settings',
         'sidebar-nav-about-bottom',
+        'sidebar-nav-mobile',
         'sidebar-nav-discordbtn',
         'sidebar-nav-party',
         'sidebar-nav-githubbtn',
@@ -2621,7 +2628,14 @@ export const sidebarSectionSettings = {
         try {
             const stored = localStorage.getItem(this.ORDER_KEY);
             if (stored) {
-                return this.normalizeOrder(JSON.parse(stored));
+                let order = JSON.parse(stored);
+                if (Array.isArray(order) && !order.includes('sidebar-nav-mobile')) {
+                    const aboutIndex = order.indexOf('sidebar-nav-about-bottom');
+                    if (aboutIndex !== -1) {
+                        order.splice(aboutIndex + 1, 0, 'sidebar-nav-mobile');
+                    }
+                }
+                return this.normalizeOrder(order);
             }
         } catch {
             // ignore
@@ -2667,6 +2681,7 @@ export const sidebarSectionSettings = {
             { id: 'sidebar-nav-donate', check: this.shouldShowDonate() },
             { id: 'sidebar-nav-settings', check: this.shouldShowSettings() },
             { id: 'sidebar-nav-about-bottom', check: this.shouldShowAbout() },
+            { id: 'sidebar-nav-mobile', check: true },
             { id: 'sidebar-nav-discordbtn', check: this.shouldShowDiscord() },
             { id: 'sidebar-nav-party', check: this.shouldShowParty() },
             { id: 'sidebar-nav-githubbtn', check: this.shouldShowGithub() },
@@ -3054,14 +3069,109 @@ export const musicProviderSettings = {
 
     getProvider() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) || 'tidal';
+            return localStorage.getItem(this.STORAGE_KEY) || 'amazon';
         } catch {
-            return 'tidal';
+            return 'amazon';
         }
     },
 
     setProvider(provider) {
         localStorage.setItem(this.STORAGE_KEY, provider);
+    },
+};
+
+export const amazonMusicSettings = {
+    ENABLED_KEY: 'amazon-music-enabled',
+    API_BASE_URL_KEY: 'amazon-music-api-base-url',
+    TURNSTILE_SITE_KEY: 'amazon-music-turnstile-site-key',
+    TURNSTILE_BYPASS_TOKEN: 'amazon-music-turnstile-bypass-token',
+    DEFAULT_API_BASE_URL: 'https://amz.geeked.wtf',
+    DEFAULT_TURNSTILE_SITE_KEY: '0x4AAAAAADgxqF6QVMm0GLHH',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.ENABLED_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
+    },
+
+    getApiBaseUrl() {
+        try {
+            return localStorage.getItem(this.API_BASE_URL_KEY) || this.DEFAULT_API_BASE_URL;
+        } catch {
+            return this.DEFAULT_API_BASE_URL;
+        }
+    },
+
+    setApiBaseUrl(url) {
+        localStorage.setItem(this.API_BASE_URL_KEY, url || this.DEFAULT_API_BASE_URL);
+    },
+
+    getTurnstileSiteKey() {
+        try {
+            return (
+                localStorage.getItem(this.TURNSTILE_SITE_KEY) ||
+                import.meta.env.VITE_AMAZON_TURNSTILE_SITE_KEY ||
+                this.DEFAULT_TURNSTILE_SITE_KEY
+            );
+        } catch {
+            return this.DEFAULT_TURNSTILE_SITE_KEY;
+        }
+    },
+
+    setTurnstileSiteKey(siteKey) {
+        localStorage.setItem(this.TURNSTILE_SITE_KEY, siteKey || '');
+    },
+
+    getTurnstileBypassToken() {
+        try {
+            return (
+                localStorage.getItem(this.TURNSTILE_BYPASS_TOKEN) ||
+                import.meta.env.VITE_AMAZON_TURNSTILE_BYPASS_TOKEN ||
+                ''
+            );
+        } catch {
+            return '';
+        }
+    },
+
+    setTurnstileBypassToken(token) {
+        localStorage.setItem(this.TURNSTILE_BYPASS_TOKEN, token || '');
+    },
+};
+
+export const deezerFallbackSettings = {
+    ENABLED_KEY: 'deezer-fallback-enabled',
+    API_BASE_URL_KEY: 'deezer-fallback-api-base-url',
+    DEFAULT_API_BASE_URL: 'https://dzr.tabs-vs-spaces.wtf',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.ENABLED_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
+    },
+
+    getApiBaseUrl() {
+        try {
+            return localStorage.getItem(this.API_BASE_URL_KEY) || this.DEFAULT_API_BASE_URL;
+        } catch {
+            return this.DEFAULT_API_BASE_URL;
+        }
+    },
+
+    setApiBaseUrl(url) {
+        localStorage.setItem(this.API_BASE_URL_KEY, url || this.DEFAULT_API_BASE_URL);
     },
 };
 
@@ -3221,13 +3331,28 @@ export const contentBlockingSettings = {
     BLOCKED_TRACKS_KEY: 'blocked-tracks',
     BLOCKED_ALBUMS_KEY: 'blocked-albums',
 
+    // Hardcoded always-blocked artist IDs. Merged into the user blocklist on
+    // every read so the block survives localStorage clears. To allow playback
+    // for one of these artists again, remove the ID from this array.
+    HARDCODED_BLOCKED_ARTIST_IDS: [3995478],
+
+    _hardcodedBlockedArtists() {
+        return this.HARDCODED_BLOCKED_ARTIST_IDS.map((id) => ({
+            id,
+            name: null,
+            blockedAt: 0,
+            hardcoded: true,
+        }));
+    },
+
     // Blocked Artists
     getBlockedArtists() {
         try {
             const data = localStorage.getItem(this.BLOCKED_ARTISTS_KEY);
-            return data ? JSON.parse(data) : [];
+            const user = data ? JSON.parse(data) : [];
+            return [...this._hardcodedBlockedArtists(), ...user];
         } catch {
-            return [];
+            return this._hardcodedBlockedArtists();
         }
     },
 
@@ -3357,6 +3482,27 @@ export const contentBlockingSettings = {
     shouldHideArtist(artist) {
         if (!artist) return true;
         return this.isArtistBlocked(artist.id);
+    },
+
+    // True only for hardcoded (non-user-removable) blocks. Renderers use
+    // this to omit the item entirely rather than just dim it.
+    isHardcodedBlockedArtist(artistId) {
+        if (!artistId) return false;
+        return this.HARDCODED_BLOCKED_ARTIST_IDS.some((id) => String(id) === String(artistId));
+    },
+
+    isHardcodedBlockedTrack(track) {
+        if (!track) return false;
+        if (track.artist?.id && this.isHardcodedBlockedArtist(track.artist.id)) return true;
+        if (track.artists?.some((a) => this.isHardcodedBlockedArtist(a.id))) return true;
+        return false;
+    },
+
+    isHardcodedBlockedAlbum(album) {
+        if (!album) return false;
+        if (album.artist?.id && this.isHardcodedBlockedArtist(album.artist.id)) return true;
+        if (album.artists?.some((a) => this.isHardcodedBlockedArtist(a.id))) return true;
+        return false;
     },
 
     // Filter arrays

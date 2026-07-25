@@ -1,35 +1,82 @@
 // functions/unreleased/[sheetId].js
 
-const ARTISTS_NDJSON_URL = 'https://assets.artistgrid.cx/artists.ndjson';
+const ARTISTS_CSV_URL = 'https://artists.artistgrid.cx/artists.csv';
 const ASSETS_BASE_URL = 'https://assets.artistgrid.cx';
 
+// The artists CSV provides the tracker id directly: either a bare Google Sheets
+// id or a tracker domain (yetracker.net, franktracker.net, deftonestracker, ...).
+// Whatever it is, it's used as-is on the tracker API.
 function getSheetId(url) {
     if (!url) return null;
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : null;
+    if (match) return match[1];
+    return url.trim() || null;
 }
 
 function normalizeArtistName(name) {
     return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+// Parse RFC4180-style CSV (quoted fields, escaped "" quotes, commas/newlines inside quotes)
+function parseCSVRows(text) {
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if (inQuotes) {
+            if (char === '"') {
+                if (text[i + 1] === '"') {
+                    field += '"';
+                    i++;
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                field += char;
+            }
+        } else if (char === '"') {
+            inQuotes = true;
+        } else if (char === ',') {
+            row.push(field);
+            field = '';
+        } else if (char === '\n' || char === '\r') {
+            if (char === '\r' && text[i + 1] === '\n') i++;
+            row.push(field);
+            rows.push(row);
+            row = [];
+            field = '';
+        } else {
+            field += char;
+        }
+    }
+    if (field.length > 0 || row.length > 0) {
+        row.push(field);
+        rows.push(row);
+    }
+    return rows;
+}
+
+function parseArtistsCSV(text) {
+    const rows = parseCSVRows(text).filter((r) => r.length > 1 || r[0]);
+    if (rows.length < 2) return [];
+    const headers = rows[0];
+    return rows.slice(1).map((row) => {
+        const obj = {};
+        headers.forEach((header, i) => {
+            obj[header] = row[i] ?? '';
+        });
+        return obj;
+    });
+}
+
 async function loadArtistsData() {
     try {
-        const response = await fetch(ARTISTS_NDJSON_URL);
+        const response = await fetch(ARTISTS_CSV_URL);
         if (!response.ok) throw new Error('Network response was not ok');
         const text = await response.text();
-        return text
-            .trim()
-            .split('\n')
-            .filter((line) => line.trim())
-            .map((line) => {
-                try {
-                    return JSON.parse(line);
-                } catch {
-                    return null;
-                }
-            })
-            .filter((item) => item !== null);
+        return parseArtistsCSV(text);
     } catch (e) {
         console.error('Failed to load Artists List:', e);
         return [];
@@ -52,7 +99,8 @@ export async function onRequest(context) {
 
             if (artist && artist.name) {
                 const normalizedName = normalizeArtistName(artist.name);
-                const imageUrl = `${ASSETS_BASE_URL}/${normalizedName}.webp`;
+                // Images live at assets.artistgrid.cx/{format}/{normalizedname}.{format}
+                const imageUrl = `${ASSETS_BASE_URL}/jpg/${normalizedName}.jpg`;
                 const pageUrl = new URL(request.url).href;
                 const title = `${artist.name} | Unreleased`;
                 const description = `Stream unreleased music by ${artist.name} on Monochrome`;
@@ -81,7 +129,11 @@ export async function onRequest(context) {
                     <body>
                         <h1>${artist.name}</h1>
                         <p>${description}</p>
-                        <img src="${imageUrl}" alt="${artist.name}">
+                        <picture>
+                            <source srcset="${ASSETS_BASE_URL}/jxl/${normalizedName}.jxl" type="image/jxl">
+                            <source srcset="${ASSETS_BASE_URL}/webp/${normalizedName}.webp" type="image/webp">
+                            <img src="${imageUrl}" alt="${artist.name}">
+                        </picture>
                     </body>
                     </html>
                 `;
