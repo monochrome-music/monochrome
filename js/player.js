@@ -1595,7 +1595,7 @@ export class Player {
     resetProgressUI() {
         document.querySelectorAll('#progress-fill, #fs-progress-fill').forEach(el => el.style.width = '0%');
         document.querySelectorAll('#current-time, #fs-current-time').forEach(el => el.textContent = '0:00');
-        document.querySelectorAll('#total-time, #fs-total-time').forEach(el => el.textContent = '0:00');
+        document.querySelectorAll('#total-duration, #fs-total-duration').forEach(el => el.textContent = '0:00');
         document.querySelectorAll('#progress-bar, #fs-progress-bar').forEach(el => {
             el.style.webkitMaskImage = '';
             el.style.maskImage = '';
