@@ -2239,6 +2239,8 @@ export class Player {
             if (this.currentQueueIndex < currentQueue.length) {
                 await this.playTrackFromQueue(0, 0);
             } else {
+                this.playbackSequence++;
+                this.setLoadingState(false);
                 const el = this.activeElement;
                 if (el) {
                     el.pause();
