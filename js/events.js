@@ -523,6 +523,7 @@ export async function initializePlayerEvents(player, audioPlayer, scrobbler, ui)
 
         element.addEventListener('timeupdate', async () => {
             if (player.activeElement !== element) return;
+            if (player.isLoadingTrack) return;
 
             const { currentTime, duration } = element;
             if (duration) {
