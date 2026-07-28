@@ -2766,6 +2766,7 @@ export class LosslessAPI {
         let amazonResult = null;
         let qobuzResult = null;
         let deezerResult = null;
+        let deezerAttempted = false;
         
         const prefersAmazon = Math.random() >= 0.5;
 
@@ -2792,6 +2793,7 @@ export class LosslessAPI {
         }
 
         if (!amazonResult?.url && !qobuzResult?.url && track?.isrc) {
+            deezerAttempted = true;
             deezerResult = await this.getDeezerStreamUrl(track.isrc, quality);
         }
 
@@ -2889,8 +2891,9 @@ export class LosslessAPI {
             return result;
         }
 
-        if (track?.isrc && !qobuzResult && !deezerResult && !amazonResult) {
+        if (track?.isrc && !qobuzResult && !deezerResult && !amazonResult && !deezerAttempted) {
             // Fallback just in case they weren't fetched
+            deezerAttempted = true;
             deezerResult = await this.getDeezerStreamUrl(track.isrc, quality);
             if (deezerResult?.url) {
                 const result = {
