@@ -2177,6 +2177,9 @@ export class Player {
         if (this.shuffleActive) {
             this.shuffledQueue.push(...tracks);
             this.originalQueueBeforeShuffle.push(...tracks);
+            this.originalQueueBeforeShuffle.forEach((track, index) => {
+                track._originalIndex = index;
+            });
         }
 
         if (!this.currentTrack || this.currentQueueIndex === -1) {
