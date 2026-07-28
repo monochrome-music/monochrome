@@ -2004,6 +2004,8 @@ export class LosslessAPI {
         const normalized = String(codec || '').toLowerCase();
         if (normalized === 'flac') return 'fLaC';
         if (normalized === 'opus') return 'Opus';
+        if (normalized === 'aac') return 'mp4a.40.2';
+        if (normalized === 'eac3') return 'ec-3';
         return normalized;
     }
 
@@ -2764,19 +2766,33 @@ export class LosslessAPI {
         let amazonResult = null;
         let qobuzResult = null;
         let deezerResult = null;
+        
+        const prefersAmazon = Math.random() >= 0.5;
 
-        if (track?.isrc) {
-            qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
-        }
-        if (!qobuzResult?.url) {
+        if (prefersAmazon) {
             amazonResult = await this.getAmazonMusicStreamUrl(id, actualQuality, {
                 preferAdaptiveAuto: true,
                 track,
                 allowCencWithoutKeyId: needsProxyDecryption,
             });
             if (!amazonResult?.url && track?.isrc) {
-                deezerResult = await this.getDeezerStreamUrl(track.isrc, quality);
+                qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
             }
+        } else {
+            if (track?.isrc) {
+                qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
+            }
+            if (!qobuzResult?.url) {
+                amazonResult = await this.getAmazonMusicStreamUrl(id, actualQuality, {
+                    preferAdaptiveAuto: true,
+                    track,
+                    allowCencWithoutKeyId: needsProxyDecryption,
+                });
+            }
+        }
+
+        if (!amazonResult?.url && !qobuzResult?.url && track?.isrc) {
+            deezerResult = await this.getDeezerStreamUrl(track.isrc, quality);
         }
 
         if (amazonResult?.url) {
