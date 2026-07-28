@@ -2006,13 +2006,15 @@ export class LosslessAPI {
     }
 
     getAmazonCodecString(codec) {
-        const normalized = String(codec || '').toLowerCase();
-        if (normalized === 'flac') return 'fLaC';
-        if (normalized === 'opus') return 'Opus';
-        if (normalized === 'aac' || normalized === 'aac-lc' || normalized === 'mp4a') return 'mp4a.40.2';
-        if (normalized === 'eac3' || normalized === 'e-ac-3') return 'ec-3';
-        return normalized;
-    }
+    const normalized = String(codec || '').toLowerCase();
+
+    if (normalized === 'flac') return 'fLaC';
+    if (normalized === 'opus') return 'Opus';
+    if (normalized === 'aac' || normalized === 'aac-lc' || normalized === 'mp4a') return 'mp4a.40.2';
+    if (normalized === 'eac3' || normalized === 'e-ac-3') return 'ec-3';
+
+    return normalized;
+}
 
     getAmazonDecryptionKey(data) {
         return (
@@ -2901,6 +2903,7 @@ export class LosslessAPI {
             preferDolbyAtmosSettings.isEnabled() ||
             track?.audioModes?.includes('DOLBY_ATMOS');
 
+<<<<<<< HEAD
         if (tryAtmosFirst && (quality === 'DOLBY_ATMOS' || preferDolbyAtmosSettings.isEnabled())) {
             try {
                 unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, 'DOLBY_ATMOS', {
@@ -2917,11 +2920,47 @@ export class LosslessAPI {
         if (!unifiedResult?.url) {
             const fallbackQuality = quality === 'DOLBY_ATMOS' ? 'HI_RES_LOSSLESS' : quality;
             unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, fallbackQuality, {
+=======
+        let actualQuality = quality;
+
+        const isAacQuality = actualQuality === 'HIGH' || actualQuality === 'SD_HIGH' || actualQuality === 'SD_LOW';
+        const targetCodec = isAacQuality ? 'mp4a' : isSafari ? 'flac-hls' : 'flac';
+
+        let amazonResult = null;
+        let qobuzResult = null;
+        let deezerResult = null;
+        
+        const prefersAmazon = Math.random() >= 0.5;
+
+        if (prefersAmazon) {
+            amazonResult = await this.getAmazonMusicStreamUrl(id, actualQuality, {
+>>>>>>> 2aeaa86 (Fix AOTY thumbnail loading, Shaka config, and Amazon streaming fallback)
                 preferAdaptiveAuto: true,
                 track,
                 allowCencWithoutKeyId: needsProxyDecryption,
                 intent: 'stream',
             });
+<<<<<<< HEAD
+=======
+            if (!amazonResult?.url && track?.isrc) {
+                qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
+            }
+        } else {
+            if (track?.isrc) {
+                qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
+            }
+            if (!qobuzResult?.url) {
+                amazonResult = await this.getAmazonMusicStreamUrl(id, actualQuality, {
+                    preferAdaptiveAuto: true,
+                    track,
+                    allowCencWithoutKeyId: needsProxyDecryption,
+                });
+            }
+        }
+
+        if (!amazonResult?.url && !qobuzResult?.url && track?.isrc) {
+            deezerResult = await this.getDeezerStreamUrl(track.isrc, quality);
+>>>>>>> 2aeaa86 (Fix AOTY thumbnail loading, Shaka config, and Amazon streaming fallback)
         }
 
         if (unifiedResult?.url) {

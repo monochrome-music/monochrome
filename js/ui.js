@@ -3297,7 +3297,7 @@ export class UIRenderer {
                 const img = document.createElement('img');
                 img.crossOrigin = 'anonymous';
                 img.referrerPolicy = 'no-referrer';
-                img.src = item.image || 'assets/logo.svg';
+                img.src = item.image ? `https://wsrv.nl/?url=${encodeURIComponent(item.image)}&w=250&h=250&output=webp` : 'assets/logo.svg';
                 img.width = 88;
                 img.height = 56;
                 img.style.cssText =
@@ -3376,7 +3376,7 @@ export class UIRenderer {
                     const thumb = document.createElement('img');
                     thumb.crossOrigin = 'anonymous';
                     thumb.referrerPolicy = 'no-referrer';
-                    thumb.src = entry.cover || 'assets/logo.svg';
+                    thumb.src = entry.cover ? `https://wsrv.nl/?url=${encodeURIComponent(entry.cover)}&w=100&h=100&output=webp` : 'assets/logo.svg';
                     thumb.width = 44;
                     thumb.height = 44;
                     thumb.loading = 'lazy';
@@ -3462,7 +3462,7 @@ export class UIRenderer {
 
                 row.innerHTML = `
                     <span style="font-size:0.8rem;font-weight:700;color:var(--primary);min-width:2rem;text-align:right;flex-shrink:0;">#${escapeHtml(item.rank || '')}</span>
-                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${item.cover || 'assets/logo.svg'}" width="48" height="48"
+                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${item.cover ? `https://wsrv.nl/?url=${encodeURIComponent(item.cover)}&w=250&h=250&output=webp` : 'assets/logo.svg'}" width="48" height="48"
                         style="border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);"
                         loading="lazy" onerror="this.src='assets/logo.svg';this.onerror=null;">
                     <div style="flex:1;min-width:0;">
@@ -3592,7 +3592,7 @@ export class UIRenderer {
     createAOTYAlbumCardHTML(album, isUpcoming = false) {
         const title = escapeHtml(album.title || 'Unknown Album');
         const artist = escapeHtml(album.artist || '');
-        const cover = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${album.cover || 'assets/logo.svg'}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='assets/logo.svg'">`;
+        const cover = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${album.cover ? `https://wsrv.nl/?url=${encodeURIComponent(album.cover)}&w=250&h=250&output=webp` : 'assets/logo.svg'}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='assets/logo.svg'">`;
 
         const scoreParts = [];
         if (album.criticScore) scoreParts.push(`${album.criticScore} critic`);
@@ -4859,7 +4859,7 @@ export class UIRenderer {
                                 const author = decodeHtml(review.author || '');
                                 const quote = decodeHtml(review.text || 'No review text available.');
                                 reviewdiv.innerHTML = `
-                                <img crossorigin="anonymous" src="${review.image || ''}" width="50" height="50" style="border-radius:8px;object-fit:cover;background:var(--highlight);flex-shrink:0;"
+                                <img crossorigin="anonymous" src="${review.image ? `https://wsrv.nl/?url=${encodeURIComponent(review.image)}&w=100&h=100&output=webp` : ''}" width="50" height="50" style="border-radius:8px;object-fit:cover;background:var(--highlight);flex-shrink:0;"
                                      onerror="this.src='images/monochrome-logo.svg';this.onerror=null;" loading="lazy" referrerpolicy="no-referrer">
                                 <div style="flex:1;">
                                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.25rem;">
