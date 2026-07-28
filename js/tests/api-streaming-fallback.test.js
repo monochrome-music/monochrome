@@ -96,6 +96,16 @@ describe('LosslessAPI HiFi streaming fallback', () => {
             },
         });
         expect(api.getDeezerStreamUrl).toHaveBeenCalledWith('TESTISRC123', 'LOSSLESS');
+        expect(api.getDeezerStreamUrl).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not call Deezer twice when all providers fail', async () => {
+        api.getDeezerStreamUrl.mockResolvedValue(null);
+
+        await expect(api.getStreamUrl('123', 'LOSSLESS')).rejects.toThrow(
+            'Could not resolve stream URL from Amazon Music, Qobuz, or Deezer'
+        );
+        expect(api.getDeezerStreamUrl).toHaveBeenCalledTimes(1);
     });
 
     test('Amazon-first: uses Amazon Music before Qobuz when it resolves a stream URL', async () => {
