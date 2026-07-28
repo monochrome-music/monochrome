@@ -2391,7 +2391,7 @@ export class UIRenderer {
             const duration = activeEl.duration || 0;
             const current = activeEl.currentTime || 0;
 
-            if (duration > 0) {
+            if (duration > 0 && !this.player.isLoadingTrack) {
                 // Only update progress if not currently seeking (user is dragging)
                 if (!isFsSeeking) {
                     const percent = (current / duration) * 100;
