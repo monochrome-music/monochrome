@@ -21,7 +21,7 @@ import {
     contentBlockingSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
-import { isIos, isSafari, canUseNativeAmazonCenc } from './platform-detection.js';
+import { isIos, isSafari, canUseNativeAmazonCenc, getAmazonDecrypterCodec } from './platform-detection.js';
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
 
@@ -703,8 +703,7 @@ export class Player {
     }
 
     getAmazonNativeDecrypterCodec() {
-        const isAacQuality = this.quality === 'HIGH' || this.quality === 'SD_HIGH' || this.quality === 'SD_LOW';
-        return isAacQuality ? 'mp4a' : isSafari ? 'flac-hls' : 'flac';
+        return getAmazonDecrypterCodec(this.quality);
     }
 
     isNativeAmazonHlsDecryptionUrl(url) {
@@ -759,7 +758,8 @@ export class Player {
             !track.isLocal &&
             (streamInfo.playbackType?.includes('cenc') ||
                 (streamUrl.startsWith('blob:') && streamInfo.playbackType !== 'direct') ||
-                streamUrl.includes('.mpd'));
+                streamUrl.includes('.mpd') ||
+                (this.isNativeAmazonHlsDecryptionUrl(streamUrl) && !isSafari));
         if (requiresShaka && (!this.shakaPlayer || this.shakaPlayer.getMediaElement() !== activeElement)) {
             return false;
         }
@@ -812,7 +812,11 @@ export class Player {
             } else {
                 this.shakaPlayer.configure({ drm: { clearKeys: {} } });
             }
-            const shakaMimeType = streamInfo.playbackType?.includes('cenc') ? streamInfo.mimeType || null : null;
+            const shakaMimeType = streamInfo.playbackType?.includes('cenc')
+                ? streamInfo.mimeType || null
+                : this.isNativeAmazonHlsDecryptionUrl(streamUrl)
+                  ? 'application/vnd.apple.mpegurl'
+                  : null;
             handoffPromise =
                 startTime > 0
                     ? this.shakaPlayer.load(loadTarget, startTime, shakaMimeType)
@@ -1472,6 +1476,7 @@ export class Player {
                     !track.isLocal &&
                     (resolvedStreamInfo.playbackType?.includes('cenc') ||
                         streamUrl.includes('.mpd') ||
+                        (this.isNativeAmazonHlsDecryptionUrl(streamUrl) && !isSafari) ||
                         (streamUrl.startsWith('blob:') && resolvedStreamInfo.playbackType !== 'direct'));
 
                 if (shouldUseShaka) {
@@ -1495,7 +1500,9 @@ export class Player {
                     }
                     const shakaMimeType = resolvedStreamInfo.playbackType?.includes('cenc')
                         ? resolvedStreamInfo.mimeType || null
-                        : null;
+                        : this.isNativeAmazonHlsDecryptionUrl(streamUrl)
+                          ? 'application/vnd.apple.mpegurl'
+                          : null;
 
                     try {
                         if (startTime > 0) {

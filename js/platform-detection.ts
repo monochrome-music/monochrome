@@ -19,15 +19,47 @@ export const isSafari =
 /** If the browser is Chrome. */
 export const isChrome = lowerCaseOriginalUserAgent.includes('chrome') || lowerCaseOriginalUserAgent.includes('crios');
 
+/** If the browser is Firefox (excluding Chromium browsers with a modified user agent). */
+export const isFirefox = lowerCaseOriginalUserAgent.includes('firefox') && !isChrome;
+
+type AmazonDecrypterBrowser = {
+    isFirefox: boolean;
+    isSafari: boolean;
+};
+
+type NavigatorWithUserAgentData = Navigator & {
+    userAgentData?: {
+        brands?: Array<{ brand: string }>;
+    };
+};
+
+/**
+ * Choose the container emitted by the service-worker Amazon decrypter.
+ *
+ * Firefox cannot reliably consume the progressively rewritten fragmented MP4:
+ * after enough playback it may request a sample past the bytes it has buffered
+ * and abort with MediaResult/SampleIterator decoding errors. Segmented HLS
+ * avoids that progressive-resource path while retaining seekable time ranges.
+ */
+export function getAmazonDecrypterCodec(
+    quality: string,
+    browser: AmazonDecrypterBrowser = { isFirefox, isSafari }
+): 'mp4a' | 'flac-hls' | 'flac-raw' | 'flac' {
+    const isAacQuality = quality === 'HIGH' || quality === 'SD_HIGH' || quality === 'SD_LOW';
+    if (isAacQuality) return 'mp4a';
+    if (browser.isSafari) return 'flac-hls';
+    if (browser.isFirefox) return 'flac-hls';
+    return 'flac';
+}
+
 const chromiumBrandPattern = /chromium|chrome|edge|opera|brave/i;
-const userAgentBrands = (navigator as any).userAgentData?.brands || [];
+const userAgentBrands = (navigator as NavigatorWithUserAgentData).userAgentData?.brands ?? [];
 
 /** If this browser has Chromium's native ClearKey/CENC behavior we rely on for Amazon streams. */
 export const canUseNativeAmazonCenc =
     !isIos &&
     !isSafari &&
-    (userAgentBrands.some((brand) => chromiumBrandPattern.test(brand.brand)) || !!(globalThis as any).chrome);
-
+    (userAgentBrands.some((brand) => chromiumBrandPattern.test(brand.brand)) || 'chrome' in globalThis);
 
 export function getLocalFilesSupportInfo(): { supported: boolean; message: string | null } {
     const isFileSystemAccessSupported = 'showDirectoryPicker' in window;
@@ -47,7 +79,6 @@ export function getLocalFilesSupportInfo(): { supported: boolean; message: strin
         };
     }
 
-    const isFirefox = /firefox/i.test(originalUserAgent) && !isChrome;
     if (isSafari || isFirefox) {
         return {
             supported: false,
