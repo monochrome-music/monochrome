@@ -28,7 +28,7 @@ import { DownloadProgress } from './progressEvents.js';
 import { resolveDownloadTotalBytes } from './downloadProgressUtils.js';
 import { readableStreamIterator } from './readableStreamIterator.js';
 import { HiFiClient, TidalResponse } from './HiFi.ts';
-import { isIos, isSafari, isChrome, canUseNativeAmazonCenc } from './platform-detection.js';
+import { canUseNativeAmazonCenc, getAmazonDecrypterCodec } from './platform-detection.js';
 import {
     TrackAlbum,
     EnrichedAlbum,
@@ -2758,8 +2758,7 @@ export class LosslessAPI {
 
         let actualQuality = quality;
 
-        const isAacQuality = actualQuality === 'HIGH' || actualQuality === 'SD_HIGH' || actualQuality === 'SD_LOW';
-        const targetCodec = isAacQuality ? 'mp4a' : isSafari ? 'flac-hls' : 'flac';
+        const targetCodec = getAmazonDecrypterCodec(actualQuality);
 
         let amazonResult = null;
         let qobuzResult = null;
