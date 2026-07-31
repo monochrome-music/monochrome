@@ -5727,10 +5727,46 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
+                                        <span class="label">Monochrome Playback</span>
+                                        <span class="description"
+                                            >Use Monochrome's in-house lossless source first, with the existing audio
+                                            providers as fallbacks.</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="monochrome-playback-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Monochrome Playback API URL</span>
+                                        <span class="description">The in-house playback API endpoint</span>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="monochrome-playback-api-base-url"
+                                        placeholder="https://track-api.monochrome.tf"
+                                        style="
+                                            width: 220px;
+                                            padding: 0.35rem 0.5rem;
+                                            border: 1px solid var(--border);
+                                            border-radius: var(--radius-md);
+                                            background: var(--card);
+                                            color: var(--foreground);
+                                            font-size: 0.8rem;
+                                        "
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
                                         <span class="label">Amazon Music</span>
                                         <span class="description"
-                                            >Use Amazon Music streams first, then fall back to Qobuz, then Deezer as a
-                                            last resort.</span
+                                            >Fallback source used when Monochrome Playback cannot resolve a
+                                            stream.</span
                                         >
                                     </div>
                                     <label class="toggle-switch">
@@ -5810,7 +5846,7 @@
                                     <div class="info">
                                         <span class="label">Deezer Fallback</span>
                                         <span class="description"
-                                            >Last-resort source, used only when both Amazon Music and Qobuz fail. Tops
+                                            >Last-resort source when the primary and other fallback providers fail. Tops
                                             out at 16-bit lossless (FLAC).</span
                                         >
                                     </div>

@@ -14,6 +14,7 @@ import {
     preferDolbyAtmosSettings,
     trackDateSettings,
     devModeSettings,
+    monochromePlaybackSettings,
     amazonMusicSettings,
     deezerFallbackSettings,
 } from './storage.js';
@@ -46,6 +47,9 @@ export { resolveDownloadTotalBytes };
 let lastAudioSourceMissingNotifyAt = 0;
 const AMAZON_RATE_LIMITED_UNTIL_KEY = 'amazon-music-rate-limited-until';
 const AMAZON_RATE_LIMIT_DURATION_MS = 30 * 60 * 1000;
+const MONOCHROME_PLAYBACK_SESSION_KEY = 'monochromePlaybackSession';
+const MONOCHROME_SESSION_EXPIRY_LEEWAY_SECONDS = 15;
+const MONOCHROME_PLAYBACK_TURNSTILE_SITE_KEY = '0x4AAAAAADgxqF6QVMm0GLHH';
 function notifyAudioSourceMissing() {
     const now = Date.now();
     if (now - lastAudioSourceMissingNotifyAt < 3000) return;
@@ -62,6 +66,7 @@ export class LosslessAPI {
         });
         this.streamCache = new Map();
         this.turnstileLoadPromise = null;
+        this.monochromeRateLimitedUntil = 0;
 
         setInterval(
             async () => {
@@ -78,6 +83,10 @@ export class LosslessAPI {
             const toDelete = entries.slice(0, entries.length - 50);
             toDelete.forEach(([key]) => this.streamCache.delete(key));
         }
+    }
+
+    usesSingleUsePlaybackUrls() {
+        return monochromePlaybackSettings?.isEnabled() === true;
     }
 
     async fetchWithRetry(relativePath, options = {}) {
@@ -2084,11 +2093,15 @@ export class LosslessAPI {
         return this.turnstileLoadPromise;
     }
 
-    getTurnstileContainer() {
-        let panel = document.getElementById('amazon-music-turnstile-panel');
+    getTurnstileContainer({
+        panelId = 'amazon-music-turnstile-panel',
+        containerId = 'amazon-music-turnstile-container',
+        message = 'Amazon Music playback needs a quick browser check.',
+    } = {}) {
+        let panel = document.getElementById(panelId);
         if (!panel) {
             panel = document.createElement('div');
-            panel.id = 'amazon-music-turnstile-panel';
+            panel.id = panelId;
             panel.style.position = 'fixed';
             panel.style.right = '16px';
             panel.style.bottom = '84px';
@@ -2105,22 +2118,27 @@ export class LosslessAPI {
             panel.innerHTML = `
                 <div style="font-weight: 600; margin-bottom: 0.25rem;">Cloudflare verification</div>
                 <div style="color: var(--muted-foreground); margin-bottom: 0.75rem; line-height: 1.35;">
-                    Amazon Music playback needs a quick browser check.
+                    ${message}
                 </div>
-                <div id="amazon-music-turnstile-container"></div>
+                <div id="${containerId}"></div>
             `;
             document.body.appendChild(panel);
         }
-        return panel.querySelector('#amazon-music-turnstile-container');
+        return panel.querySelector(`#${containerId}`);
     }
 
-    async getTurnstileResponse() {
-        const siteKey = amazonMusicSettings.getTurnstileSiteKey().trim();
+    async getTurnstileResponse({
+        siteKey = amazonMusicSettings.getTurnstileSiteKey().trim(),
+        action = null,
+        panelId = 'amazon-music-turnstile-panel',
+        containerId = 'amazon-music-turnstile-container',
+        message = 'Amazon Music playback needs a quick browser check.',
+    } = {}) {
         if (!siteKey) {
             return null;
         }
 
-        const container = this.getTurnstileContainer();
+        const container = this.getTurnstileContainer({ panelId, containerId, message });
         container.innerHTML = '';
         const turnstile = await this.loadTurnstile();
 
@@ -2141,12 +2159,12 @@ export class LosslessAPI {
                     }
                 });
                 clearTimeout(timeoutId);
-                if (widgetId && turnstile.remove) {
+                if (widgetId != null && turnstile.remove) {
                     try {
                         turnstile.remove(widgetId);
                     } catch {}
                 }
-                document.getElementById('amazon-music-turnstile-panel')?.remove();
+                document.getElementById(panelId)?.remove();
             };
 
             timeoutId = setTimeout(() => {
@@ -2154,13 +2172,13 @@ export class LosslessAPI {
                 reject(new Error('Turnstile timed out'));
             }, 30000);
 
-            widgetId = turnstile.render(container, {
+            const widgetOptions = {
                 sitekey: siteKey,
                 size: 'invisible',
                 execution: 'execute',
                 theme: 'auto',
                 'before-interactive-callback': () => {
-                    const p = document.getElementById('amazon-music-turnstile-panel');
+                    const p = document.getElementById(panelId);
                     if (p) p.style.display = 'block';
                 },
                 callback: (token) => {
@@ -2175,7 +2193,10 @@ export class LosslessAPI {
                     cleanup();
                     reject(new Error('Turnstile expired'));
                 },
-            });
+            };
+            if (action) widgetOptions.action = action;
+
+            widgetId = turnstile.render(container, widgetOptions);
 
             turnstile.execute(widgetId);
         });
@@ -2238,6 +2259,176 @@ export class LosslessAPI {
         });
 
         return this._turnstileJwtPromise;
+    }
+
+    getJwtExpiry(token) {
+        try {
+            const encoded = token.split('.')[1];
+            const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
+            const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+            return Number(JSON.parse(atob(padded)).exp || 0);
+        } catch {
+            return 0;
+        }
+    }
+
+    clearMonochromePlaybackSession() {
+        try {
+            sessionStorage.removeItem(MONOCHROME_PLAYBACK_SESSION_KEY);
+        } catch {}
+    }
+
+    getCachedMonochromePlaybackSession() {
+        try {
+            const token = sessionStorage.getItem(MONOCHROME_PLAYBACK_SESSION_KEY);
+            if (!token) return null;
+            const expiry = this.getJwtExpiry(token);
+            if (expiry <= Math.floor(Date.now() / 1000) + MONOCHROME_SESSION_EXPIRY_LEEWAY_SECONDS) {
+                this.clearMonochromePlaybackSession();
+                return null;
+            }
+            return token;
+        } catch {
+            return null;
+        }
+    }
+
+    async getMonochromePlaybackSession({ forceRefresh = false } = {}) {
+        if (!forceRefresh) {
+            const cachedSession = this.getCachedMonochromePlaybackSession();
+            if (cachedSession) return cachedSession;
+            if (this._monochromeSessionPromise) return this._monochromeSessionPromise;
+        } else {
+            this.clearMonochromePlaybackSession();
+        }
+
+        this._monochromeSessionPromise = (async () => {
+            const turnstileToken = await this.getTurnstileResponse({
+                siteKey: MONOCHROME_PLAYBACK_TURNSTILE_SITE_KEY,
+                action: 'auth',
+                panelId: 'monochrome-playback-turnstile-panel',
+                containerId: 'monochrome-playback-turnstile-container',
+                message: 'Monochrome Playback needs a quick browser check.',
+            });
+            if (!turnstileToken) return null;
+
+            const apiBaseUrl = monochromePlaybackSettings.getApiBaseUrl().replace(/\/+$/, '');
+            const response = await this.fetchWithTimeout(
+                `${apiBaseUrl}/auth/turnstile`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ turnstile_token: turnstileToken }),
+                },
+                15000
+            );
+            if (!response.ok) {
+                throw new Error(`Monochrome Playback session exchange failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const accessToken = String(data.access_token || '').trim();
+            if (!accessToken) {
+                throw new Error('Monochrome Playback session exchange returned no access token');
+            }
+            sessionStorage.setItem(MONOCHROME_PLAYBACK_SESSION_KEY, accessToken);
+            return accessToken;
+        })().finally(() => {
+            this._monochromeSessionPromise = null;
+        });
+
+        return this._monochromeSessionPromise;
+    }
+
+    setMonochromeRateLimit(response) {
+        const retryAfter = response.headers?.get?.('Retry-After');
+        const seconds = Number(retryAfter);
+        if (Number.isFinite(seconds) && seconds > 0) {
+            this.monochromeRateLimitedUntil = Date.now() + seconds * 1000;
+            return;
+        }
+        const retryAt = Date.parse(retryAfter || '');
+        this.monochromeRateLimitedUntil = Number.isFinite(retryAt) ? retryAt : Date.now() + 30 * 1000;
+    }
+
+    async getMonochromePlaybackStreamUrl(tidalTrackId, options = {}) {
+        try {
+            if (!monochromePlaybackSettings?.isEnabled() || Date.now() < this.monochromeRateLimitedUntil) {
+                return null;
+            }
+
+            const track =
+                options.track || (tidalTrackId ? await this.getTrackMetadata(tidalTrackId).catch(() => null) : null);
+            if (!track) return null;
+
+            const title = this.getAmazonTrackTitle(track);
+            const artist = this.getAmazonTrackArtist(track);
+            if (!title || !artist) return null;
+
+            const body = { song_name: title, artist };
+            const isrc = String(track.isrc || '').trim();
+            const duration = this.getAmazonTrackDuration(track);
+            if (isrc) body.isrc = isrc;
+            if (duration) body.duration = Math.round(duration);
+
+            const apiBaseUrl = monochromePlaybackSettings.getApiBaseUrl().replace(/\/+$/, '');
+
+            for (let attempt = 0; attempt < 2; attempt++) {
+                const headers = { 'Content-Type': 'application/json' };
+                const sessionToken = await this.getMonochromePlaybackSession({ forceRefresh: attempt > 0 });
+                if (!sessionToken) return null;
+                headers.Authorization = `Bearer ${sessionToken}`;
+
+                const response = await this.fetchWithTimeout(
+                    `${apiBaseUrl}/playback`,
+                    {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify(body),
+                    },
+                    20000
+                );
+
+                if (response.status === 401 && attempt === 0) {
+                    this.clearMonochromePlaybackSession();
+                    continue;
+                }
+                if (response.status === 429) {
+                    this.setMonochromeRateLimit(response);
+                    return null;
+                }
+                if (!response.ok) {
+                    throw new Error(`Monochrome Playback request failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (!data?.url) {
+                    throw new Error('Monochrome Playback returned no stream URL');
+                }
+
+                return {
+                    url: data.url,
+                    sourceUrl: data.url,
+                    provider: 'monochrome',
+                    playbackType: 'direct',
+                    quality: 'LOSSLESS',
+                    qualityDisplay: 'FLAC',
+                    mimeType: 'audio/flac',
+                    mediaMimeType: 'audio/flac',
+                    trackId: data.track_id || null,
+                    recordingId: data.recording_id || null,
+                    rgInfo: {
+                        trackReplayGain: 0,
+                        trackPeakAmplitude: 1,
+                        albumReplayGain: 0,
+                        albumPeakAmplitude: 1,
+                    },
+                };
+            }
+        } catch (error) {
+            console.warn(`Monochrome Playback failed for Tidal track ${tidalTrackId}:`, error);
+        }
+        return null;
     }
 
     bytesToHex(bytes) {
@@ -2747,11 +2938,17 @@ export class LosslessAPI {
             return result;
         }
 
+        const track = await this.getTrackMetadata(id);
+
+        const monochromeResult = await this.getMonochromePlaybackStreamUrl(id, { track });
+        if (monochromeResult?.url) {
+            // Monochrome Playback URLs may be single-use. Never place them in the reusable stream cache.
+            return monochromeResult;
+        }
+
         if (amazonMusicSettings?.isEnabled() && !amazonMusicSettings.getTurnstileBypassToken().trim()) {
             this.getTurnstileJwt().catch(() => null);
         }
-
-        const track = await this.getTrackMetadata(id);
 
         const canPlayAmazonCenc = canUseNativeAmazonCenc;
         const needsProxyDecryption = !canPlayAmazonCenc;
@@ -2896,8 +3093,8 @@ export class LosslessAPI {
         notifyAudioSourceMissing();
         throw new Error(
             track?.isrc
-                ? 'Could not resolve stream URL from Amazon Music, Qobuz, or Deezer'
-                : 'Could not resolve stream URL: Amazon Music failed and track has no ISRC for Qobuz/Deezer lookup'
+                ? 'Could not resolve stream URL from Monochrome Playback, Amazon Music, Qobuz, or Deezer'
+                : 'Could not resolve stream URL: Monochrome Playback and Amazon Music failed and the track has no ISRC for Qobuz/Deezer lookup'
         );
     }
 

@@ -215,6 +215,14 @@ export class MusicAPI {
         return api.getStreamUrl(cleanId, quality);
     }
 
+    usesSingleUsePlaybackUrls() {
+        return this.getAPI().usesSingleUsePlaybackUrls?.() === true;
+    }
+
+    clearMonochromePlaybackSession() {
+        this.getAPI().clearMonochromePlaybackSession?.();
+    }
+
     // Cover/artwork methods
     getCoverUrl(id, size = '320') {
         if (typeof id === 'string' && id.startsWith('blob:')) {

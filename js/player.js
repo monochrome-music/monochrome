@@ -574,6 +574,8 @@ export class Player {
     }
 
     async _executePreloadNextTracks() {
+        if (this.api.usesSingleUsePlaybackUrls?.()) return;
+
         if (this.preloadAbortController) {
             this.preloadAbortController.abort();
         }
@@ -602,6 +604,9 @@ export class Player {
                         : await this.api.getStreamUrl(track.id, this.quality);
 
                 if (this.preloadAbortController.signal.aborted) break;
+
+                // Monochrome Playback URLs may be one-use. Resolve a fresh URL when playback actually starts.
+                if (streamInfo.provider === 'monochrome') continue;
 
                 this.preloadCache.set(track.id, streamInfo);
                 const streamUrl = streamInfo.url;

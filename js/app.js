@@ -15,6 +15,7 @@ import {
     pwaUpdateSettings,
     modalSettings,
     keyboardShortcuts,
+    monochromePlaybackSettings,
     amazonMusicSettings,
 } from './storage.js';
 import { UIRenderer } from './ui.js';
@@ -568,6 +569,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await MusicAPI.initialize(apiSettings);
+
+    if (monochromePlaybackSettings.isEnabled()) {
+        MusicAPI.instance.tidalAPI.getMonochromePlaybackSession().catch(() => null);
+    }
 
     if (amazonMusicSettings.isEnabled() && !amazonMusicSettings.getTurnstileBypassToken().trim()) {
         MusicAPI.instance.tidalAPI.getTurnstileJwt().catch(() => null);
