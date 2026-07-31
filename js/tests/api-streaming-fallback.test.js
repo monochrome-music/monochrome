@@ -16,6 +16,7 @@ vi.mock('../storage.js', () => ({
     preferDolbyAtmosSettings: { isEnabled: vi.fn(() => false) },
     trackDateSettings: { useAlbumYear: vi.fn(() => false) },
     devModeSettings: { isEnabled: vi.fn(() => false), getUrl: vi.fn(() => '') },
+    monochromePlaybackSettings: { isEnabled: vi.fn(() => false) },
     amazonMusicSettings: { isEnabled: vi.fn(() => false) },
 }));
 

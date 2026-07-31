@@ -32,6 +32,7 @@ import {
     pwaUpdateSettings,
     contentBlockingSettings,
     musicProviderSettings,
+    monochromePlaybackSettings,
     amazonMusicSettings,
     deezerFallbackSettings,
     gaplessPlaybackSettings,
@@ -845,6 +846,25 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         amazonMusicToggle.checked = amazonMusicSettings.isEnabled();
         amazonMusicToggle.addEventListener('change', (e) => {
             amazonMusicSettings.setEnabled(e.target.checked);
+        });
+    }
+
+    const monochromePlaybackToggle = document.getElementById('monochrome-playback-toggle');
+    if (monochromePlaybackToggle) {
+        monochromePlaybackToggle.checked = monochromePlaybackSettings.isEnabled();
+        monochromePlaybackToggle.addEventListener('change', (e) => {
+            monochromePlaybackSettings.setEnabled(e.target.checked);
+            api?.clearCache?.();
+        });
+    }
+
+    const monochromeApiBaseUrlInput = document.getElementById('monochrome-playback-api-base-url');
+    if (monochromeApiBaseUrlInput) {
+        monochromeApiBaseUrlInput.value = monochromePlaybackSettings.getApiBaseUrl();
+        monochromeApiBaseUrlInput.addEventListener('change', (e) => {
+            monochromePlaybackSettings.setApiBaseUrl(e.target.value.trim());
+            api?.clearMonochromePlaybackSession?.();
+            api?.clearCache?.();
         });
     }
 

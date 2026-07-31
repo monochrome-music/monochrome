@@ -3145,6 +3145,40 @@ export const amazonMusicSettings = {
     },
 };
 
+export const monochromePlaybackSettings = {
+    ENABLED_KEY: 'monochrome-playback-enabled',
+    API_BASE_URL_KEY: 'monochrome-playback-api-base-url',
+    DEFAULT_API_BASE_URL: 'https://track-api.monochrome.tf',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.ENABLED_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
+    },
+
+    getApiBaseUrl() {
+        try {
+            return (
+                localStorage.getItem(this.API_BASE_URL_KEY) ||
+                import.meta.env.VITE_MONOCHROME_PLAYBACK_API_BASE_URL ||
+                this.DEFAULT_API_BASE_URL
+            );
+        } catch {
+            return this.DEFAULT_API_BASE_URL;
+        }
+    },
+
+    setApiBaseUrl(url) {
+        localStorage.setItem(this.API_BASE_URL_KEY, url || this.DEFAULT_API_BASE_URL);
+    },
+};
+
 export const deezerFallbackSettings = {
     ENABLED_KEY: 'deezer-fallback-enabled',
     API_BASE_URL_KEY: 'deezer-fallback-api-base-url',
