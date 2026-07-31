@@ -341,7 +341,7 @@ function initializeKeyboardShortcuts(player, _audioPlayer) {
             }
         }
     });
-}\
+}
 
 
 async function openDiscord(link) {
