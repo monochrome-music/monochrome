@@ -344,18 +344,6 @@ function initializeKeyboardShortcuts(player, _audioPlayer) {
 }
 
 
-async function openDiscord(link) {
-    let discordbtn = document.querySelector(".discordbtn");
-
-
-    discordbtn.addEventListener(click, () => {
-        window.open(link, '_blank');
-    });
-}
-
-
-openDiscord("https://discord.gg/4DYm4artsN")
-
 async function closeFullscreenOverlay() {
     if (UIRenderer.instance?.dismissFullscreenCover) {
         await UIRenderer.instance.dismissFullscreenCover({ animate: false });
