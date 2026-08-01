@@ -2231,8 +2231,7 @@ export class UIRenderer {
             if (isFsSeeking) {
                 const activeEl = this.player.activeElement;
                 if (!isNaN(activeEl.duration)) {
-                    activeEl.currentTime = lastFsSeekPosition * activeEl.duration;
-                    if (wasFsPlaying) activeEl.play();
+                    void this.player.seekTo(lastFsSeekPosition * activeEl.duration, { resume: wasFsPlaying });
                 }
                 isFsSeeking = false;
             }
@@ -2242,8 +2241,7 @@ export class UIRenderer {
             if (isFsSeeking) {
                 const activeEl = this.player.activeElement;
                 if (!isNaN(activeEl.duration)) {
-                    activeEl.currentTime = lastFsSeekPosition * activeEl.duration;
-                    if (wasFsPlaying) activeEl.play();
+                    void this.player.seekTo(lastFsSeekPosition * activeEl.duration, { resume: wasFsPlaying });
                 }
                 isFsSeeking = false;
             }

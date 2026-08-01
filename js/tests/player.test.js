@@ -59,6 +59,13 @@ vi.mock('../ui.js', () => ({
     },
 }));
 
+vi.mock('../platform-detection.js', () => ({
+    isIos: false,
+    isSafari: false,
+    canUseNativeAmazonCenc: true,
+    getAmazonDecrypterCodec: vi.fn(() => 'flac'),
+}));
+
 vi.mock('shaka-player', () => ({
     default: {
         polyfill: { installAll: vi.fn() },
@@ -191,5 +198,30 @@ describe('Player', () => {
 
         player.setPlaybackSpeed(0);
         expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(0.01);
+    });
+
+    test('compensates when Safari lands a direct FLAC seek before the requested time', async () => {
+        player = new Player(audioElement, api);
+        player.currentTrack = { id: '123' };
+        player.currentStreamProvider = 'monochrome';
+        player.shouldCorrectSafariSeek = vi.fn(() => true);
+        player.updateMediaSessionPositionState = vi.fn();
+
+        let landedTime = 0;
+        Object.defineProperty(audioElement, 'duration', { configurable: true, value: 180 });
+        Object.defineProperty(audioElement, 'currentTime', {
+            configurable: true,
+            get: () => landedTime,
+            set: (requestedTime) => {
+                landedTime = Math.max(0, requestedTime - 1);
+                queueMicrotask(() => audioElement.dispatchEvent(new Event('seeked')));
+            },
+        });
+
+        await player.seekTo(60);
+
+        expect(landedTime).toBeCloseTo(60, 5);
+        expect(player.safariSeekCorrectionSeconds).toBeCloseTo(1, 5);
+        expect(player.updateMediaSessionPositionState).toHaveBeenCalledOnce();
     });
 });

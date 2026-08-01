@@ -810,6 +810,7 @@ function initializeSmoothSliders(player) {
     let wasPlaying = false;
     let isAdjustingVolume = false;
     let lastSeekPosition = 0;
+    let suppressNextSeekClick = false;
 
     const seek = (bar, event, setter) => {
         const rect = bar.getBoundingClientRect();
@@ -914,11 +915,10 @@ function initializeSmoothSliders(player) {
             const activeEl = player.activeElement;
             // Commit the seek
             if (!isNaN(activeEl.duration)) {
-                activeEl.currentTime = lastSeekPosition * activeEl.duration;
-                player.updateMediaSessionPositionState();
-                if (wasPlaying) activeEl.play();
+                void player.seekTo(lastSeekPosition * activeEl.duration, { resume: wasPlaying });
             }
             isSeeking = false;
+            suppressNextSeekClick = true;
         }
 
         if (isAdjustingVolume) {
@@ -930,11 +930,10 @@ function initializeSmoothSliders(player) {
         if (isSeeking) {
             const activeEl = player.activeElement;
             if (!isNaN(activeEl.duration)) {
-                activeEl.currentTime = lastSeekPosition * activeEl.duration;
-                player.updateMediaSessionPositionState();
-                if (wasPlaying) activeEl.play();
+                void player.seekTo(lastSeekPosition * activeEl.duration, { resume: wasPlaying });
             }
             isSeeking = false;
+            suppressNextSeekClick = true;
         }
 
         if (isAdjustingVolume) {
@@ -943,13 +942,16 @@ function initializeSmoothSliders(player) {
     });
 
     progressBar.addEventListener('click', (e) => {
+        if (suppressNextSeekClick) {
+            suppressNextSeekClick = false;
+            return;
+        }
         if (!isSeeking) {
             const activeEl = player.activeElement;
             // Only handle click if not result of a drag release
             seek(progressBar, e, (position) => {
                 if (!isNaN(activeEl.duration) && activeEl.duration > 0 && activeEl.duration !== Infinity) {
-                    activeEl.currentTime = position * activeEl.duration;
-                    player.updateMediaSessionPositionState();
+                    void player.seekTo(position * activeEl.duration);
                 } else if (player.currentTrack && player.currentTrack.duration) {
                     const targetTime = position * player.currentTrack.duration;
                     const progressFill = document.querySelector('.progress-fill');

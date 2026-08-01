@@ -56,6 +56,9 @@ export class Player {
         setInterval(this.checkPreloadConditions.bind(this), 2000);
         this.preloadAbortController = null;
         this.currentTrack = null;
+        this.currentStreamProvider = null;
+        this.safariSeekCorrectionSeconds = 0;
+        this.seekSequence = 0;
         this.currentRgValues = null;
         this.userVolume = parseFloat(localStorage.getItem('volume') || '0.7');
         this.isFallbackRetry = false;
@@ -94,6 +97,16 @@ export class Player {
     }
 
     async init() {
+        const handleExactSeekRequest = (event) => {
+            if (!Number.isFinite(Number(event.detail?.time))) return;
+            event.preventDefault();
+            void this.seekTo(event.detail.time, { resume: event.detail.resume === true });
+        };
+        this.audio.addEventListener('exact-seek-request', handleExactSeekRequest);
+        if (this.video) {
+            this.video.addEventListener('exact-seek-request', handleExactSeekRequest);
+        }
+
         // Apply audio effects when track is ready
         this.audio.addEventListener('canplay', () => {
             this.applyAudioEffects();
@@ -521,8 +534,7 @@ export class Player {
 
             await MediaSession.setActionHandler({ action: 'seekto' }, (details) => {
                 if (details.seekTime !== undefined) {
-                    this.activeElement.currentTime = Math.max(0, details.seekTime);
-                    this.updateMediaSessionPositionState();
+                    void this.seekTo(details.seekTime);
                 }
             });
 
@@ -1104,6 +1116,9 @@ export class Player {
         }
 
         this.currentTrack = track;
+        this.currentStreamProvider = null;
+        this.safariSeekCorrectionSeconds = 0;
+        this.seekSequence += 1;
         this.addToRecentlyPlayed(track.id);
         const trackTitle = getTrackTitle(track);
         const artistName = getTrackArtists(track);
@@ -1444,6 +1459,7 @@ export class Player {
                 }
 
                 streamUrl = resolvedStreamInfo.url;
+                this.currentStreamProvider = resolvedStreamInfo.provider || null;
                 if (resolvedStreamInfo.provider === 'amazon' && resolvedStreamInfo.quality) {
                     track.amazonMusicQualitySelected = resolvedStreamInfo.quality;
                     track.amazonMusicQualityDisplay = resolvedStreamInfo.qualityDisplay;
@@ -1547,7 +1563,7 @@ export class Player {
                     this.updateAdaptiveQualityBadge();
 
                     if (startTime > 0) {
-                        activeElement.currentTime = startTime;
+                        await this.seekTo(startTime);
                     }
                     const played = await this.safePlay(activeElement);
                     if (!played) return;
@@ -2047,19 +2063,84 @@ export class Player {
         }
     }
 
+    shouldCorrectSafariSeek() {
+        return (isSafari || isIos) && this.currentStreamProvider === 'monochrome';
+    }
+
+    clampSeekTime(time, element = this.activeElement) {
+        const requested = Number(time);
+        const safeTime = Number.isFinite(requested) ? Math.max(0, requested) : 0;
+        const duration = Number(element?.duration);
+        return Number.isFinite(duration) && duration > 0 ? Math.min(safeTime, duration) : safeTime;
+    }
+
+    waitForSeeked(element, timeoutMs = 650) {
+        return new Promise((resolve) => {
+            let settled = false;
+            const finish = () => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeout);
+                element.removeEventListener('seeked', finish);
+                resolve();
+            };
+            const timeout = setTimeout(finish, timeoutMs);
+            element.addEventListener('seeked', finish, { once: true });
+        });
+    }
+
+    async seekTo(time, { resume = false } = {}) {
+        const element = this.activeElement;
+        if (!element) return;
+
+        const target = this.clampSeekTime(time, element);
+        const sequence = ++this.seekSequence;
+        const shouldCorrect = this.shouldCorrectSafariSeek();
+        const resumeAfterSeek = resume || (shouldCorrect && !element.paused);
+        let correction = shouldCorrect ? this.safariSeekCorrectionSeconds : 0;
+        const attempts = shouldCorrect ? 3 : 1;
+
+        if (shouldCorrect && !element.paused) {
+            element.pause();
+        }
+
+        for (let attempt = 0; attempt < attempts; attempt += 1) {
+            const requestedTime = this.clampSeekTime(target + correction, element);
+            const seeked = shouldCorrect ? this.waitForSeeked(element) : null;
+            element.currentTime = requestedTime;
+
+            if (!shouldCorrect) break;
+            await seeked;
+            if (sequence !== this.seekSequence || element !== this.activeElement) return;
+
+            const error = target - element.currentTime;
+            if (!Number.isFinite(error) || Math.abs(error) <= 0.05) break;
+
+            // Safari can land direct FLAC seeks on a nearby decode point. Measure that
+            // miss and compensate instead of applying a fixed timing offset to lyrics.
+            correction = Math.max(-2, Math.min(2, correction + error));
+        }
+
+        if (shouldCorrect) {
+            this.safariSeekCorrectionSeconds = correction;
+        }
+        this.updateMediaSessionPositionState();
+        if (resumeAfterSeek && sequence === this.seekSequence) {
+            await this.safePlay(element);
+        }
+    }
+
     seekBackward(seconds = 10) {
         const el = this.activeElement;
         const newTime = Math.max(0, el.currentTime - seconds);
-        el.currentTime = newTime;
-        this.updateMediaSessionPositionState();
+        void this.seekTo(newTime);
     }
 
     seekForward(seconds = 10) {
         const el = this.activeElement;
         const duration = el.duration || 0;
         const newTime = Math.min(duration, el.currentTime + seconds);
-        el.currentTime = newTime;
-        this.updateMediaSessionPositionState();
+        void this.seekTo(newTime);
     }
 
     async toggleShuffle() {
