@@ -31,7 +31,7 @@ import { Player } from './player.js';
 
 let currentTrackIdForWaveform = null;
 
-const DONATION_PROMPT_EVERY = 50;
+const DONATION_PROMPT_EVERY = 10;
 const DONATION_PLAY_COUNT_KEY = 'donation-prompt-play-count';
 
 function showDonationPrompt() {

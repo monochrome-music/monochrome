@@ -5787,9 +5787,18 @@ export class UIRenderer {
         const toggleBtn = document.getElementById('in-library-toggle');
         if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
 
+        let artist;
         try {
-            const artist = await this.api.getArtist(artistId, provider);
+            artist = await this.api.getArtist(artistId, provider);
+        } catch (error) {
+            console.error('Failed to load artist:', error);
+            tracksContainer.innerHTML = albumsContainer.innerHTML = createPlaceholder(
+                `Could not load artist details. ${error.message}`
+            );
+            return;
+        }
 
+        try {
             const currentId = this.currentArtistId;
             this.api
                 .getArtistBanner(artist.name)
@@ -6006,13 +6015,14 @@ export class UIRenderer {
                                 .join('');
                             similarSection.style.display = 'block';
 
-                            for (const a of filteredSimilar) {
-                                const el = similarContainer.querySelector(`[data-artist-id="${a.id}"]`);
-                                if (el) {
+                            await Promise.allSettled(
+                                filteredSimilar.map((a) => {
+                                    const el = similarContainer.querySelector(`[data-artist-id="${a.id}"]`);
+                                    if (!el) return null;
                                     trackDataStore.set(el, a);
-                                    await this.updateLikeState(el, 'artist', a.id);
-                                }
-                            }
+                                    return this.updateLikeState(el, 'artist', a.id);
+                                })
+                            );
                         } else {
                             similarSection.style.display = 'none';
                         }
@@ -6030,8 +6040,9 @@ export class UIRenderer {
             this.setPageBackground(imageEl.src);
 
             // Extract vibrant color using robust image extraction (160x160 for speed/accuracy balance)
+            // Purely cosmetic: run in the background so it never blocks content rendering.
             const artistPic160 = this.api.getArtistPictureUrl(artist.picture, '160');
-            await this.extractAndApplyColor(artistPic160);
+            this.extractAndApplyColor(artistPic160).catch(() => {});
 
             this.adjustTitleFontSize(nameEl, artist.name);
 
@@ -6247,10 +6258,13 @@ export class UIRenderer {
                     }
                 };
 
-                // Initial load
-                await refreshInLibrary().then(() => {
-                    inLibraryContainer.hidden = true;
-                });
+                // Initial load: scans the whole library, and the section starts collapsed,
+                // so run it in the background instead of blocking the rest of the page.
+                refreshInLibrary()
+                    .then(() => {
+                        inLibraryContainer.hidden = true;
+                    })
+                    .catch(() => {});
 
                 // Setup chevron toggle (once)
                 const toggle = document.getElementById('in-library-toggle');
@@ -6286,12 +6300,15 @@ export class UIRenderer {
                 window.addEventListener('popstate', cleanupOnNav, { once: true });
             }
 
-            // Update header like button
+            // Update header like button (background: must not block album rendering)
             const artistLikeBtn = document.getElementById('like-artist-btn');
             if (artistLikeBtn) {
-                const isLiked = await db.isFavorite('artist', artist.id);
-                artistLikeBtn.innerHTML = this.createHeartIcon(isLiked);
-                artistLikeBtn.classList.toggle('active', isLiked);
+                db.isFavorite('artist', artist.id)
+                    .then((isLiked) => {
+                        artistLikeBtn.innerHTML = this.createHeartIcon(isLiked);
+                        artistLikeBtn.classList.toggle('active', isLiked);
+                    })
+                    .catch(() => {});
             }
 
             // Render Albums
@@ -6305,25 +6322,27 @@ export class UIRenderer {
                     epsContainer.innerHTML = artist.eps.map((album) => this.createAlbumCardHTML(album)).join('');
                     epsSection.style.display = 'block';
 
-                    for (const album of artist.eps) {
-                        const el = epsContainer.querySelector(`[data-album-id="${album.id}"]`);
-                        if (el) {
+                    await Promise.allSettled(
+                        artist.eps.map((album) => {
+                            const el = epsContainer.querySelector(`[data-album-id="${album.id}"]`);
+                            if (!el) return null;
                             trackDataStore.set(el, album);
-                            await this.updateLikeState(el, 'album', album.id);
-                        }
-                    }
+                            return this.updateLikeState(el, 'album', album.id);
+                        })
+                    );
                 } else {
                     epsSection.style.display = 'none';
                 }
             }
 
-            for (const album of artist.albums) {
-                const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
-                if (el) {
+            await Promise.allSettled(
+                artist.albums.map((album) => {
+                    const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
+                    if (!el) return null;
                     trackDataStore.set(el, album);
-                    await this.updateLikeState(el, 'album', album.id);
-                }
-            }
+                    return this.updateLikeState(el, 'album', album.id);
+                })
+            );
 
             const videosSection = document.getElementById('artist-section-videos');
             const videosContainer = document.getElementById('artist-detail-videos');
@@ -6332,13 +6351,14 @@ export class UIRenderer {
                     videosContainer.innerHTML = artist.videos.map((video) => this.createVideoCardHTML(video)).join('');
                     videosSection.style.display = 'block';
 
-                    for (const video of artist.videos) {
-                        const el = videosContainer.querySelector(`[data-video-id="${video.id}"]`);
-                        if (el) {
+                    await Promise.allSettled(
+                        artist.videos.map((video) => {
+                            const el = videosContainer.querySelector(`[data-video-id="${video.id}"]`);
+                            if (!el) return null;
                             trackDataStore.set(el, video);
-                            await this.updateLikeState(el, 'track', video.id);
-                        }
-                    }
+                            return this.updateLikeState(el, 'track', video.id);
+                        })
+                    );
                 } else {
                     videosSection.style.display = 'none';
                 }
@@ -6435,10 +6455,8 @@ export class UIRenderer {
 
             document.title = artist.name;
         } catch (error) {
-            console.error('Failed to load artist:', error);
-            tracksContainer.innerHTML = albumsContainer.innerHTML = createPlaceholder(
-                `Could not load artist details. ${error.message}`
-            );
+            // Secondary sections failing must not wipe out content that already rendered.
+            console.error('Failed to render artist page sections:', error);
         }
     }
 
