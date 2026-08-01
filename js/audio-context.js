@@ -2,7 +2,7 @@
 // Shared Audio Context Manager - handles EQ and provides context for visualizer
 // Supports 3-32 parametric EQ bands
 
-import { isIos } from './platform-detection.js';
+import { isIos, isSafari } from './platform-detection.js';
 import { equalizerSettings, monoAudioSettings, binauralDspSettings } from './storage.js';
 import { BinauralDSP } from './binaural-dsp.js';
 
@@ -479,7 +479,12 @@ class AudioContextManager {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
 
             try {
-                this.audioContext = new AudioContext({ latencyHint: 'playback' });
+                // Safari can retain a large Web Audio output buffer across media seeks,
+                // leaving currentTime ahead of what is actually audible. Keep its graph
+                // interactive so lyric timing follows direct-file seeks closely.
+                this.audioContext = new AudioContext({
+                    latencyHint: isIos || isSafari ? 'interactive' : 'playback',
+                });
                 console.log(`[AudioContext] Created: ${this.audioContext.sampleRate}Hz`);
             } catch {
                 this.audioContext = new AudioContext();

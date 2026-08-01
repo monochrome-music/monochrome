@@ -3177,6 +3177,7 @@ export class LosslessAPI {
         } else if (devModeSettings.isEnabled()) {
             lookup = new PlaybackInfo(await this.getTrackFromDevMode(id, cleanQuality));
         } else {
+            let monochromeResult = null;
             let amazonResult = null;
             let qobuzResult = null;
             let deezerResult = null;
@@ -3189,23 +3190,44 @@ export class LosslessAPI {
                 }
             };
 
-            if (track?.isrc) {
-                qobuzResult = await this.getQobuzStreamUrl(track.isrc, cleanQuality);
+            try {
+                monochromeResult = await this.getMonochromePlaybackStreamUrl(id, { track });
+            } catch (error) {
+                console.debug('Monochrome stream lookup failed during download enrichment:', error);
             }
-            if (!qobuzResult?.url) {
-                amazonResult = await getAmazonForDownload();
-                if (!amazonResult?.url && track?.isrc) {
-                    deezerResult = await this.getDeezerStreamUrl(track.isrc, cleanQuality);
+
+            if (!monochromeResult?.url) {
+                if (track?.isrc) {
+                    qobuzResult = await this.getQobuzStreamUrl(track.isrc, cleanQuality);
+                }
+                if (!qobuzResult?.url) {
+                    amazonResult = await getAmazonForDownload();
+                    if (!amazonResult?.url && track?.isrc) {
+                        deezerResult = await this.getDeezerStreamUrl(track.isrc, cleanQuality);
+                    }
                 }
             }
 
-            const externalResult = qobuzResult?.url ? qobuzResult : amazonResult?.url ? amazonResult : deezerResult;
+            const externalResult = monochromeResult?.url
+                ? monochromeResult
+                : qobuzResult?.url
+                  ? qobuzResult
+                  : amazonResult?.url
+                    ? amazonResult
+                    : deezerResult;
             if (externalResult?.url) {
                 externalStreamUrl = externalResult.url;
                 externalRgInfo = externalResult.rgInfo;
                 externalStreamType = externalResult.playbackType || null;
                 externalProvider =
-                    externalResult.provider || (qobuzResult?.url ? 'qobuz' : amazonResult?.url ? 'amazon' : 'deezer');
+                    externalResult.provider ||
+                    (monochromeResult?.url
+                        ? 'monochrome'
+                        : qobuzResult?.url
+                          ? 'qobuz'
+                          : amazonResult?.url
+                            ? 'amazon'
+                            : 'deezer');
                 externalDecryptionKey = externalResult.decryptionKey || null;
                 externalKeyId = externalResult.keyId || null;
                 externalMimeType = externalResult.mimeType || null;
@@ -3239,8 +3261,8 @@ export class LosslessAPI {
                     notifyAudioSourceMissing();
                     throw new Error(
                         track?.isrc
-                            ? 'Could not resolve audio stream from Amazon Music, Qobuz, or Deezer'
-                            : 'Cannot resolve audio stream: Amazon Music failed and track has no ISRC for Qobuz/Deezer lookup'
+                            ? 'Could not resolve audio stream from Monochrome, Amazon Music, Qobuz, or Deezer'
+                            : 'Cannot resolve audio stream: Monochrome and Amazon Music failed and track has no ISRC for Qobuz/Deezer lookup'
                     );
                 }
             }
@@ -3482,18 +3504,21 @@ export class LosslessAPI {
             } else {
                 // Try HEAD first to get Content-Length when GET uses chunked encoding (fixes #278)
                 let headContentLength = null;
-                try {
-                    const headResponse = await fetch(streamUrl, {
-                        method: 'HEAD',
-                        cache: 'no-store',
-                        signal: options.signal,
-                    });
-                    if (headResponse.ok) {
-                        const cl = headResponse.headers.get('Content-Length');
-                        if (cl) headContentLength = parseInt(cl, 10);
+                // Monochrome playback URLs may be single-use, so the download GET must be the first request.
+                if (enriched.externalProvider !== 'monochrome') {
+                    try {
+                        const headResponse = await fetch(streamUrl, {
+                            method: 'HEAD',
+                            cache: 'no-store',
+                            signal: options.signal,
+                        });
+                        if (headResponse.ok) {
+                            const cl = headResponse.headers.get('Content-Length');
+                            if (cl) headContentLength = parseInt(cl, 10);
+                        }
+                    } catch (_) {
+                        /* ignore HEAD failure; proceed with GET */
                     }
-                } catch (_) {
-                    /* ignore HEAD failure; proceed with GET */
                 }
 
                 const response = await fetch(getProxyUrl(streamUrl), {
