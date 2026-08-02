@@ -11953,3 +11953,15 @@ body.sidebar-collapsed #sidebar-nav-donate {
     line-height: 1.45;
     color: var(--muted-foreground);
 }
+
+/* Self-hosted instance: no social OAuth providers are configured, so the
+   GitHub/Discord/Google sign-in buttons are dead. Hide them and leave the
+   email sign-in path. The main connect button (#auth-connect-btn) doubles as
+   "Sign Out" after login -- it gains the .danger class then -- so only hide it
+   in its logged-out "Connect with Google" state (:not(.danger)). !important is
+   needed because auth.js sets inline display on the social buttons. */
+#auth-github-btn,
+#auth-discord-btn,
+#auth-connect-btn:not(.danger) {
+    display: none !important;
+}
