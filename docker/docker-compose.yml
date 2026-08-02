@@ -1,20 +1,22 @@
 services:
-    # Production frontend -- always runs
+    # Production frontend (static build served by nginx)
     monochrome:
         build:
             context: ..
             dockerfile: docker/Dockerfile
             args:
+                # These must be present at BUILD time: the client config is baked
+                # into the static bundle by vite-plugin-auth-gate.js.
                 - AUTH_ENABLED=${AUTH_ENABLED}
-                - AUTH_SECRET=${AUTH_SECRET}
-                - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT}
-                - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID}
-                - POCKETBASE_URL=${POCKETBASE_URL}
-                - SESSION_MAX_AGE=${SESSION_MAX_AGE}
+                - AUTH_URL=${AUTH_URL}
+                - AUTH_EMAIL_ENABLED=${AUTH_EMAIL_ENABLED}
+                - AUTH_GOOGLE_ENABLED=${AUTH_GOOGLE_ENABLED}
         container_name: monochrome
-        ports:
-            - '${MONOCHROME_PORT:-3000}:4173'
         restart: unless-stopped
+        # Bound to loopback so only your reverse proxy reaches it.
+        # Front it with:  music.<domain> -> 127.0.0.1:4472
+        ports:
+            - '127.0.0.1:${MONOCHROME_PORT:-4472}:4173'
         networks:
             - monochrome-network
         healthcheck:
@@ -24,32 +26,31 @@ services:
             retries: 3
             start_period: 5s
 
-    # PocketBase backend -- only starts with: docker compose --profile pocketbase up -d
-    pocketbase:
-        image: ghcr.io/muchobien/pocketbase:latest
-        container_name: monochrome-pocketbase
-        profiles:
-            - pocketbase
+    # Accounts / playlist-sync backend (better-auth + SQLite)
+    auth:
+        build:
+            context: ../auth-server
+        container_name: monochrome-auth
         restart: unless-stopped
         environment:
-            PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:-admin@example.com}
-            PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:-changeme}
-            TZ: ${TZ:-UTC}
-        ports:
-            - '${POCKETBASE_PORT:-8090}:8090'
+            AUTH_BASE_URL: ${AUTH_URL}
+            AUTH_SECRET: ${AUTH_SECRET}
+            TRUSTED_ORIGINS: ${FRONTEND_ORIGIN}
+            DB_PATH: /data/auth.db
+            PORT: '8080'
         volumes:
-            - pb_data:/pb_data
-            - pb_public:/pb_public
-            - pb_hooks:/pb_hooks
-        command: serve --http=0.0.0.0:8090
-        healthcheck:
-            test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8090/api/health']
-            interval: 30s
-            timeout: 10s
-            retries: 3
-            start_period: 30s
+            - auth_data:/data
+        # Front it with:  auth.<domain> -> 127.0.0.1:4480
+        ports:
+            - '127.0.0.1:${AUTH_PORT:-4480}:8080'
         networks:
             - monochrome-network
+        healthcheck:
+            test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/health']
+            interval: 30s
+            timeout: 3s
+            retries: 3
+            start_period: 5s
 
     # Development server -- only starts with: docker compose --profile dev up -d
     monochrome-dev:
@@ -73,6 +74,4 @@ networks:
         driver: bridge
 
 volumes:
-    pb_data:
-    pb_public:
-    pb_hooks:
+    auth_data:

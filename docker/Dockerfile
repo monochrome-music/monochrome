@@ -8,11 +8,17 @@ RUN apk add --no-cache wget curl bash
 
 # Accept build arguments for environment variables
 ARG AUTH_ENABLED
-ARG AUTH_SECRET
-ARG APPWRITE_ENDPOINT
-ARG APPWRITE_PROJECT_ID
-ARG POCKETBASE_URL
-ARG SESSION_MAX_AGE
+ARG AUTH_URL
+ARG AUTH_EMAIL_ENABLED
+ARG AUTH_GOOGLE_ENABLED
+
+# Promote ARGs to ENV so `bun run build` (vite-plugin-auth-gate) can read them.
+# A bare ARG is NOT visible to the build step's process.env, so the client
+# config would never be injected -- this ENV line is what makes it take effect.
+ENV AUTH_ENABLED=$AUTH_ENABLED \
+    AUTH_URL=$AUTH_URL \
+    AUTH_EMAIL_ENABLED=$AUTH_EMAIL_ENABLED \
+    AUTH_GOOGLE_ENABLED=$AUTH_GOOGLE_ENABLED
 
 # Copy package files first for caching
 COPY package.json bun.lock ./
