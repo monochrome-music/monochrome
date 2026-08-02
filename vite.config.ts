@@ -66,14 +66,14 @@ export default defineConfig(({ mode }) => {
         server: {
             fs: {
                 allow: ['.', 'node_modules'],
-                // host: true,
-                // allowedHosts: ['<your_tailscale_hostname>'], // e.g. pi5.tailf5f622.ts.net
+                host: true,
+                allowedHosts: ['music.dace.org.uk'], // e.g. pi5.tailf5f622.ts.net
             },
         },
-        // preview: {
-        //     host: true,
-        //     allowedHosts: ['<your_tailscale_hostname>'], // e.g. pi5.tailf5f622.ts.net
-        // },
+        preview: {
+            host: true,
+            allowedHosts: ['music.dace.org.uk'], // e.g. pi5.tailf5f622.ts.net
+        },
         build: {
             outDir: 'dist',
             emptyOutDir: true,
