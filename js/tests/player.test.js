@@ -92,6 +92,9 @@ vi.mock('shaka-player', () => ({
         unload() {
             return Promise.resolve();
         }
+        detach() {
+            return Promise.resolve();
+        }
         destroy() {
             return Promise.resolve();
         }
@@ -223,5 +226,26 @@ describe('Player', () => {
         expect(landedTime).toBeCloseTo(60, 5);
         expect(player.safariSeekCorrectionSeconds).toBeCloseTo(1, 5);
         expect(player.updateMediaSessionPositionState).toHaveBeenCalledOnce();
+    });
+
+    test('fully detaches Shaka before loading a single-use native fallback', async () => {
+        player = new Player(audioElement, api);
+        const calls = [];
+        player.shakaInitialized = true;
+        player.shakaPlayer = {
+            unload: vi.fn(async () => calls.push('unload')),
+            detach: vi.fn(async () => calls.push('detach')),
+        };
+        audioElement.pause = vi.fn(() => calls.push('pause'));
+        audioElement.load = vi.fn(() => calls.push('load'));
+
+        await player.prepareNativePlayback(audioElement, 'https://tracks.example/fallback.flac?token=one-use', {
+            singleUse: true,
+        });
+
+        expect(calls).toEqual(['unload', 'detach', 'pause', 'load', 'load']);
+        expect(player.shakaInitialized).toBe(false);
+        expect(audioElement.preload).toBe('none');
+        expect(audioElement.src).toBe('https://tracks.example/fallback.flac?token=one-use');
     });
 });

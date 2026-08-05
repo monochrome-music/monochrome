@@ -751,6 +751,38 @@ export class Player {
         return `${window.location.protocol}//${window.location.host}/api/decrypt-stream?${params.toString()}`;
     }
 
+    async teardownShakaForNativePlayback() {
+        if (!this.shakaInitialized || !this.shakaPlayer) return;
+
+        try {
+            await this.shakaPlayer.unload();
+        } catch (error) {
+            console.warn('Failed to unload Shaka before native playback:', error);
+        }
+
+        try {
+            if (typeof this.shakaPlayer.detach === 'function') {
+                await this.shakaPlayer.detach();
+            }
+        } catch (error) {
+            console.warn('Failed to detach Shaka before native playback:', error);
+        } finally {
+            this.shakaInitialized = false;
+        }
+    }
+
+    async prepareNativePlayback(element, streamUrl, { singleUse = false } = {}) {
+        await this.teardownShakaForNativePlayback();
+
+        element.pause();
+        element.removeAttribute('src');
+        element.load();
+        element.preload = singleUse ? 'none' : 'auto';
+        element.src = getProxyUrl(streamUrl);
+        // Safari needs an explicit load after replacing a failed MSE/Shaka source.
+        element.load();
+    }
+
     tryStartPreloadedTrackImmediately({
         track,
         activeElement,
@@ -1155,8 +1187,7 @@ export class Player {
         // Retain the initialized Shaka player if we are remaining on the same HTMLMediaElement
         if (this.shakaInitialized && this.shakaPlayer) {
             if (this.shakaPlayer.getMediaElement() !== activeElement) {
-                this.shakaPlayer.unload();
-                this.shakaInitialized = false;
+                await this.teardownShakaForNativePlayback();
             }
         }
 
@@ -1551,14 +1582,10 @@ export class Player {
                     // which delays the event loop and natively adds gap/latency
                     await this.safePlay(activeElement);
                 } else {
-                    if (this.shakaInitialized) {
-                        try {
-                            this.shakaPlayer.unload();
-                            this.shakaPlayer.detach();
-                        } catch {}
-                        this.shakaInitialized = false;
-                    }
-                    activeElement.src = getProxyUrl(streamUrl);
+                    await this.prepareNativePlayback(activeElement, streamUrl, {
+                        singleUse: resolvedStreamInfo.provider === 'monochrome',
+                    });
+                    if (this.playbackSequence !== currentSequence) return;
                     this.applyAudioEffects();
                     this.updateAdaptiveQualityBadge();
 
