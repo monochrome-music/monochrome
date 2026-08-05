@@ -3080,17 +3080,22 @@ export const musicProviderSettings = {
     },
 };
 
-export const amazonMusicSettings = {
-    ENABLED_KEY: 'amazon-music-enabled',
-    API_BASE_URL_KEY: 'amazon-music-api-base-url',
-    TURNSTILE_SITE_KEY: 'amazon-music-turnstile-site-key',
-    TURNSTILE_BYPASS_TOKEN: 'amazon-music-turnstile-bypass-token',
-    DEFAULT_API_BASE_URL: 'https://amz.geeked.wtf',
-    DEFAULT_TURNSTILE_SITE_KEY: '0x4AAAAAADgxqF6QVMm0GLHH',
+export const unifiedPlaybackSettings = {
+    ENABLED_KEY: 'unified-playback-enabled',
+    API_BASE_URL_KEY: 'unified-playback-api-base-url',
+    API_TOKEN_KEY: 'unified-playback-api-token',
+    DEFAULT_API_BASE_URL: 'https://music-api.geeked.wtf',
+    LEGACY_API_BASE_URLS: [
+        'https://amz.geeked.wtf',
+        'https://track-api.monochrome.tf',
+        'https://mono.geeked.wtf',
+    ],
+    DEFAULT_API_TOKEN: 'amp_29b2lIr4mze4tK-P8QDOxfMZ9anCgJ9_uGTUks3nIyo',
 
     isEnabled() {
         try {
-            return localStorage.getItem(this.ENABLED_KEY) !== 'false';
+            const value = localStorage.getItem(this.ENABLED_KEY) ?? localStorage.getItem('amazon-music-enabled');
+            return value !== 'false';
         } catch {
             return true;
         }
@@ -3102,7 +3107,12 @@ export const amazonMusicSettings = {
 
     getApiBaseUrl() {
         try {
-            return localStorage.getItem(this.API_BASE_URL_KEY) || this.DEFAULT_API_BASE_URL;
+            const storedUrl =
+                localStorage.getItem(this.API_BASE_URL_KEY) || localStorage.getItem('amazon-music-api-base-url');
+            if (storedUrl && !this.LEGACY_API_BASE_URLS.includes(storedUrl.replace(/\/+$/, ''))) {
+                return storedUrl;
+            }
+            return import.meta.env.VITE_UNIFIED_PLAYBACK_API_BASE_URL || this.DEFAULT_API_BASE_URL;
         } catch {
             return this.DEFAULT_API_BASE_URL;
         }
@@ -3112,70 +3122,22 @@ export const amazonMusicSettings = {
         localStorage.setItem(this.API_BASE_URL_KEY, url || this.DEFAULT_API_BASE_URL);
     },
 
-    getTurnstileSiteKey() {
+    getApiToken() {
         try {
             return (
-                localStorage.getItem(this.TURNSTILE_SITE_KEY) ||
-                import.meta.env.VITE_AMAZON_TURNSTILE_SITE_KEY ||
-                this.DEFAULT_TURNSTILE_SITE_KEY
-            );
-        } catch {
-            return this.DEFAULT_TURNSTILE_SITE_KEY;
-        }
-    },
-
-    setTurnstileSiteKey(siteKey) {
-        localStorage.setItem(this.TURNSTILE_SITE_KEY, siteKey || '');
-    },
-
-    getTurnstileBypassToken() {
-        try {
-            return (
-                localStorage.getItem(this.TURNSTILE_BYPASS_TOKEN) ||
+                localStorage.getItem(this.API_TOKEN_KEY) ||
+                localStorage.getItem('amazon-music-turnstile-bypass-token') ||
+                import.meta.env.VITE_UNIFIED_PLAYBACK_API_TOKEN ||
                 import.meta.env.VITE_AMAZON_TURNSTILE_BYPASS_TOKEN ||
-                ''
+                this.DEFAULT_API_TOKEN
             );
         } catch {
-            return '';
+            return this.DEFAULT_API_TOKEN;
         }
     },
 
-    setTurnstileBypassToken(token) {
-        localStorage.setItem(this.TURNSTILE_BYPASS_TOKEN, token || '');
-    },
-};
-
-export const monochromePlaybackSettings = {
-    ENABLED_KEY: 'monochrome-playback-enabled',
-    API_BASE_URL_KEY: 'monochrome-playback-api-base-url',
-    DEFAULT_API_BASE_URL: 'https://track-api.monochrome.tf',
-
-    isEnabled() {
-        try {
-            return localStorage.getItem(this.ENABLED_KEY) !== 'false';
-        } catch {
-            return true;
-        }
-    },
-
-    setEnabled(enabled) {
-        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
-    },
-
-    getApiBaseUrl() {
-        try {
-            return (
-                localStorage.getItem(this.API_BASE_URL_KEY) ||
-                import.meta.env.VITE_MONOCHROME_PLAYBACK_API_BASE_URL ||
-                this.DEFAULT_API_BASE_URL
-            );
-        } catch {
-            return this.DEFAULT_API_BASE_URL;
-        }
-    },
-
-    setApiBaseUrl(url) {
-        localStorage.setItem(this.API_BASE_URL_KEY, url || this.DEFAULT_API_BASE_URL);
+    setApiToken(token) {
+        localStorage.setItem(this.API_TOKEN_KEY, token || '');
     },
 };
 

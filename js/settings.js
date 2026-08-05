@@ -32,8 +32,7 @@ import {
     pwaUpdateSettings,
     contentBlockingSettings,
     musicProviderSettings,
-    monochromePlaybackSettings,
-    amazonMusicSettings,
+    unifiedPlaybackSettings,
     deezerFallbackSettings,
     gaplessPlaybackSettings,
     analyticsSettings,
@@ -841,54 +840,39 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    const amazonMusicToggle = document.getElementById('amazon-music-toggle');
-    if (amazonMusicToggle) {
-        amazonMusicToggle.checked = amazonMusicSettings.isEnabled();
-        amazonMusicToggle.addEventListener('change', (e) => {
-            amazonMusicSettings.setEnabled(e.target.checked);
+    const unifiedPlaybackToggle = document.getElementById('unified-playback-toggle');
+    if (unifiedPlaybackToggle) {
+        unifiedPlaybackToggle.checked = unifiedPlaybackSettings.isEnabled();
+        unifiedPlaybackToggle.addEventListener('change', (e) => {
+            unifiedPlaybackSettings.setEnabled(e.target.checked);
+            api?.clearUnifiedTurnstileJwt?.();
+            api?.clearCache?.();
+            if (e.target.checked && unifiedPlaybackSettings.getApiToken().trim()) {
+                api?.getUnifiedTurnstileJwt?.().catch(() => null);
+            }
         });
     }
 
-    const monochromePlaybackToggle = document.getElementById('monochrome-playback-toggle');
-    if (monochromePlaybackToggle) {
-        monochromePlaybackToggle.checked = monochromePlaybackSettings.isEnabled();
-        monochromePlaybackToggle.addEventListener('change', (e) => {
-            monochromePlaybackSettings.setEnabled(e.target.checked);
+    const unifiedApiBaseUrlInput = document.getElementById('unified-playback-api-base-url');
+    if (unifiedApiBaseUrlInput) {
+        unifiedApiBaseUrlInput.value = unifiedPlaybackSettings.getApiBaseUrl();
+        unifiedApiBaseUrlInput.addEventListener('change', (e) => {
+            unifiedPlaybackSettings.setApiBaseUrl(e.target.value.trim());
+            api?.clearUnifiedTurnstileJwt?.();
             api?.clearCache?.();
         });
     }
 
-    const monochromeApiBaseUrlInput = document.getElementById('monochrome-playback-api-base-url');
-    if (monochromeApiBaseUrlInput) {
-        monochromeApiBaseUrlInput.value = monochromePlaybackSettings.getApiBaseUrl();
-        monochromeApiBaseUrlInput.addEventListener('change', (e) => {
-            monochromePlaybackSettings.setApiBaseUrl(e.target.value.trim());
-            api?.clearMonochromePlaybackSession?.();
+    const unifiedApiTokenInput = document.getElementById('unified-playback-api-token');
+    if (unifiedApiTokenInput) {
+        unifiedApiTokenInput.value = unifiedPlaybackSettings.getApiToken();
+        unifiedApiTokenInput.addEventListener('change', (e) => {
+            unifiedPlaybackSettings.setApiToken(e.target.value.trim());
+            api?.clearUnifiedTurnstileJwt?.();
             api?.clearCache?.();
-        });
-    }
-
-    const amazonApiBaseUrlInput = document.getElementById('amazon-music-api-base-url');
-    if (amazonApiBaseUrlInput) {
-        amazonApiBaseUrlInput.value = amazonMusicSettings.getApiBaseUrl();
-        amazonApiBaseUrlInput.addEventListener('change', (e) => {
-            amazonMusicSettings.setApiBaseUrl(e.target.value.trim());
-        });
-    }
-
-    const amazonTurnstileSiteKeyInput = document.getElementById('amazon-music-turnstile-site-key');
-    if (amazonTurnstileSiteKeyInput) {
-        amazonTurnstileSiteKeyInput.value = amazonMusicSettings.getTurnstileSiteKey();
-        amazonTurnstileSiteKeyInput.addEventListener('change', (e) => {
-            amazonMusicSettings.setTurnstileSiteKey(e.target.value.trim());
-        });
-    }
-
-    const amazonTurnstileBypassTokenInput = document.getElementById('amazon-music-turnstile-bypass-token');
-    if (amazonTurnstileBypassTokenInput) {
-        amazonTurnstileBypassTokenInput.value = amazonMusicSettings.getTurnstileBypassToken();
-        amazonTurnstileBypassTokenInput.addEventListener('change', (e) => {
-            amazonMusicSettings.setTurnstileBypassToken(e.target.value.trim());
+            if (e.target.value.trim() && unifiedPlaybackSettings.isEnabled()) {
+                api?.getUnifiedTurnstileJwt?.().catch(() => null);
+            }
         });
     }
 

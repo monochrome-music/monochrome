@@ -719,7 +719,10 @@ export class Player {
         return !canUseNativeAmazonCenc;
     }
 
-    getAmazonNativeDecrypterCodec() {
+    getAmazonNativeDecrypterCodec(streamInfo = null) {
+        const resourceCodec = String(streamInfo?.codec || '').toLowerCase();
+        if (resourceCodec === 'opus') return 'opus';
+        if (resourceCodec === 'aac' || resourceCodec.startsWith('mp4a')) return 'mp4a';
         return getAmazonDecrypterCodec(this.quality);
     }
 
@@ -745,7 +748,7 @@ export class Player {
         const params = new URLSearchParams();
         params.set('url', sourceUrl);
         params.set('key', streamInfo.decryptionKey);
-        params.set('codec', this.getAmazonNativeDecrypterCodec());
+        params.set('codec', this.getAmazonNativeDecrypterCodec(streamInfo));
 
         console.warn('[Amazon SW Decrypter] Player rescued raw Amazon stream URL');
         return `${window.location.protocol}//${window.location.host}/api/decrypt-stream?${params.toString()}`;

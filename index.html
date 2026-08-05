@@ -5733,62 +5733,26 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Monochrome Playback</span>
+                                        <span class="label">Unified Playback</span>
                                         <span class="description"
-                                            >Use Monochrome's in-house lossless source first, with the existing audio
-                                            providers as fallbacks.</span
+                                            >Amazon is tried first, with the in-house lossless source handled by the
+                                            same API when Amazon is unavailable.</span
                                         >
                                     </div>
                                     <label class="toggle-switch">
-                                        <input type="checkbox" id="monochrome-playback-toggle" checked />
+                                        <input type="checkbox" id="unified-playback-toggle" checked />
                                         <span class="slider"></span>
                                     </label>
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Monochrome Playback API URL</span>
-                                        <span class="description">The in-house playback API endpoint</span>
+                                        <span class="label">Unified Playback API URL</span>
+                                        <span class="description">The API endpoint that resolves Amazon and Mono</span>
                                     </div>
                                     <input
                                         type="text"
-                                        id="monochrome-playback-api-base-url"
-                                        placeholder="https://track-api.monochrome.tf"
-                                        style="
-                                            width: 220px;
-                                            padding: 0.35rem 0.5rem;
-                                            border: 1px solid var(--border);
-                                            border-radius: var(--radius-md);
-                                            background: var(--card);
-                                            color: var(--foreground);
-                                            font-size: 0.8rem;
-                                        "
-                                    />
-                                </div>
-                            </div>
-
-                            <div class="settings-group">
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Amazon Music</span>
-                                        <span class="description"
-                                            >Fallback source used when Monochrome Playback cannot resolve a
-                                            stream.</span
-                                        >
-                                    </div>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="amazon-music-toggle" checked />
-                                        <span class="slider"></span>
-                                    </label>
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Amazon Music API URL</span>
-                                        <span class="description">The Amazon Music API endpoint</span>
-                                    </div>
-                                    <input
-                                        type="text"
-                                        id="amazon-music-api-base-url"
-                                        placeholder="https://amz.geeked.wtf"
+                                        id="unified-playback-api-base-url"
+                                        placeholder="https://music-api.geeked.wtf"
                                         style="
                                             width: 220px;
                                             padding: 0.35rem 0.5rem;
@@ -5802,37 +5766,15 @@
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Turnstile Site Key</span>
+                                        <span class="label">App API Key</span>
                                         <span class="description"
-                                            >Required for Amazon Music requests protected by Turnstile</span
-                                        >
-                                    </div>
-                                    <input
-                                        type="text"
-                                        id="amazon-music-turnstile-site-key"
-                                        placeholder="0x..."
-                                        style="
-                                            width: 220px;
-                                            padding: 0.35rem 0.5rem;
-                                            border: 1px solid var(--border);
-                                            border-radius: var(--radius-md);
-                                            background: var(--card);
-                                            color: var(--foreground);
-                                            font-size: 0.8rem;
-                                        "
-                                    />
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Turnstile Bypass Token</span>
-                                        <span class="description"
-                                            >Optional server-side bypass token for trusted deployments</span
+                                            >Bearer key used with a browser Turnstile session for playback</span
                                         >
                                     </div>
                                     <input
                                         type="password"
-                                        id="amazon-music-turnstile-bypass-token"
-                                        placeholder="Optional"
+                                        id="unified-playback-api-token"
+                                        placeholder="amp_…"
                                         autocomplete="off"
                                         style="
                                             width: 220px;
