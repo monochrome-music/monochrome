@@ -2940,12 +2940,6 @@ export class LosslessAPI {
 
         const track = await this.getTrackMetadata(id);
 
-        const monochromeResult = await this.getMonochromePlaybackStreamUrl(id, { track });
-        if (monochromeResult?.url) {
-            // Monochrome Playback URLs may be single-use. Never place them in the reusable stream cache.
-            return monochromeResult;
-        }
-
         if (amazonMusicSettings?.isEnabled() && !amazonMusicSettings.getTurnstileBypassToken().trim()) {
             this.getTurnstileJwt().catch(() => null);
         }
@@ -2961,19 +2955,11 @@ export class LosslessAPI {
         let qobuzResult = null;
         let deezerResult = null;
 
-        if (track?.isrc) {
-            qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
-        }
-        if (!qobuzResult?.url) {
-            amazonResult = await this.getAmazonMusicStreamUrl(id, actualQuality, {
-                preferAdaptiveAuto: true,
-                track,
-                allowCencWithoutKeyId: needsProxyDecryption,
-            });
-            if (!amazonResult?.url && track?.isrc) {
-                deezerResult = await this.getDeezerStreamUrl(track.isrc, quality);
-            }
-        }
+        amazonResult = await this.getAmazonMusicStreamUrl(id, actualQuality, {
+            preferAdaptiveAuto: true,
+            track,
+            allowCencWithoutKeyId: needsProxyDecryption,
+        });
 
         if (amazonResult?.url) {
             let streamUrl = amazonResult.url;
@@ -3037,6 +3023,19 @@ export class LosslessAPI {
             }
         }
 
+        const monochromeResult = await this.getMonochromePlaybackStreamUrl(id, { track });
+        if (monochromeResult?.url) {
+            // Monochrome Playback URLs may be single-use. Never place them in the reusable stream cache.
+            return monochromeResult;
+        }
+
+        if (track?.isrc) {
+            qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
+            if (!qobuzResult?.url) {
+                deezerResult = await this.getDeezerStreamUrl(track.isrc, quality);
+            }
+        }
+
         if (qobuzResult?.url) {
             const result = {
                 url: qobuzResult.url,
@@ -3093,8 +3092,8 @@ export class LosslessAPI {
         notifyAudioSourceMissing();
         throw new Error(
             track?.isrc
-                ? 'Could not resolve stream URL from Monochrome Playback, Amazon Music, Qobuz, or Deezer'
-                : 'Could not resolve stream URL: Monochrome Playback and Amazon Music failed and the track has no ISRC for Qobuz/Deezer lookup'
+                ? 'Could not resolve stream URL from Amazon Music, Monochrome Playback, Qobuz, or Deezer'
+                : 'Could not resolve stream URL: Amazon Music and Monochrome Playback failed and the track has no ISRC for Qobuz/Deezer lookup'
         );
     }
 
@@ -3190,30 +3189,33 @@ export class LosslessAPI {
                 }
             };
 
-            try {
-                monochromeResult = await this.getMonochromePlaybackStreamUrl(id, { track });
-            } catch (error) {
-                console.debug('Monochrome stream lookup failed during download enrichment:', error);
+            amazonResult = await getAmazonForDownload();
+
+            if (!amazonResult?.url) {
+                try {
+                    monochromeResult = await this.getMonochromePlaybackStreamUrl(id, { track });
+                } catch (error) {
+                    console.debug('Monochrome stream lookup failed during download enrichment:', error);
+                }
             }
 
-            if (!monochromeResult?.url) {
+            if (!amazonResult?.url && !monochromeResult?.url) {
                 if (track?.isrc) {
                     qobuzResult = await this.getQobuzStreamUrl(track.isrc, cleanQuality);
                 }
                 if (!qobuzResult?.url) {
-                    amazonResult = await getAmazonForDownload();
-                    if (!amazonResult?.url && track?.isrc) {
+                    if (track?.isrc) {
                         deezerResult = await this.getDeezerStreamUrl(track.isrc, cleanQuality);
                     }
                 }
             }
 
-            const externalResult = monochromeResult?.url
-                ? monochromeResult
-                : qobuzResult?.url
-                  ? qobuzResult
-                  : amazonResult?.url
-                    ? amazonResult
+            const externalResult = amazonResult?.url
+                ? amazonResult
+                : monochromeResult?.url
+                  ? monochromeResult
+                  : qobuzResult?.url
+                    ? qobuzResult
                     : deezerResult;
             if (externalResult?.url) {
                 externalStreamUrl = externalResult.url;
@@ -3221,12 +3223,12 @@ export class LosslessAPI {
                 externalStreamType = externalResult.playbackType || null;
                 externalProvider =
                     externalResult.provider ||
-                    (monochromeResult?.url
-                        ? 'monochrome'
-                        : qobuzResult?.url
-                          ? 'qobuz'
-                          : amazonResult?.url
-                            ? 'amazon'
+                    (amazonResult?.url
+                        ? 'amazon'
+                        : monochromeResult?.url
+                          ? 'monochrome'
+                          : qobuzResult?.url
+                            ? 'qobuz'
                             : 'deezer');
                 externalDecryptionKey = externalResult.decryptionKey || null;
                 externalKeyId = externalResult.keyId || null;
@@ -3261,8 +3263,8 @@ export class LosslessAPI {
                     notifyAudioSourceMissing();
                     throw new Error(
                         track?.isrc
-                            ? 'Could not resolve audio stream from Monochrome, Amazon Music, Qobuz, or Deezer'
-                            : 'Cannot resolve audio stream: Monochrome and Amazon Music failed and track has no ISRC for Qobuz/Deezer lookup'
+                            ? 'Could not resolve audio stream from Amazon Music, Monochrome, Qobuz, or Deezer'
+                            : 'Cannot resolve audio stream: Amazon Music and Monochrome failed and track has no ISRC for Qobuz/Deezer lookup'
                     );
                 }
             }
