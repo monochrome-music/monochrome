@@ -1,4 +1,4 @@
-self.__AMAZON_SW_DECRYPTER_VERSION__ = '2026-06-23-flac-hls-v8';
+self.__AMAZON_SW_DECRYPTER_VERSION__ = '2026-08-05-opus-v9';
 console.log(`[SW Decrypter] Loaded ${self.__AMAZON_SW_DECRYPTER_VERSION__}`);
 
 self.addEventListener('install', (event) => {
@@ -82,6 +82,7 @@ async function handleDecryptStream(request, streamUrl, keyHex, targetCodec = 'fl
 function getDecryptedContentType(targetCodec) {
     if (targetCodec === 'flac-raw') return 'audio/flac';
     if (targetCodec === 'mp4a') return 'audio/mp4; codecs="mp4a.40.2"';
+    if (targetCodec === 'opus') return 'audio/mp4; codecs="Opus"';
     return 'audio/mp4';
 }
 
@@ -542,6 +543,11 @@ class Mp4DecryptTransformer {
                         boxData[i + 1] = 0x70; // p
                         boxData[i + 2] = 0x34; // 4
                         boxData[i + 3] = 0x61; // a
+                    } else if (this.targetCodec === 'opus') {
+                        boxData[i] = 0x4f; // O
+                        boxData[i + 1] = 0x70; // p
+                        boxData[i + 2] = 0x75; // u
+                        boxData[i + 3] = 0x73; // s
                     }
                 }
 

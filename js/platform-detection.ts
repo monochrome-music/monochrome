@@ -44,9 +44,14 @@ type NavigatorWithUserAgentData = Navigator & {
 export function getAmazonDecrypterCodec(
     quality: string,
     browser: AmazonDecrypterBrowser = { isFirefox, isSafari }
-): 'mp4a' | 'flac-hls' | 'flac-raw' | 'flac' {
-    const isAacQuality = quality === 'HIGH' || quality === 'SD_HIGH' || quality === 'SD_LOW';
-    if (isAacQuality) return 'mp4a';
+): 'opus' | 'mp4a' | 'flac-hls' | 'flac-raw' | 'flac' {
+    const normalizedQuality = quality.toUpperCase();
+    const isOpusQuality =
+        normalizedQuality === 'HIGH' ||
+        normalizedQuality === 'NORMAL' ||
+        normalizedQuality === 'LOW' ||
+        normalizedQuality.startsWith('SD_');
+    if (isOpusQuality) return 'opus';
     if (browser.isSafari) return 'flac-hls';
     if (browser.isFirefox) return 'flac-hls';
     return 'flac';
