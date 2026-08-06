@@ -1523,94 +1523,50 @@ export class LosslessAPI {
     }
 
     async getRecommendedTracksForPlaylist(tracks, limit = 20, options = {}) {
-        const artistMap = new Map();
+        if (!tracks || tracks.length === 0) return [];
 
-        // Check if tracks already have artist info (some might)
-        for (const track of tracks) {
-            const artists = track.artists || (track.artist ? [track.artist] : []);
-            for (const artist of artists) {
-                if (artist.id) {
-                    artistMap.set(artist.id, artist);
+        const seenTrackIds = new Set(tracks.map((t) => t.id));
+        const recommendedTracks = [];
+
+        const seedTracks = tracks.slice(0, 3);
+        for (const seed of seedTracks) {
+            if (!seed?.id) continue;
+            try {
+                const recs = await this.getTrackRecommendations(seed.id);
+                for (const t of recs) {
+                    if (t?.id && !seenTrackIds.has(t.id)) {
+                        seenTrackIds.add(t.id);
+                        recommendedTracks.push(t);
+                    }
                 }
+            } catch (e) {
+                console.warn(`Failed to get mix recommendations for track ${seed.id}:`, e);
             }
         }
 
-        if (artistMap.size < 3) {
-            console.log('Not enough artists from stored data, trying search approach...');
-
-            for (const track of tracks.slice(0, 5)) {
+        if (recommendedTracks.length === 0) {
+            const artistMap = new Map();
+            for (const track of tracks) {
+                const artists = track.artists || (track.artist ? [track.artist] : []);
+                for (const artist of artists) {
+                    if (artist?.id) artistMap.set(artist.id, artist);
+                }
+            }
+            const artistsToProcess = Array.from(artistMap.values()).slice(0, 10);
+            for (const artist of artistsToProcess) {
                 try {
-                    // Search for the track to get full metadata
-                    const searchQuery =
-                        `"${track.title}" ${track.artist?.name || track.artists?.[0]?.name || ''}`.trim();
-                    const searchResult = await this.searchTracks(searchQuery, { signal: AbortSignal.timeout(5000) });
-
-                    if (searchResult.items && searchResult.items.length > 0) {
-                        const foundTrack = searchResult.items[0];
-                        const foundArtists = foundTrack.artists || (foundTrack.artist ? [foundTrack.artist] : []);
-                        for (const artist of foundArtists) {
-                            if (artist.id) {
-                                artistMap.set(artist.id, artist);
+                    const artistData = await this.getArtist(artist.id, { lightweight: true, skipCache: options.refresh });
+                    if (artistData?.tracks) {
+                        for (const t of artistData.tracks) {
+                            if (t?.id && !seenTrackIds.has(t.id)) {
+                                seenTrackIds.add(t.id);
+                                recommendedTracks.push(this.prepareTrack(t));
                             }
                         }
                     }
-                } catch (e) {
-                    console.warn(`Search failed for track "${track.title}":`, e);
-                }
+                } catch (e) {}
             }
         }
-
-        const artists = Array.from(artistMap.values());
-        console.log(`Found ${artists.length} unique artists from ${tracks.length} tracks`);
-
-        if (artists.length === 0) {
-            console.log('No artists found, cannot generate recommendations');
-            return [];
-        }
-
-        const recommendedTracks = [];
-        const seenTrackIds = new Set(tracks.map((t) => t.id));
-
-        const shuffledArtists = [...artists].sort(() => Math.random() - 0.5);
-        const artistsToProcess = shuffledArtists.slice(0, Math.min(15, shuffledArtists.length));
-
-        const artistPromises = artistsToProcess.map(async (artist) => {
-            try {
-                const artistData = await this.getArtist(artist.id, { lightweight: true, skipCache: options.refresh });
-                if (artistData && artistData.tracks && artistData.tracks.length > 0) {
-                    const availableTracks = artistData.tracks.filter((track) => !seenTrackIds.has(track.id));
-
-                    const newTracks = options.knownTrackIds
-                        ? availableTracks.filter((t) => !options.knownTrackIds.has(t.id))
-                        : availableTracks;
-                    const knownTracks = options.knownTrackIds
-                        ? availableTracks.filter((t) => options.knownTrackIds.has(t.id))
-                        : [];
-
-                    const shuffledNew = [...newTracks].sort(() => Math.random() - 0.5);
-                    const shuffledKnown = [...knownTracks].sort(() => Math.random() - 0.5);
-
-                    const combined = [...shuffledNew, ...shuffledKnown];
-                    return combined.slice(0, 2);
-                } else {
-                    console.warn(`No tracks found for artist ${artist.name}`);
-                    return [];
-                }
-            } catch (e) {
-                console.warn(`Failed to get tracks for artist ${artist.name}:`, e);
-                return [];
-            }
-        });
-
-        const results = await Promise.all(artistPromises);
-        results.forEach((tracks) => {
-            for (const t of tracks) {
-                if (!seenTrackIds.has(t.id)) {
-                    seenTrackIds.add(t.id);
-                    recommendedTracks.push(this.prepareTrack(t));
-                }
-            }
-        });
 
         const shuffled = recommendedTracks.sort(() => 0.5 - Math.random());
         const sliced = shuffled.slice(0, limit);
@@ -1760,22 +1716,46 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/recommendations/?id=${id}`, {
-                type: 'api',
-                minVersion: '2.4',
-            });
-            const json = await response.json();
-            const data = json.data || json;
+            const token = await HiFiClient.instance?.fetchToken?.().catch(() => null);
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            const items = data.items || [];
-            const tracks = items.map((item) => this.prepareTrack(item.track || item));
-
-            if (!(response instanceof TidalResponse)) {
-                await this.cache.set('recommendations', id, tracks);
+            const mixUrl = wrapTidalUrl(
+                `https://tidal.com/v1/tracks/${id}/mix?countryCode=US&locale=en_US&deviceType=BROWSER`
+            );
+            const mixResponse = await fetch(mixUrl, { headers });
+            if (!mixResponse.ok) {
+                throw new Error(`Failed to fetch track mix: HTTP ${mixResponse.status}`);
             }
+            const mixJson = await mixResponse.json();
+            const mixId = mixJson.id || mixJson.data?.id;
+            if (!mixId) return [];
+
+            const itemsUrl = wrapTidalUrl(
+                `https://tidal.com/v1/mixes/${mixId}/items?countryCode=US&locale=en_US&deviceType=BROWSER`
+            );
+            const itemsResponse = await fetch(itemsUrl, { headers });
+            if (!itemsResponse.ok) {
+                throw new Error(`Failed to fetch mix items: HTTP ${itemsResponse.status}`);
+            }
+            const itemsJson = await itemsResponse.json();
+            let rawItems = itemsJson.items || itemsJson.data?.items || [];
+
+            if (rawItems.length > 0) {
+                const firstTrack = rawItems[0]?.item || rawItems[0]?.track || rawItems[0];
+                if (firstTrack && String(firstTrack.id) === String(id)) {
+                    rawItems = rawItems.slice(1);
+                }
+            }
+
+            const tracks = rawItems
+                .map((entry) => entry.item || entry.track || entry)
+                .filter((item) => item && (item.id || item.title))
+                .map((item) => this.prepareTrack(item));
+
+            await this.cache.set('recommendations', id, tracks);
             return tracks;
         } catch (error) {
-            console.error('Failed to fetch recommendations:', error);
+            console.error('Failed to fetch recommendations via track mix API:', error);
             return [];
         }
     }

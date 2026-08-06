@@ -304,17 +304,23 @@ export const createQualityBadgeHTML = (track) => {
         return `<span class="quality-badge quality-atmos" title="Dolby Atmos">${SVG_ATMOS(20)}</span>`;
     }
 
-    if (track?.amazonMusicQualitySelected) {
-        const quality = String(track.amazonMusicQualitySelected);
-        const label =
-            track.amazonMusicQualityDisplay ||
-            quality.replace(/^UHD_/, 'UHD ').replace(/^HD_/, 'HD ').replace(/_/g, ' ');
-        return `<span class="quality-badge quality-hires" title="Amazon Music ${escapeHtml(quality)}">${escapeHtml(label)}</span>`;
+    if (derivedQuality === 'HI_RES_LOSSLESS') {
+        return '<span class="quality-badge quality-hires" title="HD FLAC">HD FLAC</span>';
     }
 
-    if (derivedQuality === 'HI_RES_LOSSLESS') {
-        return '<span class="quality-badge quality-hires" title="Hi-Res Lossless">HD</span>';
+    if (
+        derivedQuality === 'LOSSLESS' ||
+        track?.audioQuality === 'LOSSLESS' ||
+        track?.mediaMetadata?.tags?.includes('LOSSLESS') ||
+        track?.album?.mediaMetadata?.tags?.includes('LOSSLESS')
+    ) {
+        return '<span class="quality-badge quality-hires" title="FLAC">FLAC</span>';
     }
+
+    if (derivedQuality === 'HIGH' || derivedQuality === 'LOW') {
+        return '<span class="quality-badge quality-hires" title="AAC">AAC</span>';
+    }
+
     return '';
 };
 
@@ -367,7 +373,7 @@ export const deriveTrackQuality = (track) => {
 
 export const formatQualityBadgeText = (streamInfo, activeVariant, fallbackQuality = null) => {
     const bitDepth = streamInfo?.bitDepth || null;
-    const sampleRateHz = streamInfo?.sampleRateHz || streamInfo?.sampleRate || activeVariant?.audioSamplingRate || null;
+    const sampleRateHz = streamInfo?.sampleRateHz || streamInfo?.sampleRate || null;
     const bitrateKbps =
         streamInfo?.bitrateKbps ||
         (activeVariant?.audioBandwidth ? Math.round(activeVariant.audioBandwidth / 1000) : null);
@@ -399,17 +405,6 @@ export const formatQualityBadgeText = (streamInfo, activeVariant, fallbackQualit
                         : (sampleRateHz / 1000).toFixed(1)
                     : sampleRateHz.toString();
             return `FLAC ${bitDepth}/${sampleRateKHz}`;
-        }
-
-        if (sampleRateHz) {
-            const sampleRateKHz =
-                sampleRateHz >= 1000
-                    ? sampleRateHz % 1000 === 0
-                        ? (sampleRateHz / 1000).toString()
-                        : (sampleRateHz / 1000).toFixed(1)
-                    : sampleRateHz.toString();
-            const inferredBitDepth = sampleRateHz > 48000 || quality === 'HI_RES_LOSSLESS' || quality === 'UHD' ? '24' : '16';
-            return `FLAC ${inferredBitDepth}/${sampleRateKHz}`;
         }
 
         if (quality === 'HI_RES_LOSSLESS' || quality === 'UHD' || quality === 'ULTRAHD') {
