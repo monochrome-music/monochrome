@@ -3078,10 +3078,9 @@ export class LosslessAPI {
 
             const tryAtmosDownload =
                 cleanQuality === 'DOLBY_ATMOS' ||
-                preferDolbyAtmosSettings.isEnabled() ||
-                track?.audioModes?.includes('DOLBY_ATMOS');
+                (preferDolbyAtmosSettings.isEnabled() && track?.audioModes?.includes('DOLBY_ATMOS'));
 
-            if (tryAtmosDownload && (cleanQuality === 'DOLBY_ATMOS' || preferDolbyAtmosSettings.isEnabled())) {
+            if (tryAtmosDownload) {
                 try {
                     unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, 'DOLBY_ATMOS', { track, intent: 'download' });
                 } catch (error) {
@@ -3269,7 +3268,12 @@ export class LosslessAPI {
             // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
             let downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
 
-            const enriched = await this.enrichTrack(inputTrack || id, { downloadQuality });
+            const inputTrackObj = options.track || (typeof inputTrack === 'object' ? inputTrack : null);
+            const isAlreadyEnriched = inputTrackObj && (inputTrackObj.externalStreamUrl || inputTrackObj.lookup);
+
+            const enriched = isAlreadyEnriched
+                ? inputTrackObj
+                : await this.enrichTrack(inputTrackObj || id, { downloadQuality });
             const { lookup, enrichedTrack, isVideo } = enriched;
 
             let streamUrl = enriched.externalStreamUrl || enriched.qobuzStreamUrl || null;
