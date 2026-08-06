@@ -35,14 +35,14 @@ const DONATION_PROMPT_EVERY = 10;
 const DONATION_PLAY_COUNT_KEY = 'donation-prompt-play-count';
 
 function showDonationPrompt() {
-    let container = document.getElementById('download-notifications');
+    let container = document.getElementById('support-notifications');
     if (!container) {
         container = document.createElement('div');
-        container.id = 'download-notifications';
+        container.id = 'support-notifications';
         document.body.appendChild(container);
     }
     const el = document.createElement('div');
-    el.className = 'download-task';
+    el.className = 'support-banner';
     el.innerHTML = `
         <div style="font-weight: 600; margin-bottom: 0.4rem;">Support Monochrome</div>
         <p style="margin: 0 0 0.75rem; font-size: 0.85rem; line-height: 1.5; color: var(--muted-foreground);">
