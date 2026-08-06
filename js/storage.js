@@ -10,7 +10,7 @@ export const apiSettings = {
     userInstances: null,
     instancesLoaded: false,
     _loadPromise: null,
-    
+
     _loadUserInstances() {
         if (this.userInstances) return this.userInstances;
         try {
@@ -3088,11 +3088,7 @@ export const unifiedPlaybackSettings = {
     API_BASE_URL_KEY: 'unified-playback-api-base-url',
     API_TOKEN_KEY: 'unified-playback-api-token',
     DEFAULT_API_BASE_URL: 'https://music-api.geeked.wtf',
-    LEGACY_API_BASE_URLS: [
-        'https://amz.geeked.wtf',
-        'https://track-api.monochrome.tf',
-        'https://mono.geeked.wtf',
-    ],
+    LEGACY_API_BASE_URLS: ['https://amz.geeked.wtf', 'https://track-api.monochrome.tf', 'https://mono.geeked.wtf'],
     DEFAULT_API_TOKEN: 'amp_29b2lIr4mze4tK-P8QDOxfMZ9anCgJ9_uGTUks3nIyo',
 
     isEnabled() {
@@ -3146,7 +3142,11 @@ export const unifiedPlaybackSettings = {
     isDefaultApiToken(token) {
         const currentToken = (token || this.getApiToken() || '').trim();
         const defaultToken = (this.DEFAULT_API_TOKEN || '').trim();
-        const envToken = (import.meta.env.VITE_UNIFIED_PLAYBACK_API_TOKEN || import.meta.env.VITE_AMAZON_TURNSTILE_BYPASS_TOKEN || '').trim();
+        const envToken = (
+            import.meta.env.VITE_UNIFIED_PLAYBACK_API_TOKEN ||
+            import.meta.env.VITE_AMAZON_TURNSTILE_BYPASS_TOKEN ||
+            ''
+        ).trim();
         return currentToken === defaultToken || (Boolean(envToken) && currentToken === envToken);
     },
 };

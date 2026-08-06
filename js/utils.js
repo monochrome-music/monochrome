@@ -396,7 +396,11 @@ export const formatQualityBadgeText = (streamInfo, activeVariant, fallbackQualit
             quality === 'UHD' ||
             quality === 'HD');
 
-    if (isLossless || rawCodec.includes('flac') || (!rawCodec && !isExplicitLossy && (quality === 'HI_RES_LOSSLESS' || quality === 'LOSSLESS'))) {
+    if (
+        isLossless ||
+        rawCodec.includes('flac') ||
+        (!rawCodec && !isExplicitLossy && (quality === 'HI_RES_LOSSLESS' || quality === 'LOSSLESS'))
+    ) {
         if (bitDepth && sampleRateHz) {
             const sampleRateKHz =
                 sampleRateHz >= 1000

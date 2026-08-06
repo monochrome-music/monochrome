@@ -342,7 +342,6 @@ function initializeKeyboardShortcuts(player, _audioPlayer) {
     });
 }
 
-
 async function closeFullscreenOverlay() {
     if (UIRenderer.instance?.dismissFullscreenCover) {
         await UIRenderer.instance.dismissFullscreenCover({ animate: false });
