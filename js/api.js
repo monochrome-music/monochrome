@@ -2705,6 +2705,27 @@ export class LosslessAPI {
         );
     }
 
+    getUnifiedPlaybackReplayGain(resource) {
+        const rg = resource?.replay_gain || resource?.replayGain || null;
+        const trackGain = rg?.track_gain_db ?? rg?.trackGainDb ?? resource?.track_gain_db ?? resource?.trackGainDb ?? 0;
+        const trackPeak = rg?.track_peak ?? rg?.trackPeak ?? resource?.track_peak ?? resource?.trackPeak ?? 1;
+        const albumGain = rg?.album_gain_db ?? rg?.albumGainDb ?? resource?.album_gain_db ?? resource?.albumGainDb ?? 0;
+        const albumPeak = rg?.album_peak ?? rg?.albumPeak ?? resource?.album_peak ?? resource?.albumPeak ?? 1;
+        const programLoudness = rg?.program_loudness_lufs ?? resource?.program_loudness_lufs ?? null;
+        const anchorLoudness = rg?.anchor_loudness_lufs ?? resource?.anchor_loudness_lufs ?? null;
+        const truePeak = rg?.true_peak_db ?? resource?.true_peak_db ?? null;
+
+        return {
+            trackReplayGain: typeof trackGain === 'number' ? trackGain : parseFloat(trackGain) || 0,
+            trackPeakAmplitude: typeof trackPeak === 'number' ? trackPeak : parseFloat(trackPeak) || 1,
+            albumReplayGain: typeof albumGain === 'number' ? albumGain : parseFloat(albumGain) || 0,
+            albumPeakAmplitude: typeof albumPeak === 'number' ? albumPeak : parseFloat(albumPeak) || 1,
+            programLoudnessLufs: typeof programLoudness === 'number' ? programLoudness : parseFloat(programLoudness) || null,
+            anchorLoudnessLufs: typeof anchorLoudness === 'number' ? anchorLoudness : parseFloat(anchorLoudness) || null,
+            truePeakDb: typeof truePeak === 'number' ? truePeak : parseFloat(truePeak) || null,
+        };
+    }
+
     async getUnifiedPlaybackStreamUrl(tidalTrackId, quality = 'LOSSLESS', options = {}) {
         try {
             const track =
@@ -2748,16 +2769,10 @@ export class LosslessAPI {
                 qualityRequested: envelope.quality_requested || canonicalQuality,
                 qualityDisplay:
                     provider === 'monochrome'
-                        ? normalizedQuality || 'Original'
-                        : provider === 'amazon'
-                          ? this.getAmazonQualityDisplay(
-                                {
-                                    quality_selected: normalizedQuality,
-                                    quality_requested: envelope.quality_requested || canonicalQuality,
-                                },
-                                qualityInfo
-                            )
-                          : normalizedQuality,
+                        ? normalizedQuality === 'LOSSLESS'
+                            ? 'FLAC'
+                            : normalizedQuality
+                        : normalizedQuality,
                 decryptionKey,
                 keyId: this.getUnifiedPlaybackKeyId(resource),
                 codec: qualityInfo.codec || resource.codec || null,
@@ -2768,12 +2783,7 @@ export class LosslessAPI {
                 recordingId: resource.id || null,
                 requestId: envelope.request_id || null,
                 intent: envelope.intent || intent,
-                rgInfo: {
-                    trackReplayGain: 0,
-                    trackPeakAmplitude: 1,
-                    albumReplayGain: 0,
-                    albumPeakAmplitude: 1,
-                },
+                rgInfo: this.getUnifiedPlaybackReplayGain(resource),
             };
 
             if (selectedSource === 'mono' || selectedSource === 'monochrome') {

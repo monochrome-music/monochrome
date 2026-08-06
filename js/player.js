@@ -295,13 +295,25 @@ export class Player {
         let peak = 1.0;
 
         if (mode !== 'off' && this.currentRgValues) {
-            const { trackReplayGain, trackPeakAmplitude, albumReplayGain, albumPeakAmplitude } = this.currentRgValues;
+            const {
+                trackReplayGain,
+                trackPeakAmplitude,
+                albumReplayGain,
+                albumPeakAmplitude,
+                programLoudnessLufs,
+            } = this.currentRgValues;
 
-            if (mode === 'album' && albumReplayGain !== undefined) {
+            if (mode === 'album' && typeof albumReplayGain === 'number' && albumReplayGain !== 0) {
                 gainDb = albumReplayGain;
                 peak = albumPeakAmplitude || 1.0;
-            } else if (trackReplayGain !== undefined) {
+            } else if (typeof trackReplayGain === 'number' && trackReplayGain !== 0) {
                 gainDb = trackReplayGain;
+                peak = trackPeakAmplitude || 1.0;
+            } else if (typeof programLoudnessLufs === 'number') {
+                gainDb = -18 - programLoudnessLufs;
+                peak = trackPeakAmplitude || 1.0;
+            } else {
+                gainDb = trackReplayGain || 0;
                 peak = trackPeakAmplitude || 1.0;
             }
 
