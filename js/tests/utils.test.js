@@ -208,4 +208,27 @@ describe('utils.js', () => {
             expect(onError).toHaveBeenCalledWith(error);
         });
     });
+
+    describe('formatQualityBadgeText', () => {
+        test('formats FLAC 16/44.1 and FLAC 24/192 with exact bit depth and sample rate', () => {
+            expect(utils.formatQualityBadgeText({ bitDepth: 16, sampleRateHz: 44100, codec: 'flac', quality: 'LOSSLESS' })).toBe('FLAC 16/44.1');
+            expect(utils.formatQualityBadgeText({ bitDepth: 24, sampleRateHz: 192000, codec: 'flac', quality: 'HI_RES_LOSSLESS' })).toBe('FLAC 24/192');
+            expect(utils.formatQualityBadgeText({ bitDepth: 24, sampleRateHz: 96000, codec: 'flac', quality: 'HI_RES_LOSSLESS' })).toBe('FLAC 24/96');
+            expect(utils.formatQualityBadgeText({ bitDepth: 24, sampleRateHz: 48000, codec: 'flac', quality: 'HI_RES_LOSSLESS' })).toBe('FLAC 24/48');
+        });
+
+        test('falls back to HD FLAC for Hi-Res and FLAC for Lossless when bit depth/sample rate are missing', () => {
+            expect(utils.formatQualityBadgeText({ quality: 'HI_RES_LOSSLESS', codec: 'flac' })).toBe('HD FLAC');
+            expect(utils.formatQualityBadgeText({ quality: 'LOSSLESS', codec: 'flac' })).toBe('FLAC');
+            expect(utils.formatQualityBadgeText(null, null, 'HI_RES_LOSSLESS')).toBe('HD FLAC');
+            expect(utils.formatQualityBadgeText(null, null, 'LOSSLESS')).toBe('FLAC');
+        });
+
+        test('formats lossy formats with bitrate', () => {
+            expect(utils.formatQualityBadgeText({ codec: 'mp3', bitrateKbps: 320 })).toBe('MP3 320k');
+            expect(utils.formatQualityBadgeText({ codec: 'aac', bitrateKbps: 96 })).toBe('AAC 96k');
+            expect(utils.formatQualityBadgeText({ codec: 'opus', bitrateKbps: 132 })).toBe('Opus 132k');
+            expect(utils.formatQualityBadgeText({ codec: 'opus', bitrateKbps: 138 })).toBe('Opus 138k');
+        });
+    });
 });

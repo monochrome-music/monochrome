@@ -1,15 +1,16 @@
 //storage.js
 
 import { SVG_RIGHT_ARROW } from './icons';
+import { isIos, isSafari } from './platform-detection.js';
 
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances-v9',
-    INSTANCES_URLS: ['https://tidal-uptime.geeked.wtf'],
+    INSTANCES_URLS: [],
     defaultInstances: { api: [], streaming: [], qobuz: [] },
     userInstances: null,
     instancesLoaded: false,
     _loadPromise: null,
-
+    
     _loadUserInstances() {
         if (this.userInstances) return this.userInstances;
         try {
@@ -75,28 +76,9 @@ export const apiSettings = {
             if (!data) {
                 console.error('Failed to load instances from all uptime APIs:', fetchError);
                 this.defaultInstances = {
-                    api: [
-                        { url: 'https://hifi.geeked.wtf', version: '2.7' },
-                        { url: 'https://eu-central.monochrome.tf', version: '2.7' },
-                        { url: 'https://us-west.monochrome.tf', version: '2.7' },
-                        { url: 'https://api.monochrome.tf', version: '2.5' },
-                        { url: 'https://monochrome-api.samidy.com', version: '2.3' },
-                        { url: 'https://maus.qqdl.site', version: '2.6' },
-                        { url: 'https://vogel.qqdl.site', version: '2.6' },
-                        { url: 'https://katze.qqdl.site', version: '2.6' },
-                        { url: 'https://hund.qqdl.site', version: '2.6' },
-                        { url: 'https://tidal.kinoplus.online', version: '2.2' },
-                        { url: 'https://wolf.qqdl.site', version: '2.2' },
-                    ],
-                    streaming: [
-                        { url: 'https://hifi.geeked.wtf', version: '2.7' },
-                        { url: 'https://maus.qqdl.site', version: '2.6' },
-                        { url: 'https://vogel.qqdl.site', version: '2.6' },
-                        { url: 'https://katze.qqdl.site', version: '2.6' },
-                        { url: 'https://hund.qqdl.site', version: '2.6' },
-                        { url: 'https://wolf.qqdl.site', version: '2.6' },
-                    ],
-                    qobuz: [{ url: 'https://qobuz.kennyy.com.br', version: '1.0' }],
+                    api: [],
+                    streaming: [],
+                    qobuz: [],
                 };
                 this.instancesLoaded = true;
                 this._loadPromise = null;
@@ -767,10 +749,13 @@ export const preferDolbyAtmosSettings = {
     STORAGE_KEY: 'prefer-dolby-atmos',
     isEnabled() {
         try {
-            const stored = localStorage.getItem(this.STORAGE_KEY) || 'false';
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            if (stored === null) {
+                return isSafari || isIos;
+            }
             return stored === 'true';
         } catch {
-            return false;
+            return isSafari || isIos;
         }
     },
     setEnabled(enabled) {
@@ -790,6 +775,24 @@ export const losslessContainerSettings = {
     },
     setContainer(container) {
         localStorage.setItem(this.STORAGE_KEY, container);
+    },
+};
+
+export const nativeOsAtmosSettings = {
+    STORAGE_KEY: 'native-os-atmos-rendering',
+    isEnabled() {
+        try {
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            if (stored === null) {
+                return isSafari || isIos;
+            }
+            return stored === 'true';
+        } catch {
+            return isSafari || isIos;
+        }
+    },
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
     },
 };
 
@@ -3138,6 +3141,13 @@ export const unifiedPlaybackSettings = {
 
     setApiToken(token) {
         localStorage.setItem(this.API_TOKEN_KEY, token || '');
+    },
+
+    isDefaultApiToken(token) {
+        const currentToken = (token || this.getApiToken() || '').trim();
+        const defaultToken = (this.DEFAULT_API_TOKEN || '').trim();
+        const envToken = (import.meta.env.VITE_UNIFIED_PLAYBACK_API_TOKEN || import.meta.env.VITE_AMAZON_TURNSTILE_BYPASS_TOKEN || '').trim();
+        return currentToken === defaultToken || (Boolean(envToken) && currentToken === envToken);
     },
 };
 

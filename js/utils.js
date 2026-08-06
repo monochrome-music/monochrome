@@ -22,7 +22,7 @@ export const AUDIO_QUALITIES = {
 export const QUALITY_PRIORITY = ['DOLBY_ATMOS', 'HI_RES_LOSSLESS', 'LOSSLESS', 'HIGH', 'LOW'];
 
 export const QUALITY_TOKENS = {
-    DOLBY_ATMOS: ['DOLBY_ATMOS', 'ATMOS'],
+    DOLBY_ATMOS: ['DOLBY_ATMOS', 'ATMOS', 'EAC3_JOC'],
     HI_RES_LOSSLESS: [
         'HI_RES_LOSSLESS',
         'HIRES_LOSSLESS',
@@ -34,10 +34,12 @@ export const QUALITY_TOKENS = {
         'MASTER',
         'MASTER_QUALITY',
         'MQA',
+        'UHD',
+        'ULTRAHD',
     ],
-    LOSSLESS: ['LOSSLESS', 'HIFI'],
-    HIGH: ['HIGH', 'HIGH_QUALITY'],
-    LOW: ['LOW', 'LOW_QUALITY'],
+    LOSSLESS: ['LOSSLESS', 'HIFI', 'HD'],
+    HIGH: ['HIGH', 'HIGH_QUALITY', 'SD', 'SD_HIGH', 'SD_MEDIUM'],
+    LOW: ['LOW', 'LOW_QUALITY', 'LD', 'SD_LOW'],
 };
 
 export const RATE_LIMIT_ERROR_MESSAGE = 'Too Many Requests. Please wait a moment and try again.';
@@ -289,7 +291,18 @@ export const normalizeQualityToken = (value) => {
 };
 
 export const createQualityBadgeHTML = (track) => {
-    if (!qualityBadgeSettings.isEnabled()) return '';
+    if (!track || !qualityBadgeSettings.isEnabled()) return '';
+
+    const derivedQuality = deriveTrackQuality(track);
+    const isAtmos =
+        derivedQuality === 'DOLBY_ATMOS' ||
+        track?.audioQuality === 'DOLBY_ATMOS' ||
+        track?.quality === 'DOLBY_ATMOS' ||
+        track?.audioModes?.includes('DOLBY_ATMOS');
+
+    if (isAtmos) {
+        return `<span class="quality-badge quality-atmos" title="Dolby Atmos">${SVG_ATMOS(20)}</span>`;
+    }
 
     if (track?.amazonMusicQualitySelected) {
         const quality = String(track.amazonMusicQualitySelected);
@@ -299,10 +312,7 @@ export const createQualityBadgeHTML = (track) => {
         return `<span class="quality-badge quality-hires" title="Amazon Music ${escapeHtml(quality)}">${escapeHtml(label)}</span>`;
     }
 
-    const quality = deriveTrackQuality(track);
-    if (quality === 'DOLBY_ATMOS') {
-        return `<span class="quality-badge quality-atmos" title="Dolby Atmos">${SVG_ATMOS(20)}</span>`;
-    } else if (quality === 'HI_RES_LOSSLESS') {
+    if (derivedQuality === 'HI_RES_LOSSLESS') {
         return '<span class="quality-badge quality-hires" title="Hi-Res Lossless">HD</span>';
     }
     return '';
@@ -353,6 +363,77 @@ export const deriveTrackQuality = (track) => {
     ];
 
     return pickBestQuality(candidates);
+};
+
+export const formatQualityBadgeText = (streamInfo, activeVariant, fallbackQuality = null) => {
+    const bitDepth = streamInfo?.bitDepth || null;
+    const sampleRateHz = streamInfo?.sampleRateHz || streamInfo?.sampleRate || activeVariant?.audioSamplingRate || null;
+    const bitrateKbps =
+        streamInfo?.bitrateKbps ||
+        (activeVariant?.audioBandwidth ? Math.round(activeVariant.audioBandwidth / 1000) : null);
+    const rawCodec = (streamInfo?.codec || activeVariant?.audioCodec || '').toLowerCase();
+    const quality = String(streamInfo?.quality || fallbackQuality || '').toUpperCase();
+
+    const isExplicitLossy =
+        streamInfo?.lossless === false ||
+        rawCodec.includes('mp3') ||
+        rawCodec.includes('aac') ||
+        rawCodec.includes('mp4a') ||
+        rawCodec.includes('opus');
+
+    const isLossless =
+        !isExplicitLossy &&
+        (streamInfo?.lossless === true ||
+            rawCodec.includes('flac') ||
+            quality === 'HI_RES_LOSSLESS' ||
+            quality === 'LOSSLESS' ||
+            quality === 'UHD' ||
+            quality === 'HD');
+
+    if (isLossless || rawCodec.includes('flac') || (!rawCodec && !isExplicitLossy && (quality === 'HI_RES_LOSSLESS' || quality === 'LOSSLESS'))) {
+        if (bitDepth && sampleRateHz) {
+            const sampleRateKHz =
+                sampleRateHz >= 1000
+                    ? sampleRateHz % 1000 === 0
+                        ? (sampleRateHz / 1000).toString()
+                        : (sampleRateHz / 1000).toFixed(1)
+                    : sampleRateHz.toString();
+            return `FLAC ${bitDepth}/${sampleRateKHz}`;
+        }
+
+        if (sampleRateHz) {
+            const sampleRateKHz =
+                sampleRateHz >= 1000
+                    ? sampleRateHz % 1000 === 0
+                        ? (sampleRateHz / 1000).toString()
+                        : (sampleRateHz / 1000).toFixed(1)
+                    : sampleRateHz.toString();
+            const inferredBitDepth = sampleRateHz > 48000 || quality === 'HI_RES_LOSSLESS' || quality === 'UHD' ? '24' : '16';
+            return `FLAC ${inferredBitDepth}/${sampleRateKHz}`;
+        }
+
+        if (quality === 'HI_RES_LOSSLESS' || quality === 'UHD' || quality === 'ULTRAHD') {
+            return 'HD FLAC';
+        }
+        return 'FLAC';
+    }
+
+    // Non-lossless (MP3, AAC, Opus, etc.)
+    let codecName = 'AAC';
+    if (rawCodec.includes('mp3')) {
+        codecName = 'MP3';
+    } else if (rawCodec.includes('opus')) {
+        codecName = 'Opus';
+    } else if (rawCodec.includes('aac') || rawCodec.includes('mp4a')) {
+        codecName = 'AAC';
+    } else if (rawCodec) {
+        codecName = rawCodec.toUpperCase();
+    }
+
+    if (bitrateKbps) {
+        return `${codecName} ${bitrateKbps}k`;
+    }
+    return codecName;
 };
 
 export const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
