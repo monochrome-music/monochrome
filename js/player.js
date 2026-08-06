@@ -295,13 +295,8 @@ export class Player {
         let peak = 1.0;
 
         if (mode !== 'off' && this.currentRgValues) {
-            const {
-                trackReplayGain,
-                trackPeakAmplitude,
-                albumReplayGain,
-                albumPeakAmplitude,
-                programLoudnessLufs,
-            } = this.currentRgValues;
+            const { trackReplayGain, trackPeakAmplitude, albumReplayGain, albumPeakAmplitude, programLoudnessLufs } =
+                this.currentRgValues;
 
             if (mode === 'album' && typeof albumReplayGain === 'number' && albumReplayGain !== 0) {
                 gainDb = albumReplayGain;
@@ -840,7 +835,9 @@ export class Player {
             !track.isLocal &&
             (isDashManifest ||
                 streamInfo.playbackType?.includes('cenc') ||
-                (streamUrl.startsWith('blob:') && streamInfo.playbackType !== 'direct' && streamInfo.playbackType !== 'hls') ||
+                (streamUrl.startsWith('blob:') &&
+                    streamInfo.playbackType !== 'direct' &&
+                    streamInfo.playbackType !== 'hls') ||
                 (isHlsManifest && !isSafari && !isIos) ||
                 (this.isNativeAmazonHlsDecryptionUrl(streamUrl) && !isSafari));
         if (requiresShaka && (!this.shakaPlayer || this.shakaPlayer.getMediaElement() !== activeElement)) {
@@ -1570,7 +1567,8 @@ export class Player {
                         resolvedStreamInfo.playbackType === 'dash-cenc' ||
                         resolvedStreamInfo.delivery === 'dash' ||
                         resolvedStreamInfo.mimeType?.includes('dash') ||
-                        (typeof streamUrl === 'string' && (streamUrl.startsWith('data:') || streamUrl.includes('.mpd'))));
+                        (typeof streamUrl === 'string' &&
+                            (streamUrl.startsWith('data:') || streamUrl.includes('.mpd'))));
 
                 const shouldUseShaka =
                     streamUrl &&
@@ -1579,7 +1577,9 @@ export class Player {
                         resolvedStreamInfo.playbackType?.includes('cenc') ||
                         (isHlsManifest && !isSafari && !isIos) ||
                         (this.isNativeAmazonHlsDecryptionUrl(streamUrl) && !isSafari) ||
-                        (streamUrl.startsWith('blob:') && resolvedStreamInfo.playbackType !== 'direct' && resolvedStreamInfo.playbackType !== 'hls'));
+                        (streamUrl.startsWith('blob:') &&
+                            resolvedStreamInfo.playbackType !== 'direct' &&
+                            resolvedStreamInfo.playbackType !== 'hls'));
 
                 if (shouldUseShaka) {
                     // It's likely a DASH manifest URL
@@ -1684,8 +1684,10 @@ export class Player {
     setLoadingState(isLoading) {
         this.isLoadingTrack = isLoading;
         const playPauseBtn = document.querySelector('.now-playing-bar .play-pause-btn');
-        const SPINNER_20 = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
-        const SPINNER_32 = '<svg class="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
+        const SPINNER_20 =
+            '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
+        const SPINNER_32 =
+            '<svg class="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
         if (isLoading) {
             if (playPauseBtn) playPauseBtn.innerHTML = SPINNER_20;
             const fsBtn = document.getElementById('fs-play-pause-btn');
@@ -1697,10 +1699,10 @@ export class Player {
     }
 
     resetProgressUI() {
-        document.querySelectorAll('#progress-fill, #fs-progress-fill').forEach(el => el.style.width = '0%');
-        document.querySelectorAll('#current-time, #fs-current-time').forEach(el => el.textContent = '0:00');
-        document.querySelectorAll('#total-duration, #fs-total-duration').forEach(el => el.textContent = '0:00');
-        document.querySelectorAll('#progress-bar, #fs-progress-bar').forEach(el => {
+        document.querySelectorAll('#progress-fill, #fs-progress-fill').forEach((el) => (el.style.width = '0%'));
+        document.querySelectorAll('#current-time, #fs-current-time').forEach((el) => (el.textContent = '0:00'));
+        document.querySelectorAll('#total-duration, #fs-total-duration').forEach((el) => (el.textContent = '0:00'));
+        document.querySelectorAll('#progress-bar, #fs-progress-bar').forEach((el) => {
             el.style.webkitMaskImage = '';
             el.style.maskImage = '';
             el.classList.remove('has-waveform', 'waveform-loaded');
@@ -2224,7 +2226,7 @@ export class Player {
 
         if (this.shuffleActive) {
             this.originalQueueBeforeShuffle = [...this.queue];
-            this.originalQueueBeforeShuffle.forEach((t, i) => t._originalIndex = i);
+            this.originalQueueBeforeShuffle.forEach((t, i) => (t._originalIndex = i));
             const currentTrack = this.queue[this.currentQueueIndex];
 
             const tracksToShuffle = [...this.queue];
@@ -2247,9 +2249,10 @@ export class Player {
         } else {
             const currentTrack = this.shuffledQueue[this.currentQueueIndex];
             this.queue = [...this.originalQueueBeforeShuffle];
-            this.currentQueueIndex = currentTrack?._originalIndex ?? this.queue.findIndex((t) => t.id === currentTrack?.id);
+            this.currentQueueIndex =
+                currentTrack?._originalIndex ?? this.queue.findIndex((t) => t.id === currentTrack?.id);
             if (this.currentQueueIndex === -1) {
-                 this.currentQueueIndex = this.queue.findIndex((t) => t.id === currentTrack?.id);
+                this.currentQueueIndex = this.queue.findIndex((t) => t.id === currentTrack?.id);
             }
         }
 
@@ -2370,14 +2373,16 @@ export class Player {
         // though syncing that is tricky. The standard logic often just appends to the active queue view.
         if (this.shuffleActive) {
             const currentTrack = this.shuffledQueue[this.currentQueueIndex];
-            const originalIndex = currentTrack?._originalIndex ?? this.originalQueueBeforeShuffle.findIndex((t) => t.id === currentTrack?.id);
-            
+            const originalIndex =
+                currentTrack?._originalIndex ??
+                this.originalQueueBeforeShuffle.findIndex((t) => t.id === currentTrack?.id);
+
             if (originalIndex !== -1 && originalIndex !== undefined) {
                 this.originalQueueBeforeShuffle.splice(originalIndex + 1, 0, ...tracks);
             } else {
                 this.originalQueueBeforeShuffle.push(...tracks); // Sync original queue
             }
-            this.originalQueueBeforeShuffle.forEach((t, i) => t._originalIndex = i);
+            this.originalQueueBeforeShuffle.forEach((t, i) => (t._originalIndex = i));
         }
 
         await this.saveQueueState();
@@ -2397,11 +2402,13 @@ export class Player {
 
         if (this.shuffleActive) {
             // Also remove from original queue
-            const originalIndex = removedTrack._originalIndex ?? this.originalQueueBeforeShuffle.findIndex((t) => t.id === removedTrack.id); // Simple ID check
+            const originalIndex =
+                removedTrack._originalIndex ??
+                this.originalQueueBeforeShuffle.findIndex((t) => t.id === removedTrack.id); // Simple ID check
             if (originalIndex !== -1 && originalIndex !== undefined) {
                 this.originalQueueBeforeShuffle.splice(originalIndex, 1);
             }
-            this.originalQueueBeforeShuffle.forEach((t, i) => t._originalIndex = i);
+            this.originalQueueBeforeShuffle.forEach((t, i) => (t._originalIndex = i));
         }
 
         if (isRemovingCurrent) {

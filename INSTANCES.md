@@ -28,16 +28,16 @@ PLEASE do not use any rehost of monochrome and complain to us about features not
 
 ### Official & Community APIs
 
-| Provider          | URL                                 | Notes                                                                                                  |
-| ----------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Monochrome**    | `https://monochrome-api.samidy.com` | Official API                                                                                           |
-|                   | `https://api.monochrome.tf`         | Official API                                                                                           |
-| **Lucida (QQDL)** | `https://wolf.qqdl.site`            | Community hosted                                                                                       |
-|                   | `https://maus.qqdl.site`            | Community hosted                                                                                       |
-|                   | `https://vogel.qqdl.site`           | Community hosted                                                                                       |
-|                   | `https://katze.qqdl.site`           | Community hosted                                                                                       |
-|                   | `https://hund.qqdl.site`            | Community hosted                                                                                       |
-| **Kinoplus**      | `https://tidal.kinoplus.online`     | Community hosted - [Limited/No-Sub](https://rentry.co/limitedtidalaccs)                                |
+| Provider          | URL                                 | Notes                                                                   |
+| ----------------- | ----------------------------------- | ----------------------------------------------------------------------- |
+| **Monochrome**    | `https://monochrome-api.samidy.com` | Official API                                                            |
+|                   | `https://api.monochrome.tf`         | Official API                                                            |
+| **Lucida (QQDL)** | `https://wolf.qqdl.site`            | Community hosted                                                        |
+|                   | `https://maus.qqdl.site`            | Community hosted                                                        |
+|                   | `https://vogel.qqdl.site`           | Community hosted                                                        |
+|                   | `https://katze.qqdl.site`           | Community hosted                                                        |
+|                   | `https://hund.qqdl.site`            | Community hosted                                                        |
+| **Kinoplus**      | `https://tidal.kinoplus.online`     | Community hosted - [Limited/No-Sub](https://rentry.co/limitedtidalaccs) |
 
 ---
 

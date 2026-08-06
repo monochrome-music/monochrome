@@ -726,10 +726,7 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(
-                `/search/?i=${encodeURIComponent(normalizedIsrc)}`,
-                options
-            );
+            const response = await this.fetchWithRetry(`/search/?i=${encodeURIComponent(normalizedIsrc)}`, options);
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'tracks');
             const preparedTracks = normalized.items.map((t) => this.prepareTrack(t));
@@ -1555,7 +1552,10 @@ export class LosslessAPI {
             const artistsToProcess = Array.from(artistMap.values()).slice(0, 10);
             for (const artist of artistsToProcess) {
                 try {
-                    const artistData = await this.getArtist(artist.id, { lightweight: true, skipCache: options.refresh });
+                    const artistData = await this.getArtist(artist.id, {
+                        lightweight: true,
+                        skipCache: options.refresh,
+                    });
                     if (artistData?.tracks) {
                         for (const t of artistData.tracks) {
                             if (t?.id && !seenTrackIds.has(t.id)) {
@@ -2548,7 +2548,9 @@ export class LosslessAPI {
         const params = new URLSearchParams({ track: title });
         const artist = this.getAmazonTrackArtist(track);
         const album = this.getAmazonTrackAlbum(track);
-        const isrc = String(track?.isrc || '').trim().toUpperCase();
+        const isrc = String(track?.isrc || '')
+            .trim()
+            .toUpperCase();
         const duration = this.getAmazonTrackDuration(track);
         const intent = options.intent || 'stream';
 
@@ -2634,10 +2636,15 @@ export class LosslessAPI {
 
             const schemaMajor = String(envelope?.schema_version || '').split('.')[0];
             if (schemaMajor !== '1' && schemaMajor !== '2') {
-                throw new Error(`Unsupported Unified Playback schema version: ${envelope?.schema_version || 'missing'}`);
+                throw new Error(
+                    `Unsupported Unified Playback schema version: ${envelope?.schema_version || 'missing'}`
+                );
             }
             if (!Array.isArray(envelope.playback) || envelope.playback.length === 0) {
-                console.warn('Unified Playback response contained no playable resources:', envelope?.sources || envelope);
+                console.warn(
+                    'Unified Playback response contained no playable resources:',
+                    envelope?.sources || envelope
+                );
                 return null;
             }
             return envelope;
@@ -2700,8 +2707,10 @@ export class LosslessAPI {
             trackPeakAmplitude: typeof trackPeak === 'number' ? trackPeak : parseFloat(trackPeak) || 1,
             albumReplayGain: typeof albumGain === 'number' ? albumGain : parseFloat(albumGain) || 0,
             albumPeakAmplitude: typeof albumPeak === 'number' ? albumPeak : parseFloat(albumPeak) || 1,
-            programLoudnessLufs: typeof programLoudness === 'number' ? programLoudness : parseFloat(programLoudness) || null,
-            anchorLoudnessLufs: typeof anchorLoudness === 'number' ? anchorLoudness : parseFloat(anchorLoudness) || null,
+            programLoudnessLufs:
+                typeof programLoudness === 'number' ? programLoudness : parseFloat(programLoudness) || null,
+            anchorLoudnessLufs:
+                typeof anchorLoudness === 'number' ? anchorLoudness : parseFloat(anchorLoudness) || null,
             truePeakDb: typeof truePeak === 'number' ? truePeak : parseFloat(truePeak) || null,
         };
     }
@@ -2734,9 +2743,12 @@ export class LosslessAPI {
                 resource.kind === 'manifest' ||
                 resource.delivery === 'dash' ||
                 resource.delivery === 'hls' ||
-                (resource.mime_type && (resource.mime_type.includes('dash') || resource.mime_type.includes('mpegurl'))) ||
+                (resource.mime_type &&
+                    (resource.mime_type.includes('dash') || resource.mime_type.includes('mpegurl'))) ||
                 (typeof resource.url === 'string' &&
-                    (resource.url.includes('.mpd') || resource.url.includes('.m3u8') || resource.url.startsWith('data:application/dash+xml')));
+                    (resource.url.includes('.mpd') ||
+                        resource.url.includes('.m3u8') ||
+                        resource.url.startsWith('data:application/dash+xml')));
 
             const sourceUrl = resource.url;
             const decryptionKey = this.getAmazonDecryptionKey(resource);
@@ -2802,7 +2814,9 @@ export class LosslessAPI {
                     asin: envelope.track?.id || null,
                     keyId,
                     playbackType: mp4Info ? (keyId ? 'dash-cenc' : 'dash') : 'direct',
-                    mimeType: mp4Info ? 'application/dash+xml' : resource.mime_type || this.getAmazonMimeType(qualityInfo),
+                    mimeType: mp4Info
+                        ? 'application/dash+xml'
+                        : resource.mime_type || this.getAmazonMimeType(qualityInfo),
                 };
             }
 
@@ -2810,7 +2824,8 @@ export class LosslessAPI {
                 const isHls =
                     resource.delivery === 'hls' ||
                     resource.kind === 'hls' ||
-                    (resource.mime_type && (resource.mime_type.includes('mpegurl') || resource.mime_type.includes('m3u8'))) ||
+                    (resource.mime_type &&
+                        (resource.mime_type.includes('mpegurl') || resource.mime_type.includes('m3u8'))) ||
                     (typeof sourceUrl === 'string' && sourceUrl.includes('.m3u8'));
 
                 return {
@@ -2827,11 +2842,7 @@ export class LosslessAPI {
                 playbackType: 'direct',
                 mimeType:
                     resource.mime_type ||
-                    (provider === 'qobuz'
-                        ? normalizedQuality === 'HIGH'
-                            ? 'audio/mpeg'
-                            : 'audio/flac'
-                        : 'audio/mp4'),
+                    (provider === 'qobuz' ? (normalizedQuality === 'HIGH' ? 'audio/mpeg' : 'audio/flac') : 'audio/mp4'),
             };
         } catch (error) {
             console.warn(`Unified Playback failed for track ${tidalTrackId}:`, error);
@@ -3031,7 +3042,11 @@ export class LosslessAPI {
     }
 
     async enrichTrack(input, { downloadQuality = 'HI_RES_LOSSLESS' }) {
-        if (downloadQuality == 'DOLBY_ATMOS' && !input?.audioModes?.includes('DOLBY_ATMOS') && !unifiedPlaybackSettings.isEnabled()) {
+        if (
+            downloadQuality == 'DOLBY_ATMOS' &&
+            !input?.audioModes?.includes('DOLBY_ATMOS') &&
+            !unifiedPlaybackSettings.isEnabled()
+        ) {
             downloadQuality = 'LOSSLESS';
         }
 
@@ -3072,7 +3087,10 @@ export class LosslessAPI {
 
             if (tryAtmosDownload) {
                 try {
-                    unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, 'DOLBY_ATMOS', { track, intent: 'download' });
+                    unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, 'DOLBY_ATMOS', {
+                        track,
+                        intent: 'download',
+                    });
                 } catch (error) {
                     console.debug('Unified Playback Atmos lookup failed during download enrichment:', error);
                 }
@@ -3081,7 +3099,10 @@ export class LosslessAPI {
             if (!unifiedResult?.url) {
                 const fallbackQuality = cleanQuality === 'DOLBY_ATMOS' ? 'HI_RES_LOSSLESS' : cleanQuality;
                 try {
-                    unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, fallbackQuality, { track, intent: 'download' });
+                    unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, fallbackQuality, {
+                        track,
+                        intent: 'download',
+                    });
                 } catch (error) {
                     console.debug('Unified Playback lookup failed during download enrichment:', error);
                 }
@@ -3104,8 +3125,7 @@ export class LosslessAPI {
                 externalRgInfo = externalResult.rgInfo;
                 externalStreamType = externalResult.playbackType || null;
                 externalProvider =
-                    externalResult.provider ||
-                    (unifiedResult?.url ? 'unified' : qobuzResult?.url ? 'qobuz' : 'deezer');
+                    externalResult.provider || (unifiedResult?.url ? 'unified' : qobuzResult?.url ? 'qobuz' : 'deezer');
                 externalDecryptionKey = externalResult.decryptionKey || null;
                 externalKeyId = externalResult.keyId || null;
                 externalMimeType = externalResult.mimeType || null;
