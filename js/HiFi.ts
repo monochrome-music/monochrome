@@ -1553,13 +1553,40 @@ class HiFiClient {
      * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link RecommendationsResponse}.
      */
     async getRecommendations(id: number, signal?: AbortSignal): Promise<TidalResponse<RecommendationsResponse>> {
-        const url = `https://api.tidal.com/v1/tracks/${id}/recommendations`;
-        const data = await this.#fetchJson<{ items: TidalTrack[]; totalNumberOfItems: number }>(
-            url,
-            { limit: '20', countryCode: this.#countryCode },
-            signal
+        const countryCode = this.#countryCode || 'US';
+        const mixUrl = wrapTidalUrl(
+            `https://tidal.com/v1/tracks/${id}/mix?countryCode=${countryCode}&locale=en_US&deviceType=BROWSER`
         );
-        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
+        try {
+            const mixData = await this.#fetchJson<{ id?: string }>(mixUrl, undefined, signal);
+            const mixId = mixData?.id;
+            if (!mixId) {
+                return HiFiClient.#jsonResponse({
+                    version: HiFiClient.API_VERSION,
+                    data: { items: [], totalNumberOfItems: 0 },
+                });
+            }
+
+            const itemsUrl = wrapTidalUrl(
+                `https://tidal.com/v1/mixes/${mixId}/items?countryCode=${countryCode}&locale=en_US&deviceType=BROWSER`
+            );
+            const data = await this.#fetchJson<{ items: any[]; totalNumberOfItems: number }>(itemsUrl, undefined, signal);
+            if (data?.items?.length > 0) {
+                const firstTrack = data.items[0]?.item || data.items[0]?.track || data.items[0];
+                if (firstTrack && String(firstTrack.id) === String(id)) {
+                    data.items = data.items.slice(1);
+                    if (typeof data.totalNumberOfItems === 'number') {
+                        data.totalNumberOfItems = Math.max(0, data.totalNumberOfItems - 1);
+                    }
+                }
+            }
+            return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
+        } catch {
+            return HiFiClient.#jsonResponse({
+                version: HiFiClient.API_VERSION,
+                data: { items: [], totalNumberOfItems: 0 },
+            });
+        }
     }
 
     /**
