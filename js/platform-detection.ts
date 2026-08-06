@@ -22,6 +22,9 @@ export const isChrome = lowerCaseOriginalUserAgent.includes('chrome') || lowerCa
 /** If the browser is Firefox (excluding Chromium browsers with a modified user agent). */
 export const isFirefox = lowerCaseOriginalUserAgent.includes('firefox') && !isChrome;
 
+/** If the browser is Microsoft Edge. */
+export const isEdge = lowerCaseOriginalUserAgent.includes('edg/') || lowerCaseOriginalUserAgent.includes('edge/');
+
 type AmazonDecrypterBrowser = {
     isFirefox: boolean;
     isSafari: boolean;

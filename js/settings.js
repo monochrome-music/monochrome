@@ -38,6 +38,7 @@ import {
     analyticsSettings,
     modalSettings,
     preferDolbyAtmosSettings,
+    nativeOsAtmosSettings,
     binauralDspSettings,
     fullscreenCoverNoRoundSettings,
     fullscreenCoverVanillaTiltSettings,
@@ -907,7 +908,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
         // Apply initially
         if (player.forceQuality) player.forceQuality(streamingQualitySetting.value);
-        const apiQuality = streamingQualitySetting.value === 'auto' ? 'LOSSLESS' : streamingQualitySetting.value;
+        const apiQuality = streamingQualitySetting.value === 'auto' ? 'HI_RES_LOSSLESS' : streamingQualitySetting.value;
         player.setQuality(localStorage.getItem('playback-quality') || apiQuality);
 
         streamingQualitySetting.addEventListener('change', (e) => {
@@ -918,9 +919,25 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             if (player.forceQuality) player.forceQuality(val);
 
             // Set fallback API quality
-            const newApiQuality = val === 'auto' ? 'LOSSLESS' : val;
+            const newApiQuality = val === 'auto' ? 'HI_RES_LOSSLESS' : val;
             player.setQuality(newApiQuality);
             localStorage.setItem('playback-quality', newApiQuality);
+        });
+    }
+
+    const preferDolbyAtmosToggle = document.getElementById('prefer-dolby-atmos-toggle');
+    if (preferDolbyAtmosToggle) {
+        preferDolbyAtmosToggle.checked = preferDolbyAtmosSettings.isEnabled();
+        preferDolbyAtmosToggle.addEventListener('change', (e) => {
+            preferDolbyAtmosSettings.setEnabled(e.target.checked);
+        });
+    }
+
+    const nativeOsAtmosToggle = document.getElementById('native-os-atmos-toggle');
+    if (nativeOsAtmosToggle) {
+        nativeOsAtmosToggle.checked = nativeOsAtmosSettings.isEnabled();
+        nativeOsAtmosToggle.addEventListener('change', (e) => {
+            nativeOsAtmosSettings.setEnabled(e.target.checked);
         });
     }
 
@@ -929,6 +946,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (downloadQualitySetting) {
         // Assign categories to the static (native) options already in the HTML
         const staticCategories = {
+            DOLBY_ATMOS: 'Spatial',
             HI_RES_LOSSLESS: 'Lossless',
             LOSSLESS: 'Lossless',
             HIGH: 'AAC',

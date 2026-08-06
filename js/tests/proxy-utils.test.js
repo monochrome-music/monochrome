@@ -2,11 +2,11 @@ import { describe, expect, test } from 'vitest';
 import { getProxyUrl, isTidalAudioUrl } from '../proxy-utils.js';
 
 describe('proxy-utils', () => {
-    test('routes TIDAL audio segment URLs through the audio proxy without URL encoding', () => {
+    test('returns original TIDAL audio segment URLs directly without audio proxying', () => {
         const url = 'https://sp-pr-fa.audio.tidal.com/mediatracks/abc/1.mp4?token=a/b+c==';
 
-        expect(isTidalAudioUrl(url)).toBe(true);
-        expect(getProxyUrl(url)).toBe(`https://audio-proxy.binimum.org/proxy-audio/${url}`);
+        expect(isTidalAudioUrl(url)).toBe(false);
+        expect(getProxyUrl(url)).toBe(url);
     });
 
     test('does not proxy non-audio TIDAL endpoints or non-TIDAL audio URLs', () => {
@@ -15,11 +15,5 @@ describe('proxy-utils', () => {
             'https://resources.tidal.com/images/cover.jpg'
         );
         expect(getProxyUrl('https://cdn.example.com/audio/1.mp4')).toBe('https://cdn.example.com/audio/1.mp4');
-    });
-
-    test('does not double proxy already proxied URLs', () => {
-        const proxied = 'https://audio-proxy.binimum.org/proxy-audio/https://audio.tidal.com/foo/1.mp4';
-
-        expect(getProxyUrl(proxied)).toBe(proxied);
     });
 });

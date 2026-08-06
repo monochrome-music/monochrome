@@ -48,7 +48,7 @@ class TidalAPI {
 
 class ServerAPI {
     constructor() {
-        this.INSTANCES_URLS = ['https://tidal-uptime.geeked.wtf'];
+        this.INSTANCES_URLS = [];
         this.apiInstances = null;
     }
 
@@ -77,20 +77,7 @@ class ServerAPI {
         }
 
         console.error('Failed to load instances from all uptime APIs');
-        return [
-            'https://hifi.geeked.wtf',
-            'https://eu-central.monochrome.tf',
-            'https://us-west.monochrome.tf',
-            'https://arran.monochrome.tf',
-            'https://api.monochrome.tf',
-            'https://monochrome-api.samidy.com',
-            'https://maus.qqdl.site',
-            'https://vogel.qqdl.site',
-            'https://katze.qqdl.site',
-            'https://hund.qqdl.site',
-            'https://tidal.kinoplus.online',
-            'https://wolf.qqdl.site',
-        ];
+        return [];
     }
 
     async fetchWithRetry(relativePath) {

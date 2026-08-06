@@ -8,6 +8,7 @@ import {
     createQualityBadgeHTML,
     escapeHtml,
     deriveTrackQuality,
+    formatQualityBadgeText,
 } from './utils.js';
 import {
     queueManager,
@@ -19,9 +20,10 @@ import {
     autoplaySettings,
     binauralDspSettings,
     contentBlockingSettings,
+    nativeOsAtmosSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
-import { isIos, isSafari, canUseNativeAmazonCenc, getAmazonDecrypterCodec } from './platform-detection.js';
+import { isIos, isSafari, isEdge, canUseNativeAmazonCenc, getAmazonDecrypterCodec } from './platform-detection.js';
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
 
@@ -806,11 +808,28 @@ export class Player {
             return false;
         }
 
+        this.currentStreamInfo = streamInfo;
+
+        const isHlsManifest =
+            streamInfo.playbackType === 'hls' ||
+            streamInfo.delivery === 'hls' ||
+            streamInfo.mimeType?.includes('mpegurl') ||
+            (typeof streamUrl === 'string' && streamUrl.includes('.m3u8'));
+
+        const isDashManifest =
+            !isHlsManifest &&
+            (streamInfo.playbackType === 'dash' ||
+                streamInfo.playbackType === 'dash-cenc' ||
+                streamInfo.delivery === 'dash' ||
+                streamInfo.mimeType?.includes('dash') ||
+                (typeof streamUrl === 'string' && (streamUrl.startsWith('data:') || streamUrl.includes('.mpd'))));
+
         const requiresShaka =
             !track.isLocal &&
-            (streamInfo.playbackType?.includes('cenc') ||
-                (streamUrl.startsWith('blob:') && streamInfo.playbackType !== 'direct') ||
-                streamUrl.includes('.mpd') ||
+            (isDashManifest ||
+                streamInfo.playbackType?.includes('cenc') ||
+                (streamUrl.startsWith('blob:') && streamInfo.playbackType !== 'direct' && streamInfo.playbackType !== 'hls') ||
+                (isHlsManifest && !isSafari && !isIos) ||
                 (this.isNativeAmazonHlsDecryptionUrl(streamUrl) && !isSafari));
         if (requiresShaka && (!this.shakaPlayer || this.shakaPlayer.getMediaElement() !== activeElement)) {
             return false;
@@ -1493,6 +1512,7 @@ export class Player {
                 }
 
                 streamUrl = resolvedStreamInfo.url;
+                this.currentStreamInfo = resolvedStreamInfo;
                 this.currentStreamProvider = resolvedStreamInfo.provider || null;
                 if (resolvedStreamInfo.provider === 'amazon' && resolvedStreamInfo.quality) {
                     track.amazonMusicQualitySelected = resolvedStreamInfo.quality;
@@ -1526,14 +1546,28 @@ export class Player {
 
                 if (this.playbackSequence !== currentSequence) return;
 
-                // Handle playback
+                const isHlsManifest =
+                    resolvedStreamInfo.playbackType === 'hls' ||
+                    resolvedStreamInfo.delivery === 'hls' ||
+                    resolvedStreamInfo.mimeType?.includes('mpegurl') ||
+                    (typeof streamUrl === 'string' && streamUrl.includes('.m3u8'));
+
+                const isDashManifest =
+                    !isHlsManifest &&
+                    (resolvedStreamInfo.playbackType === 'dash' ||
+                        resolvedStreamInfo.playbackType === 'dash-cenc' ||
+                        resolvedStreamInfo.delivery === 'dash' ||
+                        resolvedStreamInfo.mimeType?.includes('dash') ||
+                        (typeof streamUrl === 'string' && (streamUrl.startsWith('data:') || streamUrl.includes('.mpd'))));
+
                 const shouldUseShaka =
                     streamUrl &&
                     !track.isLocal &&
-                    (resolvedStreamInfo.playbackType?.includes('cenc') ||
-                        streamUrl.includes('.mpd') ||
+                    (isDashManifest ||
+                        resolvedStreamInfo.playbackType?.includes('cenc') ||
+                        (isHlsManifest && !isSafari && !isIos) ||
                         (this.isNativeAmazonHlsDecryptionUrl(streamUrl) && !isSafari) ||
-                        (streamUrl.startsWith('blob:') && resolvedStreamInfo.playbackType !== 'direct'));
+                        (streamUrl.startsWith('blob:') && resolvedStreamInfo.playbackType !== 'direct' && resolvedStreamInfo.playbackType !== 'hls'));
 
                 if (shouldUseShaka) {
                     // It's likely a DASH manifest URL
@@ -2505,154 +2539,62 @@ export class Player {
             if (!titleEl) return;
 
             let badgeEl = titleEl.querySelector('.shaka-quality-badge');
-            if (this.currentTrack.amazonMusicQualitySelected) {
-                if (badgeEl) badgeEl.style.display = 'none';
+            if (!badgeEl) {
+                badgeEl = document.createElement('span');
+                badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
+                badgeEl.title = 'Stream Quality';
+                titleEl.appendChild(badgeEl);
+                const staticBadge = titleEl.querySelector('.quality-badge:not(.shaka-quality-badge)');
+                if (staticBadge) staticBadge.style.display = 'none';
+            }
+
+            let activeVariant = null;
+            if (this.shakaInitialized && this.shakaPlayer) {
+                try {
+                    const variants = this.shakaPlayer.getVariantTracks();
+                    activeVariant = variants.find((t) => t.active) || null;
+                } catch {
+                    activeVariant = null;
+                }
+            }
+
+            const isAtmosPlaying =
+                this.currentStreamInfo?.codec === 'eac3-joc' ||
+                this.currentStreamInfo?.quality === 'DOLBY_ATMOS' ||
+                (activeVariant?.audioCodec &&
+                    (activeVariant.audioCodec.toLowerCase().includes('ec-3') ||
+                        activeVariant.audioCodec.toLowerCase().includes('ac-3') ||
+                        activeVariant.audioCodec.toLowerCase().includes('joc')));
+
+            if (isAtmosPlaying) {
+                if (binauralDspSettings.getAutoEnableForSpatial() && !binauralDspSettings.isEnabled()) {
+                    void audioContextManager.toggleBinaural(true);
+                    const toggle = document.getElementById('binaural-dsp-toggle');
+                    if (toggle) toggle.checked = true;
+                    const container = document.getElementById('binaural-dsp-container');
+                    if (container) container.style.display = 'block';
+                }
+                const atmosChannelCount =
+                    activeVariant && Number.isFinite(activeVariant.channelsCount) && activeVariant.channelsCount > 0
+                        ? activeVariant.channelsCount
+                        : 6;
+                void audioContextManager.notifyBinauralChannelCount(atmosChannelCount);
+
+                badgeEl.className = 'quality-badge quality-atmos shaka-quality-badge';
+                badgeEl.innerHTML = SVG_ATMOS(20);
+                badgeEl.style.display = 'inline-flex';
                 return;
             }
 
-            // Determine if the track is inherently an Atmos track based on metadata
-            const trackBaseQuality = deriveTrackQuality(this.currentTrack);
-            const isTrackAtmos =
-                trackBaseQuality === 'DOLBY_ATMOS' || this.currentTrack?.audioQuality === 'DOLBY_ATMOS';
+            void audioContextManager.notifyBinauralChannelCount(2);
 
-            if (this.shakaInitialized) {
-                const variants = this.shakaPlayer.getVariantTracks();
-                const activeVariant = variants.find((t) => t.active);
-                if (activeVariant) {
-                    if (!badgeEl) {
-                        badgeEl = document.createElement('span');
-                        badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
-                        badgeEl.title = 'Adaptive Stream Quality';
-                        titleEl.appendChild(badgeEl);
-                        const staticBadge = titleEl.querySelector('.quality-badge:not(.shaka-quality-badge)');
-                        if (staticBadge) staticBadge.style.display = 'none';
-                    }
-
-                    let text = '';
-                    let isAtmosPlaying = false;
-
-                    if (activeVariant.videoBandwidth && activeVariant.height) {
-                        text = `${activeVariant.height}p`;
-                    } else if (activeVariant.audioCodec) {
-                        const codec = activeVariant.audioCodec.toLowerCase();
-                        if (codec.includes('flac')) {
-                            const sampleRate = activeVariant.audioSamplingRate
-                                ? activeVariant.audioSamplingRate / 1000
-                                : 44.1;
-                            if (sampleRate > 48 || activeVariant.audioBandwidth > 1200000) {
-                                text = `HD 24/${sampleRate}`;
-                            } else {
-                                text = 'FLAC';
-                            }
-                        } else if (codec.includes('mp4a')) {
-                            text = 'AAC';
-                        } else if (codec.includes('ec-3') || codec.includes('ac-3')) {
-                            if (codec.includes('joc') || codec === 'ec-3') {
-                                isAtmosPlaying = true;
-                            } else {
-                                text = 'Dolby';
-                            }
-                        } else {
-                            text = activeVariant.audioCodec;
-                        }
-                        if (
-                            activeVariant.audioBandwidth &&
-                            !text.includes('FLAC') &&
-                            !text.includes('HD') &&
-                            !isAtmosPlaying
-                        ) {
-                            text += ` ${Math.round(activeVariant.audioBandwidth / 1000)}k`;
-                        }
-                    } else {
-                        text = 'Auto';
-                    }
-
-                    if (isAtmosPlaying) {
-                        // Auto-enable binaural DSP for spatial content
-                        if (binauralDspSettings.getAutoEnableForSpatial() && !binauralDspSettings.isEnabled()) {
-                            void audioContextManager.toggleBinaural(true);
-                            // Update toggle in settings UI if visible
-                            const toggle = document.getElementById('binaural-dsp-toggle');
-                            if (toggle) toggle.checked = true;
-                            const container = document.getElementById('binaural-dsp-container');
-                            if (container) container.style.display = 'block';
-                        }
-                        // Notify binaural DSP of the actual multichannel layout when Shaka exposes it.
-                        const atmosChannelCount =
-                            Number.isFinite(activeVariant.channelsCount) && activeVariant.channelsCount > 0
-                                ? activeVariant.channelsCount
-                                : 6;
-                        void audioContextManager.notifyBinauralChannelCount(atmosChannelCount);
-
-                        const binauralActive = audioContextManager.isBinauralActive();
-                        badgeEl.className = 'quality-badge quality-atmos shaka-quality-badge';
-                        badgeEl.innerHTML =
-                            SVG_ATMOS(20) + (binauralActive ? ' <span class="binaural-badge">Binaural</span>' : '');
-                    } else {
-                        // Notify binaural DSP that we're in stereo mode
-                        void audioContextManager.notifyBinauralChannelCount(2);
-                        badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
-                        badgeEl.textContent = text;
-                    }
-                    badgeEl.style.display = text || isAtmosPlaying ? 'inline-flex' : 'none';
-                }
-            } else if (
-                (isIos || isSafari) &&
-                this.activeElement &&
-                this.activeElement.src &&
-                (this.activeElement.src.includes('.m3u8') || this.currentTrack)
-            ) {
-                if (!badgeEl) {
-                    badgeEl = document.createElement('span');
-                    badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
-                    badgeEl.title = 'HLS Stream Quality';
-                    titleEl.appendChild(badgeEl);
-                    const staticBadge = titleEl.querySelector('.quality-badge:not(.shaka-quality-badge)');
-                    if (staticBadge) staticBadge.style.display = 'none';
-                }
-
-                let text = '';
-
-                // Ensure device can actually decode Atmos before rendering logo for HLS
-                let deviceSupportsAtmos = false;
-                try {
-                    if (window.MediaSource && typeof window.MediaSource.isTypeSupported === 'function') {
-                        deviceSupportsAtmos =
-                            MediaSource.isTypeSupported('audio/mp4; codecs="ec-3"') ||
-                            MediaSource.isTypeSupported('audio/mp4; codecs="eac3"');
-                    }
-                    if (!deviceSupportsAtmos && typeof document !== 'undefined') {
-                        const a = document.createElement('audio');
-                        deviceSupportsAtmos = !!(
-                            a.canPlayType('audio/mp4; codecs="ec-3"') || a.canPlayType('audio/mp4; codecs="eac3"')
-                        );
-                    }
-                } catch {
-                    // Atmos codec detection may fail on some browsers
-                }
-
-                let isAtmosPlaying = isTrackAtmos && deviceSupportsAtmos;
-                const q = this.quality || localStorage.getItem('adaptive-playback-quality') || 'auto';
-
-                if (!isAtmosPlaying) {
-                    if (q === 'HI_RES_LOSSLESS') text = 'HD FLAC';
-                    else if (q === 'LOSSLESS') text = 'FLAC';
-                    else if (q === 'HIGH') text = 'AAC';
-                    else if (q === 'LOW') text = 'AAC Low';
-                    else if (q === 'auto') text = 'HLS Auto';
-                    else text = 'HLS';
-                }
-
-                if (isAtmosPlaying) {
-                    badgeEl.innerHTML = SVG_ATMOS(20);
-                    badgeEl.className = 'quality-badge quality-atmos shaka-quality-badge';
-                } else {
-                    badgeEl.textContent = text;
-                    badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
-                }
+            const badgeText = formatQualityBadgeText(this.currentStreamInfo, activeVariant, this.quality);
+            if (badgeText) {
+                badgeEl.textContent = badgeText;
+                badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
                 badgeEl.style.display = 'inline-flex';
             } else {
-                if (badgeEl) badgeEl.style.display = 'none';
+                badgeEl.style.display = 'none';
             }
         } catch (e) {
             console.error('Failed to update adaptive quality badge', e);
