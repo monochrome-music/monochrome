@@ -215,6 +215,7 @@ export class LosslessAPI {
         }
 
         const shouldTryNative = type !== 'streaming';
+        let nativeError = null;
 
         if (shouldTryNative) {
             try {
@@ -229,6 +230,8 @@ export class LosslessAPI {
                 if (options.directOnly) {
                     throw err;
                 }
+
+                nativeError = err;
 
                 if (import.meta.env.DEV && isSearchRequest) {
                     console.warn(
@@ -252,7 +255,18 @@ export class LosslessAPI {
             }
         }
 
-        return await tryInstances(await getInstances(true));
+        try {
+            return await tryInstances(await getInstances(true));
+        } catch (error) {
+            // GRRRRR T YOU PISS ME OFFFF
+            if (nativeError && /^No (user )?API instances configured/.test(error?.message || '')) {
+                throw new Error(
+                    "This is an error on the DSPs end :( their v1 API is down, and sadly we're unable to fix it on our side. It should resolve itself after some time, however.",
+                    { cause: nativeError }
+                );
+            }
+            throw error;
+        }
     }
 
     findSearchSection(source, key, visited) {

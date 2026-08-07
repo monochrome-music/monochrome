@@ -7,7 +7,7 @@ type Params = Record<string, string | number | undefined | null>;
 class ResponseError extends Error {
     status: number;
     constructor(status: number, message: string) {
-        super(message);
+        super(message || `Request failed with status ${status}`);
         this.status = status;
     }
 }
