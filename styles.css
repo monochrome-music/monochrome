@@ -5334,7 +5334,7 @@ input:checked + .slider::before {
     border-left: 3px solid var(--muted-foreground);
 }
 
-#download-notifications {
+#download-notifications, #support-notifications {
     position: fixed;
     bottom: calc(max(env(safe-area-inset-bottom), 0px) + 12px);
     right: 20px;
@@ -5345,7 +5345,7 @@ input:checked + .slider::before {
     gap: 0.5rem;
 }
 
-.download-task {
+.download-task, .support-banner {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
