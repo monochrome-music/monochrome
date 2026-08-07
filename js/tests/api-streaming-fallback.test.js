@@ -92,6 +92,7 @@ describe('LosslessAPI HiFi streaming fallback', () => {
     });
 
     test('reports failure when Unified Playback and ISRC fallbacks cannot resolve', async () => {
+        api.getUnifiedPlaybackStreamUrl.mockRejectedValueOnce(new Error('Network error'));
         api.getDeezerStreamUrl.mockResolvedValue(null);
         await expect(api.getStreamUrl('123', 'LOSSLESS')).rejects.toThrow(
             'Could not resolve stream URL from Unified Playback, Qobuz, or Deezer'
@@ -131,6 +132,7 @@ describe('LosslessAPI HiFi streaming fallback', () => {
     });
 
     test('falls back to Qobuz when Unified Playback fails', async () => {
+        api.getUnifiedPlaybackStreamUrl.mockRejectedValueOnce(new Error('Network error'));
         api.getQobuzStreamUrl.mockResolvedValue({
             url: 'https://audio.example/qobuz.flac',
             rgInfo: {

@@ -2917,13 +2917,16 @@ export class LosslessAPI {
 
         if (!unifiedResult?.url) {
             const fallbackQuality = quality === 'DOLBY_ATMOS' ? 'HI_RES_LOSSLESS' : quality;
-            unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, fallbackQuality, {
-                preferAdaptiveAuto: true,
-                track,
-                allowCencWithoutKeyId: needsProxyDecryption,
-                intent: 'stream',
-            });
-
+            try {
+                unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, fallbackQuality, {
+                    preferAdaptiveAuto: true,
+                    track,
+                    allowCencWithoutKeyId: needsProxyDecryption,
+                    intent: 'stream',
+                });
+            } catch (err) {
+                console.debug('Unified Playback lookup failed, falling back:', err);
+            }
         }
 
         if (unifiedResult?.url) {
