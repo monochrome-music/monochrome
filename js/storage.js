@@ -76,7 +76,7 @@ export const apiSettings = {
             if (!data) {
                 console.error('Failed to load instances from all uptime APIs:', fetchError);
                 this.defaultInstances = {
-                    api: [],
+                    api: [{ url: 'https://lol.samidy.workers.dev', version: '2.10' }],
                     streaming: [],
                     qobuz: [],
                 };
@@ -109,6 +109,9 @@ export const apiSettings = {
             // Ensure default Qobuz instance is always available
             if (groupedInstances.qobuz.length === 0) {
                 groupedInstances.qobuz = [{ url: 'https://qobuz.kennyy.com.br', version: '1.0' }];
+            }
+            if (groupedInstances.api.length === 0) {
+                groupedInstances.api = [{ url: 'https://lol.samidy.workers.dev', version: '2.10' }];
             }
 
             this.defaultInstances = groupedInstances;
