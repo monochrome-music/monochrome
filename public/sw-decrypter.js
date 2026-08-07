@@ -1,5 +1,10 @@
-self.__AMAZON_SW_DECRYPTER_VERSION__ = '2026-08-05-opus-v9';
+self.__AMAZON_SW_DECRYPTER_VERSION__ = '2026-08-06-crossfade-v10';
 console.log(`[SW Decrypter] Loaded ${self.__AMAZON_SW_DECRYPTER_VERSION__}`);
+
+// A native HLS media element asks for the playlist more than once while it is
+// preparing. Keep the parsed MP4 index in this worker so preloading the handoff
+// element does not repeat the same signed range request during the crossfade.
+const fragmentedMp4MetadataCache = new Map();
 
 self.addEventListener('install', (event) => {
     event.waitUntil(self.skipWaiting());
@@ -216,6 +221,25 @@ function buildDecryptStreamUrl(params) {
 }
 
 async function getFragmentedMp4Metadata(streamUrl) {
+    if (fragmentedMp4MetadataCache.has(streamUrl)) {
+        return fragmentedMp4MetadataCache.get(streamUrl);
+    }
+
+    const metadataPromise = readFragmentedMp4Metadata(streamUrl).catch((error) => {
+        fragmentedMp4MetadataCache.delete(streamUrl);
+        throw error;
+    });
+    fragmentedMp4MetadataCache.set(streamUrl, metadataPromise);
+
+    if (fragmentedMp4MetadataCache.size > 8) {
+        const oldestKey = fragmentedMp4MetadataCache.keys().next().value;
+        if (oldestKey !== streamUrl) fragmentedMp4MetadataCache.delete(oldestKey);
+    }
+
+    return metadataPromise;
+}
+
+async function readFragmentedMp4Metadata(streamUrl) {
     const headerBytes = await fetchRangeBytes(streamUrl, 0, 2 * 1024 * 1024 - 1);
     const topLevelBoxes = parseTopLevelBoxes(headerBytes);
     const moovBox = topLevelBoxes.find((box) => box.type === 'moov');

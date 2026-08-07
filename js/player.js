@@ -21,11 +21,13 @@ import {
     binauralDspSettings,
     contentBlockingSettings,
     nativeOsAtmosSettings,
+    crossfadeSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
 import { isIos, isSafari, isEdge, canUseNativeAmazonCenc, getAmazonDecrypterCodec } from './platform-detection.js';
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
+import { waveformGenerator } from './waveform.js';
 
 import { SVG_CLOCK, SVG_ATMOS, SVG_TRIANGLE_ALERT, SVG_PLAY, SVG_PAUSE } from './icons.js';
 import { UIRenderer } from './ui.js';
@@ -44,6 +46,13 @@ export class Player {
     /** @private */
     constructor(audioElement, api, quality = 'LOSSLESS') {
         this.audio = audioElement;
+        const crossfadeAudio = document.createElement('audio');
+        crossfadeAudio.id = 'audio-player-crossfade';
+        crossfadeAudio.crossOrigin = 'anonymous';
+        crossfadeAudio.preload = 'auto';
+        crossfadeAudio.style.display = 'none';
+        audioElement.insertAdjacentElement('afterend', crossfadeAudio);
+        this.audioElements = [audioElement, crossfadeAudio];
         this.video = document.getElementById('video-player');
         this.api = api;
         this.quality = quality;
@@ -54,6 +63,7 @@ export class Player {
         this.shuffleActive = false;
         this.repeatMode = REPEAT_MODE.OFF;
         this.preloadCache = new Map();
+        this.crossfadePreloadPlayer = null;
         this._pendingPreload = false;
         setInterval(this.checkPreloadConditions.bind(this), 2000);
         this.preloadAbortController = null;
@@ -104,14 +114,16 @@ export class Player {
             event.preventDefault();
             void this.seekTo(event.detail.time, { resume: event.detail.resume === true });
         };
-        this.audio.addEventListener('exact-seek-request', handleExactSeekRequest);
+        this.audioElements.forEach((element) => element.addEventListener('exact-seek-request', handleExactSeekRequest));
         if (this.video) {
             this.video.addEventListener('exact-seek-request', handleExactSeekRequest);
         }
 
         // Apply audio effects when track is ready
-        this.audio.addEventListener('canplay', () => {
-            this.applyAudioEffects();
+        this.audioElements.forEach((element) => {
+            element.addEventListener('canplay', () => {
+                if (this.activeElement === element) this.applyAudioEffects();
+            });
         });
         if (this.video) {
             this.video.addEventListener('canplay', () => {
@@ -197,43 +209,121 @@ export class Player {
             }
 
             this.shakaPlayer = new shaka.Player();
-            this.shakaPlayer.configure({
-                streaming: {
-                    bufferingGoal: 30,
-                    rebufferingGoal: 2,
-                    bufferBehind: 30,
-                    jumpLargeGaps: true,
-                },
-                abr: {
-                    enabled: true,
-                    defaultBandwidthEstimate: 100000,
-                    switchInterval: 1,
-                    bandwidthDowngradeTarget: 0.8,
-                    restrictToElementSize: false,
-                },
-                mediaSource: {
-                    codecSwitchingStrategy: 'smooth',
-                    useSourceElements: false,
-                },
-            });
-            this.shakaPlayer.getNetworkingEngine().registerRequestFilter((type, request) => {
-                if (type === shaka.net.NetworkingEngine.RequestType.SEGMENT) {
-                    const uris = request.uris;
-                    for (let i = 0; i < uris.length; i++) {
-                        if (uris[i].includes('tidal.com')) {
-                            uris[i] = getProxyUrl(uris[i]);
-                        }
-                    }
-                }
-            });
-            this.shakaPlayer.addEventListener('adaptation', this.updateAdaptiveQualityBadge.bind(this));
-            this.shakaPlayer.addEventListener('variantchanged', this.updateAdaptiveQualityBadge.bind(this));
+            this.configureShakaPlayer(this.shakaPlayer, shaka, { updateQualityBadge: true });
 
             this.shakaInitialized = false;
 
             setInterval(this.evaluateCrossCodecAbr.bind(this), 3000);
         } catch (e) {
             console.error('Shaka Player initialization failed:', e);
+        }
+    }
+
+    configureShakaPlayer(shakaPlayer, shaka, { updateQualityBadge = false } = {}) {
+        shakaPlayer.configure({
+            streaming: {
+                bufferingGoal: 30,
+                rebufferingGoal: 2,
+                bufferBehind: 30,
+                jumpLargeGaps: true,
+            },
+            abr: {
+                enabled: true,
+                defaultBandwidthEstimate: 100000,
+                switchInterval: 1,
+                bandwidthDowngradeTarget: 0.8,
+                restrictToElementSize: false,
+            },
+            mediaSource: {
+                codecSwitchingStrategy: 'smooth',
+                useSourceElements: false,
+            },
+        });
+        shakaPlayer.getNetworkingEngine()?.registerRequestFilter((type, request) => {
+            if (type === shaka.net.NetworkingEngine.RequestType.SEGMENT) {
+                const uris = request.uris;
+                for (let i = 0; i < uris.length; i++) {
+                    if (uris[i].includes('tidal.com')) {
+                        uris[i] = getProxyUrl(uris[i]);
+                    }
+                }
+            }
+        });
+        if (updateQualityBadge) {
+            shakaPlayer.addEventListener('adaptation', this.updateAdaptiveQualityBadge.bind(this));
+            shakaPlayer.addEventListener('variantchanged', this.updateAdaptiveQualityBadge.bind(this));
+        }
+    }
+
+    isCrossfadeShakaStream(streamInfo) {
+        const streamUrl = String(streamInfo?.url || '');
+        const playbackType = String(streamInfo?.playbackType || '').toLowerCase();
+        const delivery = String(streamInfo?.delivery || '').toLowerCase();
+        const mimeType = String(streamInfo?.mimeType || streamInfo?.mediaMimeType || '').toLowerCase();
+        const isHls =
+            playbackType === 'hls' || delivery === 'hls' || mimeType.includes('mpegurl') || streamUrl.includes('.m3u8');
+        const isDash =
+            !isHls &&
+            (playbackType.includes('dash') ||
+                delivery === 'dash' ||
+                mimeType.includes('dash') ||
+                streamUrl.startsWith('data:') ||
+                streamUrl.includes('.mpd'));
+
+        return (
+            isDash ||
+            playbackType.includes('cenc') ||
+            (isHls && !isSafari && !isIos) ||
+            (this.isNativeAmazonHlsDecryptionUrl(streamUrl) && !isSafari) ||
+            (streamUrl.startsWith('blob:') && playbackType !== 'direct' && playbackType !== 'hls')
+        );
+    }
+
+    async createCrossfadeShakaPlayer(element, streamInfo) {
+        await this.shakaReady;
+        const shaka = await import('shaka-player');
+        shaka.polyfill.installAll();
+        if (!shaka.Player.isBrowserSupported()) {
+            throw new Error('Shaka Player is not supported for crossfade playback');
+        }
+
+        const player = new shaka.Player();
+        this.configureShakaPlayer(player, shaka);
+        await player.attach(element);
+
+        if (
+            String(streamInfo.playbackType || '')
+                .toLowerCase()
+                .includes('cenc')
+        ) {
+            if (!streamInfo.keyId || !streamInfo.decryptionKey) {
+                await player.destroy();
+                throw new Error('Encrypted crossfade stream is missing its Clear Key');
+            }
+            player.configure({
+                drm: {
+                    clearKeys: {
+                        [streamInfo.keyId]: streamInfo.decryptionKey,
+                    },
+                },
+            });
+        } else {
+            player.configure({ drm: { clearKeys: {} } });
+        }
+
+        const shakaMimeType = String(streamInfo.playbackType || '')
+            .toLowerCase()
+            .includes('cenc')
+            ? streamInfo.mimeType || null
+            : this.isNativeAmazonHlsDecryptionUrl(streamInfo.url)
+              ? 'application/vnd.apple.mpegurl'
+              : null;
+        try {
+            await player.load(getProxyUrl(streamInfo.url), null, shakaMimeType);
+            return player;
+        } catch (error) {
+            await player.destroy().catch(() => {});
+            throw error;
         }
     }
 
@@ -251,8 +341,10 @@ export class Player {
             });
         };
 
-        this.audio.addEventListener('play', syncPlayPause);
-        this.audio.addEventListener('pause', syncPlayPause);
+        this.audioElements.forEach((element) => {
+            element.addEventListener('play', syncPlayPause);
+            element.addEventListener('pause', syncPlayPause);
+        });
         if (this.video) {
             this.video.addEventListener('play', syncPlayPause);
             this.video.addEventListener('pause', syncPlayPause);
@@ -290,13 +382,19 @@ export class Player {
     }
 
     applyReplayGain() {
+        const effectiveVolume = this.getEffectiveVolume(this.currentRgValues);
+        const el = this.activeElement;
+        el.volume = effectiveVolume;
+    }
+
+    getEffectiveVolume(rgValues = null) {
         const mode = replayGainSettings.getMode(); // 'off', 'track', 'album'
         let gainDb = 0;
         let peak = 1.0;
 
-        if (mode !== 'off' && this.currentRgValues) {
+        if (mode !== 'off' && rgValues) {
             const { trackReplayGain, trackPeakAmplitude, albumReplayGain, albumPeakAmplitude, programLoudnessLufs } =
-                this.currentRgValues;
+                rgValues;
 
             if (mode === 'album' && typeof albumReplayGain === 'number' && albumReplayGain !== 0) {
                 gainDb = albumReplayGain;
@@ -328,11 +426,7 @@ export class Player {
         const curvedVolume = exponentialVolumeSettings.applyCurve(this.userVolume);
 
         // Calculate effective volume
-        const effectiveVolume = curvedVolume * scale;
-
-        const el = this.activeElement;
-
-        el.volume = Math.max(0, Math.min(1, effectiveVolume));
+        return Math.max(0, Math.min(1, curvedVolume * scale));
     }
 
     applyAudioEffects() {
@@ -585,8 +679,9 @@ export class Player {
         const duration = this.activeElement.duration || 0;
         const timeRemaining = duration - currentTime;
 
-        // Preload if we are in last 30 seconds of song
-        const shouldPreload = duration > 0 && timeRemaining <= 30;
+        // Waveform-aware crossfades may need to preroll the next track through
+        // a long quiet intro before the audible three-second overlap.
+        const shouldPreload = duration > 0 && timeRemaining <= 45;
 
         if (shouldPreload) {
             this._pendingPreload = false;
@@ -595,8 +690,6 @@ export class Player {
     }
 
     async _executePreloadNextTracks() {
-        if (this.api.usesSingleUsePlaybackUrls?.()) return;
-
         if (this.preloadAbortController) {
             this.preloadAbortController.abort();
         }
@@ -626,14 +719,44 @@ export class Player {
 
                 if (this.preloadAbortController.signal.aborted) break;
 
-                // Monochrome Playback URLs may be one-use. Resolve a fresh URL when playback actually starts.
-                if (streamInfo.provider === 'monochrome') continue;
+                const crossfadeStreamInfo = this.getCrossfadeStreamInfo(streamInfo);
+                await this.prepareCrossfadeWaveform(track, crossfadeStreamInfo);
+                this.preloadCache.set(track.id, crossfadeStreamInfo);
+                const streamUrl = crossfadeStreamInfo.url;
 
-                this.preloadCache.set(track.id, streamInfo);
-                const streamUrl = streamInfo.url;
+                if (!this.canCrossfadeStream(track, crossfadeStreamInfo)) continue;
 
-                if (streamInfo.playbackType?.includes('cenc')) continue;
-                if (this.isNativeAmazonHlsDecryptionUrl(streamUrl)) continue;
+                // A second Shaka instance is required for real overlap. A preload
+                // manager owned by the current player cannot decode into the
+                // inactive media element while the current track is still playing.
+                if (crossfadeSettings.isEnabled() && this.isCrossfadeShakaStream(crossfadeStreamInfo)) {
+                    const preloader = this.audioElements.find((element) => element !== this.activeElement);
+                    if (preloader) {
+                        preloader.pause();
+                        preloader.removeAttribute('src');
+                        preloader.load();
+                        try {
+                            if (this.crossfadePreloadPlayer && this.crossfadePreloadPlayer !== this.shakaPlayer) {
+                                await this.crossfadePreloadPlayer.destroy().catch(() => {});
+                                this.crossfadePreloadPlayer = null;
+                            }
+                            const crossfadeShakaPlayer = await this.createCrossfadeShakaPlayer(
+                                preloader,
+                                crossfadeStreamInfo
+                            );
+                            if (this.preloadAbortController.signal.aborted) {
+                                await crossfadeShakaPlayer.destroy().catch(() => {});
+                                break;
+                            }
+                            this.crossfadePreloadPlayer = crossfadeShakaPlayer;
+                            crossfadeStreamInfo.crossfadeShakaPlayer = crossfadeShakaPlayer;
+                            crossfadeStreamInfo.preloader = preloader;
+                        } catch (error) {
+                            console.warn('Unable to preload the next adaptive stream for crossfade:', error);
+                        }
+                    }
+                    continue;
+                }
 
                 // Warm connection and pre-fetch
                 if (!streamUrl.startsWith('blob:')) {
@@ -685,12 +808,20 @@ export class Player {
                             );
                         }
                     } else {
-                        // For static files (FLAC, MP3), the audio element completely primes the cache.
-                        const preloader = new Audio();
-                        preloader.preload = 'auto';
-                        preloader.muted = true;
-                        preloader.src = getProxyUrl(streamUrl);
-                        streamInfo.preloader = preloader; // Hold reference
+                        // Prime the actual handoff element. A throwaway Audio would consume a
+                        // signed URL (or duplicate work in the decrypter service worker) and then
+                        // force the transition to request the same stream again.
+                        const preloader = this.audioElements.find((element) => element !== this.activeElement);
+                        if (preloader) {
+                            preloader.pause();
+                            preloader.removeAttribute('src');
+                            preloader.load();
+                            preloader.preload = 'auto';
+                            preloader.src = getProxyUrl(streamUrl);
+                            preloader.load();
+                            crossfadeStreamInfo.preloader = preloader;
+                            crossfadeStreamInfo.preloadedUrl = preloader.src;
+                        }
                     }
                 }
             } catch (error) {
@@ -1122,7 +1253,7 @@ export class Player {
 
     async playTrackFromQueue(startTime = 0, recursiveCount = 0, isRetry = false, options = {}) {
         await this.shakaReady;
-        const { preserveGestureToken = false } = options;
+        const { preserveGestureToken = false, preparedPlayback = null } = options;
         if (!isRetry) {
             this.isFallbackRetry = false;
         }
@@ -1149,7 +1280,7 @@ export class Player {
         this.setLoadingState(true);
         this.resetProgressUI();
 
-        const previousActiveElement = this.activeElement;
+        const previousActiveElement = preparedPlayback?.previousElement || this.activeElement;
         const shouldPreserveGestureToken =
             preserveGestureToken && previousActiveElement === this.audio && track.type !== 'video';
 
@@ -1208,7 +1339,14 @@ export class Player {
         const coverEl = trackInfo?.querySelector('.cover:not(#audio-player):not(#video-player)');
 
         const isVideoTrack = track.type === 'video';
-        const activeElement = isVideoTrack ? this.video : this.audio;
+        const activeElement = preparedPlayback?.element || (isVideoTrack ? this.video : this.audio);
+        if (preparedPlayback && !isVideoTrack) {
+            this.audio = activeElement;
+            this.syncDurationUI(
+                activeElement,
+                track.duration ?? preparedPlayback.streamInfo?.waveform?.duration_ms ?? null
+            );
+        }
         const inactiveElement = isVideoTrack ? this.audio : this.video;
         if (this.hls) {
             this.hls.destroy();
@@ -1233,7 +1371,7 @@ export class Player {
             }
         }
 
-        if (activeElement) {
+        if (activeElement && !preparedPlayback) {
             activeElement.pause();
             // Let Shaka overwrite the activeElement's decoder pipeline gracefully if we're carrying it over.
             // It manages its own buffering teardown implicitly when `load()` is executed.
@@ -1245,6 +1383,7 @@ export class Player {
         }
 
         audioContextManager.changeSource(activeElement);
+        preparedPlayback?.crossfadeOutput?.disconnect();
 
         if (isVideoTrack) {
             if (coverEl) coverEl.style.display = 'none';
@@ -1501,15 +1640,19 @@ export class Player {
                 }
 
                 // Tidal: Try to get ReplayGain from manifest first, supplement with track info if needed
-                const streamInfoPromise = this.preloadCache.has(track.id)
-                    ? Promise.resolve(this.preloadCache.get(track.id))
-                    : this.api.getStreamUrl(track.id, this.quality);
+                const streamInfoPromise = preparedPlayback?.streamInfo
+                    ? Promise.resolve(preparedPlayback.streamInfo)
+                    : this.preloadCache.has(track.id)
+                      ? Promise.resolve(this.preloadCache.get(track.id))
+                      : this.api.getStreamUrl(track.id, this.quality);
 
                 // We only need the legacy track info if we missed getting ReplayGain from the manifest endpoint
                 let resolvedStreamInfo = await streamInfoPromise;
                 if (this.playbackSequence !== currentSequence) return;
 
-                const rescuedStreamUrl = this.getNativeAmazonDecryptionUrl(resolvedStreamInfo, resolvedStreamInfo.url);
+                const rescuedStreamUrl = preparedPlayback
+                    ? null
+                    : this.getNativeAmazonDecryptionUrl(resolvedStreamInfo, resolvedStreamInfo.url);
                 if (rescuedStreamUrl) {
                     resolvedStreamInfo = {
                         ...resolvedStreamInfo,
@@ -1523,6 +1666,14 @@ export class Player {
                 streamUrl = resolvedStreamInfo.url;
                 this.currentStreamInfo = resolvedStreamInfo;
                 this.currentStreamProvider = resolvedStreamInfo.provider || null;
+                track.playbackQualityInfo = {
+                    codec: resolvedStreamInfo.codec,
+                    quality: resolvedStreamInfo.quality,
+                    lossless: resolvedStreamInfo.lossless,
+                    bitDepth: resolvedStreamInfo.bitDepth,
+                    sampleRateHz: resolvedStreamInfo.sampleRateHz || resolvedStreamInfo.sampleRate,
+                    bitrateKbps: resolvedStreamInfo.bitrateKbps,
+                };
                 if (resolvedStreamInfo.provider === 'amazon' && resolvedStreamInfo.quality) {
                     track.amazonMusicQualitySelected = resolvedStreamInfo.quality;
                     track.amazonMusicQualityDisplay = resolvedStreamInfo.qualityDisplay;
@@ -1543,6 +1694,16 @@ export class Player {
                 if (deezerHiResFallback) {
                     this.updateNowPlayingTitle(track);
                 }
+
+                this.updateNowPlayingTitle(track);
+                this.updateAdaptiveQualityBadge();
+
+                this.currentWaveform = resolvedStreamInfo.waveform || null;
+                this.currentSilenceBoundaries = null;
+                this._skippedLeadingSilence = false;
+                this._crossfadingTrack = false;
+                this._crossfadeUnavailable = false;
+                window.dispatchEvent(new CustomEvent('waveform-update'));
 
                 if (resolvedStreamInfo.rgInfo) {
                     this.currentRgValues = resolvedStreamInfo.rgInfo;
@@ -1581,7 +1742,16 @@ export class Player {
                             resolvedStreamInfo.playbackType !== 'direct' &&
                             resolvedStreamInfo.playbackType !== 'hls'));
 
-                if (shouldUseShaka) {
+                if (preparedPlayback) {
+                    this.applyAudioEffects();
+                    this.updateAdaptiveQualityBadge();
+                    if (activeElement.paused) {
+                        const played = await this.safePlay(activeElement);
+                        if (!played) return;
+                    } else {
+                        activeElement.dispatchEvent(new Event('play'));
+                    }
+                } else if (shouldUseShaka) {
                     // It's likely a DASH manifest URL
                     if (this.shakaPlayer.getMediaElement() !== activeElement) {
                         await this.shakaPlayer.attach(activeElement);
@@ -1705,8 +1875,26 @@ export class Player {
         document.querySelectorAll('#progress-bar, #fs-progress-bar').forEach((el) => {
             el.style.webkitMaskImage = '';
             el.style.maskImage = '';
+            el.style.removeProperty('--waveform-mask-image');
+            el.style.removeProperty('--waveform-mask-width');
+            el.style.removeProperty('--waveform-geometry-width');
+            el.querySelectorAll('.waveform-image, .waveform-geometry').forEach((element) => element.remove());
             el.classList.remove('has-waveform', 'waveform-loaded');
         });
+    }
+
+    syncDurationUI(element = this.activeElement, fallbackDuration = this.currentTrack?.duration) {
+        let duration = Number(element?.duration);
+        if (!Number.isFinite(duration) || duration <= 0) {
+            duration = Number(fallbackDuration);
+            if (duration > 10000) duration /= 1000;
+        }
+        if (!Number.isFinite(duration) || duration <= 0) return false;
+
+        document
+            .querySelectorAll('#total-duration, #fs-total-duration')
+            .forEach((durationElement) => (durationElement.textContent = formatTime(duration)));
+        return true;
     }
 
     async playAtIndex(index) {
@@ -1714,6 +1902,322 @@ export class Player {
         if (index >= 0 && index < currentQueue.length) {
             this.currentQueueIndex = index;
             await this.playTrackFromQueue(0, 0);
+        }
+    }
+
+    getNextCrossfadeCandidate() {
+        const currentQueue = this.getCurrentQueue();
+        if (currentQueue.length < 2 || this.repeatMode === REPEAT_MODE.ONE) return null;
+
+        let index = this.currentQueueIndex + 1;
+        if (index >= currentQueue.length) {
+            if (this.repeatMode !== REPEAT_MODE.ALL) return null;
+            index = 0;
+        }
+
+        for (let checked = 0; checked < currentQueue.length; checked++) {
+            const track = currentQueue[index];
+            if (track && !track.isUnavailable && !contentBlockingSettings.shouldHideTrack(track)) {
+                return { index, track };
+            }
+            index = (index + 1) % currentQueue.length;
+        }
+        return null;
+    }
+
+    getNextCrossfadeLeadingSilenceSeconds() {
+        const candidate = this.getNextCrossfadeCandidate();
+        if (!candidate) return 0;
+        return Math.max(
+            0,
+            Number(this.preloadCache.get(candidate.track.id)?.crossfadeSilenceBoundaries?.leadingSilenceSeconds || 0)
+        );
+    }
+
+    getCrossfadeStreamInfo(streamInfo) {
+        if (!streamInfo || streamInfo.provider !== 'amazon' || !streamInfo.decryptionKey) return streamInfo;
+        // Chrome can overlap the original DASH/CENC stream with a second Shaka
+        // player. Converting it to a service-worker URL here leaves a plain
+        // <audio> element trying to decode fragmented encrypted MP4 instead.
+        if (this.isCrossfadeShakaStream(streamInfo)) return streamInfo;
+        if (String(streamInfo.url || '').includes('/api/decrypt-stream')) {
+            const targetCodec = new URL(streamInfo.url, window.location.origin).searchParams.get('codec');
+            return {
+                ...streamInfo,
+                playbackType: 'direct',
+                mimeType:
+                    targetCodec === 'flac-hls'
+                        ? 'application/vnd.apple.mpegurl'
+                        : streamInfo.mediaMimeType || 'audio/mp4',
+            };
+        }
+
+        const sourceUrl = streamInfo.sourceUrl;
+        if (!sourceUrl || !this.hasControllingServiceWorker()) return streamInfo;
+
+        const params = new URLSearchParams();
+        params.set('url', sourceUrl);
+        params.set('key', streamInfo.decryptionKey);
+        const targetCodec = this.getAmazonNativeDecrypterCodec(streamInfo);
+        params.set('codec', targetCodec);
+
+        return {
+            ...streamInfo,
+            url: `${window.location.protocol}//${window.location.host}/api/decrypt-stream?${params.toString()}`,
+            playbackType: 'direct',
+            mimeType:
+                targetCodec === 'flac-hls' ? 'application/vnd.apple.mpegurl' : streamInfo.mediaMimeType || 'audio/mp4',
+            preloadManager: null,
+            preloader: null,
+        };
+    }
+
+    hasControllingServiceWorker() {
+        return typeof navigator !== 'undefined' && !!navigator.serviceWorker?.controller;
+    }
+
+    async prepareCrossfadeWaveform(track, streamInfo) {
+        if (!track || !streamInfo) return null;
+        if (streamInfo.crossfadeSilenceBoundaries) return streamInfo.crossfadeSilenceBoundaries;
+
+        const waveform = streamInfo.waveform || track.waveform || null;
+        const waveData = await waveformGenerator.loadWaveformData(waveform, track.id);
+        let samples = waveData?.samples || null;
+        if (!samples?.length && waveData?.pngUrl) {
+            samples = await waveformGenerator.loadWaveformPngSamples(waveData.pngUrl);
+        }
+        if (!samples?.length) return null;
+
+        let duration = Number(waveData.durationSeconds || track.duration || 0);
+        if (duration > 10000) duration /= 1000;
+        if (!Number.isFinite(duration) || duration <= 0) return null;
+
+        const boundaries = waveformGenerator.getSilenceBoundaries(samples, duration);
+        streamInfo.crossfadeSilenceBoundaries = boundaries;
+        return boundaries;
+    }
+
+    canCrossfadeStream(track, streamInfo) {
+        if (!track || track.type === 'video' || track.isLocal || track.isTracker || track.isPodcast) return false;
+        const streamUrl = streamInfo?.url;
+        if (!streamUrl || typeof streamUrl !== 'string') return false;
+
+        const playbackType = String(streamInfo.playbackType || '').toLowerCase();
+        const mimeType = String(streamInfo.mimeType || streamInfo.mediaMimeType || '').toLowerCase();
+        const isServiceWorkerStream = streamUrl.includes('/api/decrypt-stream');
+        if (isServiceWorkerStream) {
+            const targetCodec = new URL(streamUrl, window.location.origin).searchParams.get('codec');
+            return targetCodec !== 'flac-hls' || isSafari || isIos || this.isCrossfadeShakaStream(streamInfo);
+        }
+        if (this.isCrossfadeShakaStream(streamInfo)) return true;
+        return !(
+            playbackType.includes('dash') ||
+            playbackType.includes('hls') ||
+            playbackType.includes('cenc') ||
+            mimeType.includes('dash') ||
+            mimeType.includes('mpegurl') ||
+            streamUrl.includes('.mpd') ||
+            streamUrl.includes('.m3u8') ||
+            (streamInfo.decryptionKey && !streamUrl.includes('/api/decrypt-stream'))
+        );
+    }
+
+    async crossfadeToNext(durationSeconds = 5, options = {}) {
+        if (this._crossfadePromise) return this._crossfadePromise;
+        const { removeSilence = false, fadeStartTime: requestedFadeStartTime = null } = options;
+
+        this._crossfadePromise = (async () => {
+            const candidate = this.getNextCrossfadeCandidate();
+            const oldElement = this.activeElement;
+            if (!candidate || oldElement !== this.audio || oldElement.paused) return false;
+
+            const nextElement = this.audioElements.find((element) => element !== oldElement);
+            if (!nextElement) return false;
+
+            let streamInfo;
+            try {
+                streamInfo =
+                    this.preloadCache.get(candidate.track.id) ||
+                    (await this.api.getStreamUrl(candidate.track.id, this.quality));
+            } catch {
+                return false;
+            }
+            streamInfo = this.getCrossfadeStreamInfo(streamInfo);
+            await this.prepareCrossfadeWaveform(candidate.track, streamInfo);
+            if (!this.canCrossfadeStream(candidate.track, streamInfo)) return false;
+
+            const sequence = this.playbackSequence;
+            const nextVolume = this.getEffectiveVolume(streamInfo.rgInfo || streamInfo.rgInfoFallback || null);
+            const oldOutputGainNode = audioContextManager.volumeNode?.gain;
+            if (!oldOutputGainNode) return false;
+            const oldOutputGain = oldOutputGainNode.value;
+            let crossfadeOutput = null;
+            let nextShakaPlayer = null;
+            let previousShakaPlayer = null;
+            let adoptedShakaPlayer = false;
+
+            try {
+                nextElement.pause();
+                nextElement.volume = nextVolume;
+                nextElement.playbackRate = oldElement.playbackRate;
+                nextElement.preservesPitch = oldElement.preservesPitch;
+
+                if (this.isCrossfadeShakaStream(streamInfo)) {
+                    const preloadedPlayer = streamInfo.crossfadeShakaPlayer;
+                    const hasPreparedShakaPlayer =
+                        preloadedPlayer &&
+                        streamInfo.preloader === nextElement &&
+                        preloadedPlayer.getMediaElement?.() === nextElement;
+                    if (hasPreparedShakaPlayer) {
+                        nextShakaPlayer = preloadedPlayer;
+                    } else {
+                        if (preloadedPlayer) await preloadedPlayer.destroy().catch(() => {});
+                        nextElement.removeAttribute('src');
+                        nextElement.load();
+                        nextShakaPlayer = await this.createCrossfadeShakaPlayer(nextElement, streamInfo);
+                        streamInfo.crossfadeShakaPlayer = nextShakaPlayer;
+                        streamInfo.preloader = nextElement;
+                    }
+                } else {
+                    const targetUrl = getProxyUrl(streamInfo.url);
+                    const alreadyPreloaded =
+                        streamInfo.preloader === nextElement &&
+                        (streamInfo.preloadedUrl === nextElement.src || targetUrl === nextElement.src);
+                    if (!alreadyPreloaded) {
+                        nextElement.removeAttribute('src');
+                        nextElement.load();
+                        nextElement.preload = 'auto';
+                        nextElement.src = targetUrl;
+                        nextElement.load();
+                    }
+                }
+
+                const canPlay = await this.waitForCanPlayOrTimeout(nextElement, 10000);
+                if (!canPlay || this.playbackSequence !== sequence) return false;
+
+                crossfadeOutput = audioContextManager.createCrossfadeOutput(nextElement);
+                if (!crossfadeOutput) return false;
+
+                await nextElement.play();
+                const leadingSilenceSeconds = removeSilence
+                    ? Math.max(0, Number(streamInfo.crossfadeSilenceBoundaries?.leadingSilenceSeconds || 0))
+                    : 0;
+                const fallbackFadeEnd =
+                    removeSilence && this.currentSilenceBoundaries?.hasTrailingSilence
+                        ? this.currentSilenceBoundaries.trailingSilenceStartTime
+                        : oldElement.duration;
+                const fadeStartTime = Number.isFinite(Number(requestedFadeStartTime))
+                    ? Number(requestedFadeStartTime)
+                    : Math.max(0, fallbackFadeEnd - (Number(durationSeconds) || 5));
+                while (
+                    this.playbackSequence === sequence &&
+                    (oldElement.currentTime < fadeStartTime || nextElement.currentTime < leadingSilenceSeconds)
+                ) {
+                    await new Promise((resolve) => setTimeout(resolve, 16));
+                }
+                if (this.playbackSequence !== sequence) return false;
+
+                const fadeDurationSeconds = Math.max(1, Math.min(12, Number(durationSeconds) || 5));
+                const durationMs = fadeDurationSeconds * 1000;
+                const audioContext = audioContextManager.audioContext;
+                const canScheduleFade =
+                    audioContext &&
+                    typeof oldOutputGainNode.setValueCurveAtTime === 'function' &&
+                    typeof crossfadeOutput.gainNode.gain.setValueCurveAtTime === 'function';
+
+                if (canScheduleFade) {
+                    const pointCount = 128;
+                    const oldCurve = new Float32Array(pointCount);
+                    const nextCurve = new Float32Array(pointCount);
+                    for (let i = 0; i < pointCount; i++) {
+                        const progress = i / (pointCount - 1);
+                        oldCurve[i] = oldOutputGain * Math.cos((progress * Math.PI) / 2);
+                        nextCurve[i] = Math.sin((progress * Math.PI) / 2);
+                    }
+                    const startAt = audioContext.currentTime;
+                    oldOutputGainNode.cancelScheduledValues(startAt);
+                    crossfadeOutput.gainNode.gain.cancelScheduledValues(startAt);
+                    oldOutputGainNode.value = oldOutputGain;
+                    crossfadeOutput.gainNode.gain.value = 0;
+                    oldOutputGainNode.setValueCurveAtTime(oldCurve, startAt, fadeDurationSeconds);
+                    crossfadeOutput.gainNode.gain.setValueCurveAtTime(nextCurve, startAt, fadeDurationSeconds);
+                    await new Promise((resolve) => setTimeout(resolve, durationMs));
+                } else {
+                    const startedAt = performance.now();
+                    while (this.playbackSequence === sequence) {
+                        const progress = Math.min(1, (performance.now() - startedAt) / durationMs);
+                        oldOutputGainNode.value = oldOutputGain * Math.cos((progress * Math.PI) / 2);
+                        crossfadeOutput.gainNode.gain.value = Math.sin((progress * Math.PI) / 2);
+                        if (progress >= 1) break;
+                        await new Promise((resolve) => setTimeout(resolve, 16));
+                    }
+                }
+
+                if (this.playbackSequence !== sequence) return false;
+                const resetAt = audioContextManager.audioContext?.currentTime || 0;
+                oldOutputGainNode.cancelScheduledValues?.(resetAt);
+                oldOutputGainNode.value = oldOutputGain;
+                oldElement.pause();
+                this.currentQueueIndex = candidate.index;
+
+                if (nextShakaPlayer) {
+                    previousShakaPlayer = this.shakaPlayer;
+                    this.shakaPlayer = nextShakaPlayer;
+                    this.shakaInitialized = true;
+                    adoptedShakaPlayer = true;
+                    this.crossfadePreloadPlayer = null;
+                    streamInfo.crossfadeShakaPlayer = null;
+                    streamInfo.preloader = null;
+                    nextShakaPlayer.addEventListener('adaptation', this.updateAdaptiveQualityBadge.bind(this));
+                    nextShakaPlayer.addEventListener('variantchanged', this.updateAdaptiveQualityBadge.bind(this));
+                }
+
+                await this.playTrackFromQueue(0, 0, false, {
+                    preserveGestureToken: true,
+                    preparedPlayback: {
+                        element: nextElement,
+                        previousElement: oldElement,
+                        streamInfo,
+                        crossfadeOutput,
+                    },
+                });
+                if (previousShakaPlayer && previousShakaPlayer !== this.shakaPlayer) {
+                    await previousShakaPlayer.destroy().catch((error) => {
+                        console.warn('Unable to release the previous adaptive player after crossfade:', error);
+                    });
+                    previousShakaPlayer = null;
+                }
+                this.preloadCache.delete(candidate.track.id);
+                crossfadeOutput = null;
+                return this.audio === nextElement && !nextElement.paused;
+            } catch (error) {
+                console.warn('Crossfade failed, falling back to silence skip:', error);
+                return false;
+            } finally {
+                if (crossfadeOutput) crossfadeOutput.disconnect();
+                if (nextShakaPlayer && !adoptedShakaPlayer) {
+                    await nextShakaPlayer.destroy().catch(() => {});
+                    if (this.crossfadePreloadPlayer === nextShakaPlayer) {
+                        this.crossfadePreloadPlayer = null;
+                    }
+                    if (streamInfo?.crossfadeShakaPlayer === nextShakaPlayer) {
+                        streamInfo.crossfadeShakaPlayer = null;
+                        streamInfo.preloader = null;
+                    }
+                }
+                if (this.audio !== nextElement) {
+                    nextElement.pause();
+                    nextElement.removeAttribute('src');
+                    nextElement.load();
+                }
+                oldOutputGainNode.value = oldOutputGain;
+            }
+        })();
+
+        try {
+            return await this._crossfadePromise;
+        } finally {
+            this._crossfadePromise = null;
         }
     }
 

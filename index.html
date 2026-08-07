@@ -3634,6 +3634,19 @@
                                     </div>
                                     <div class="setting-item">
                                         <div class="info">
+                                            <span class="label">Donation Reminders</span>
+                                            <span class="description"
+                                                >Occasionally show a notification inviting you to support
+                                                Monochrome</span
+                                            >
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="donation-prompts-toggle" checked />
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="setting-item">
+                                        <div class="info">
                                             <span class="label">Show Settings in Sidebar</span>
                                             <span class="description"
                                                 >Display the Settings link in the sidebar navigation</span
@@ -4264,6 +4277,49 @@
                                         <input type="checkbox" id="gapless-playback-toggle" checked />
                                         <span class="slider"></span>
                                     </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Remove Silence</span>
+                                        <span class="description"
+                                            >Skip leading silence and move to the next track when trailing silence
+                                            begins</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="silence-removal-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Crossfade</span>
+                                        <span class="description"
+                                            >Overlap tracks with an equal-power fade; when silence removal is enabled,
+                                            the fade starts before trailing silence</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="crossfade-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Crossfade Duration</span>
+                                        <span class="description">Choose how long both tracks overlap</span>
+                                    </div>
+                                    <select id="crossfade-duration">
+                                        <option value="1">1 second</option>
+                                        <option value="2">2 seconds</option>
+                                        <option value="3">3 seconds</option>
+                                        <option value="4">4 seconds</option>
+                                        <option value="5">5 seconds</option>
+                                        <option value="6">6 seconds</option>
+                                        <option value="8">8 seconds</option>
+                                        <option value="10">10 seconds</option>
+                                        <option value="12">12 seconds</option>
+                                    </select>
                                 </div>
                             </div>
 
