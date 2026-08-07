@@ -293,6 +293,20 @@ export const normalizeQualityToken = (value) => {
 export const createQualityBadgeHTML = (track) => {
     if (!track || !qualityBadgeSettings.isEnabled()) return '';
 
+    const playbackInfo = track.playbackQualityInfo || track;
+    const hasDetailedLosslessInfo =
+        (playbackInfo.bitDepth || playbackInfo.bit_depth) &&
+        (playbackInfo.sampleRateHz ||
+            playbackInfo.sample_rate_hz ||
+            playbackInfo.sampleRate ||
+            playbackInfo.sample_rate);
+    if (hasDetailedLosslessInfo) {
+        const badgeText = formatQualityBadgeText(playbackInfo, null, deriveTrackQuality(track));
+        if (badgeText) {
+            return `<span class="quality-badge quality-hires" title="${escapeHtml(badgeText)}">${escapeHtml(badgeText)}</span>`;
+        }
+    }
+
     const derivedQuality = deriveTrackQuality(track);
     const isAtmos =
         derivedQuality === 'DOLBY_ATMOS' ||
@@ -372,8 +386,11 @@ export const deriveTrackQuality = (track) => {
 };
 
 export const formatQualityBadgeText = (streamInfo, activeVariant, fallbackQuality = null) => {
-    const bitDepth = streamInfo?.bitDepth || null;
-    const sampleRateHz = streamInfo?.sampleRateHz || streamInfo?.sampleRate || null;
+    const bitDepth = Number(streamInfo?.bitDepth ?? streamInfo?.bit_depth) || null;
+    const sampleRateHz =
+        Number(
+            streamInfo?.sampleRateHz ?? streamInfo?.sample_rate_hz ?? streamInfo?.sampleRate ?? streamInfo?.sample_rate
+        ) || null;
     const bitrateKbps =
         streamInfo?.bitrateKbps ||
         (activeVariant?.audioBandwidth ? Math.round(activeVariant.audioBandwidth / 1000) : null);
@@ -408,7 +425,8 @@ export const formatQualityBadgeText = (streamInfo, activeVariant, fallbackQualit
                         ? (sampleRateHz / 1000).toString()
                         : (sampleRateHz / 1000).toFixed(1)
                     : sampleRateHz.toString();
-            return `FLAC ${bitDepth}/${sampleRateKHz}`;
+            const isHiRes = bitDepth > 16 || sampleRateHz > 48000;
+            return `${isHiRes ? 'HD' : 'FLAC'} ${bitDepth}/${sampleRateKHz}`;
         }
 
         if (quality === 'HI_RES_LOSSLESS' || quality === 'UHD' || quality === 'ULTRAHD') {

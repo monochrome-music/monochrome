@@ -7,6 +7,9 @@ import {
     gaplessPlaybackSettings,
     exponentialVolumeSettings,
     audioEffectsSettings,
+    silenceRemovalSettings,
+    crossfadeSettings,
+    donationPromptSettings,
 } from '../storage.js';
 
 describe('storage.js', () => {
@@ -87,6 +90,45 @@ describe('storage.js', () => {
         test('sets enabled state', () => {
             gaplessPlaybackSettings.setEnabled(false);
             expect(gaplessPlaybackSettings.isEnabled()).toBe(false);
+        });
+    });
+
+    describe('silence removal and crossfade settings', () => {
+        test('defaults to silence removal on and crossfade off', () => {
+            expect(silenceRemovalSettings.isEnabled()).toBe(true);
+            expect(crossfadeSettings.isEnabled()).toBe(false);
+        });
+
+        test('migrates the former combined toggle to both independent controls', () => {
+            localStorage.setItem('smart-silence-skip-enabled', 'true');
+
+            expect(silenceRemovalSettings.isEnabled()).toBe(true);
+            expect(crossfadeSettings.isEnabled()).toBe(true);
+        });
+
+        test('stores independent enabled states and an adjustable duration', () => {
+            silenceRemovalSettings.setEnabled(false);
+            crossfadeSettings.setEnabled(true);
+            crossfadeSettings.setDuration(8);
+
+            expect(silenceRemovalSettings.isEnabled()).toBe(false);
+            expect(crossfadeSettings.isEnabled()).toBe(true);
+            expect(crossfadeSettings.getDuration()).toBe(8);
+        });
+
+        test('clamps crossfade duration to the supported range', () => {
+            crossfadeSettings.setDuration(30);
+            expect(crossfadeSettings.getDuration()).toBe(12);
+            crossfadeSettings.setDuration(0);
+            expect(crossfadeSettings.getDuration()).toBe(5);
+        });
+    });
+
+    describe('donation prompt settings', () => {
+        test('defaults reminders on and persists an opt-out', () => {
+            expect(donationPromptSettings.isEnabled()).toBe(true);
+            donationPromptSettings.setEnabled(false);
+            expect(donationPromptSettings.isEnabled()).toBe(false);
         });
     });
 

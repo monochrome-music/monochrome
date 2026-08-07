@@ -1,6 +1,9 @@
 window.updateDiscordRPC = async function (media) {
     if (!media) return;
 
+    const invoke = window.__TAURI__?.core?.invoke;
+    if (typeof invoke !== 'function') return;
+
     const audio = document.querySelector('audio');
 
     if (!audio) {
@@ -16,7 +19,7 @@ window.updateDiscordRPC = async function (media) {
         return;
     }
 
-    await window.__TAURI__.core.invoke('discord_update_song', {
+    await invoke('discord_update_song', {
         title: media.title || 'Unknown Song',
         artist: media.artist || 'Unknown Artist',
         artwork: media.artwork?.[0]?.src || '',

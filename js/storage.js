@@ -815,9 +815,92 @@ export const waveformSettings = {
 
     isEnabled() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+            if (localStorage.getItem('waveform-seekbar-migrated-v2') !== 'true') {
+                localStorage.setItem('waveform-seekbar-migrated-v2', 'true');
+                localStorage.setItem(this.STORAGE_KEY, 'true');
+                return true;
+            }
+            const val = localStorage.getItem(this.STORAGE_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+const getLegacySilenceCrossfadeSetting = () => {
+    try {
+        const value = localStorage.getItem('smart-silence-skip-enabled');
+        return value === null ? null : value === 'true';
+    } catch {
+        return null;
+    }
+};
+
+export const silenceRemovalSettings = {
+    STORAGE_KEY: 'silence-removal-enabled',
+
+    isEnabled() {
+        try {
+            const val = localStorage.getItem(this.STORAGE_KEY);
+            if (val !== null) return val === 'true';
+            return getLegacySilenceCrossfadeSetting() ?? true;
         } catch {
             return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+export const crossfadeSettings = {
+    STORAGE_KEY: 'crossfade-enabled',
+    DURATION_KEY: 'crossfade-duration-seconds',
+
+    isEnabled() {
+        try {
+            const val = localStorage.getItem(this.STORAGE_KEY);
+            if (val !== null) return val === 'true';
+            return getLegacySilenceCrossfadeSetting() ?? false;
+        } catch {
+            return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+
+    getDuration() {
+        try {
+            const duration = Number(localStorage.getItem(this.DURATION_KEY));
+            return Number.isFinite(duration) && duration >= 1 && duration <= 12 ? duration : 5;
+        } catch {
+            return 5;
+        }
+    },
+
+    setDuration(duration) {
+        const safeDuration = Math.max(1, Math.min(12, Number(duration) || 5));
+        localStorage.setItem(this.DURATION_KEY, String(safeDuration));
+    },
+};
+
+export const donationPromptSettings = {
+    STORAGE_KEY: 'donation-prompts-enabled',
+
+    isEnabled() {
+        try {
+            const value = localStorage.getItem(this.STORAGE_KEY);
+            return value === null ? true : value === 'true';
+        } catch {
+            return true;
         }
     },
 

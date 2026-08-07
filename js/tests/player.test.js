@@ -28,6 +28,7 @@ vi.mock('../storage.js', () => ({
         setPreservePitch: vi.fn(),
     },
     radioSettings: { isEnabled: vi.fn(() => false) },
+    crossfadeSettings: { isEnabled: vi.fn(() => true) },
     contentBlockingSettings: {
         shouldHideTrack: vi.fn(() => false),
         shouldHideAlbum: vi.fn(() => false),
@@ -148,6 +149,24 @@ describe('Player', () => {
         expect(localStorage.getItem('volume')).toBe('0.5');
     });
 
+    test('restores duration UI from an already-loaded crossfade element', () => {
+        player = new Player(audioElement, api);
+        document.body.insertAdjacentHTML('beforeend', '<div id="fs-total-duration"></div>');
+        Object.defineProperty(audioElement, 'duration', { configurable: true, value: 235.52 });
+
+        expect(player.syncDurationUI(audioElement)).toBe(true);
+        expect(document.getElementById('total-duration').textContent).toBe('3:55');
+        expect(document.getElementById('fs-total-duration').textContent).toBe('3:55');
+    });
+
+    test('uses millisecond waveform duration when media metadata is unavailable', () => {
+        player = new Player(audioElement, api);
+        Object.defineProperty(audioElement, 'duration', { configurable: true, value: Number.NaN });
+
+        expect(player.syncDurationUI(audioElement, 235520)).toBe(true);
+        expect(document.getElementById('total-duration').textContent).toBe('3:55');
+    });
+
     test('shuffle toggles correctly', () => {
         player = new Player(audioElement, api);
         player.queue = [{ id: 1 }, { id: 2 }, { id: 3 }];
@@ -247,5 +266,39 @@ describe('Player', () => {
         expect(player.shakaInitialized).toBe(false);
         expect(audioElement.preload).toBe('none');
         expect(audioElement.src).toBe('https://tracks.example/fallback.flac?token=one-use');
+    });
+
+    test('prepares the next track leading-silence boundary from its waveform', async () => {
+        player = new Player(audioElement, api);
+        const streamInfo = {
+            waveform: {
+                duration_ms: 100000,
+                samples: [0, 0, 20, 30, 40, 20, 0, 0],
+            },
+        };
+
+        const boundaries = await player.prepareCrossfadeWaveform({ id: 'next-crossfade', duration: 100 }, streamInfo);
+
+        expect(boundaries.leadingSilenceSeconds).toBe(25);
+        expect(streamInfo.crossfadeSilenceBoundaries).toBe(boundaries);
+    });
+
+    test('keeps encrypted Amazon crossfade playback on the dual-Shaka path', () => {
+        player = new Player(audioElement, api);
+        player.hasControllingServiceWorker = vi.fn(() => true);
+        const originalStreamInfo = {
+            provider: 'amazon',
+            url: 'data:application/dash+xml;base64,manifest',
+            sourceUrl: 'https://media.example/track.mp4?token=signed',
+            decryptionKey: '00112233445566778899aabbccddeeff',
+            keyId: '11223344556677889900aabbccddeeff',
+            codec: 'flac',
+            playbackType: 'dash-cenc',
+        };
+        const streamInfo = player.getCrossfadeStreamInfo(originalStreamInfo);
+
+        expect(streamInfo).toBe(originalStreamInfo);
+        expect(player.isCrossfadeShakaStream(streamInfo)).toBe(true);
+        expect(player.canCrossfadeStream({ id: 'next' }, streamInfo)).toBe(true);
     });
 });

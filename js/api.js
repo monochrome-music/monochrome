@@ -2013,16 +2013,14 @@ export class LosslessAPI {
     }
 
     getAmazonQualityDisplay(trackInfo, qualityInfo = null) {
-        const quality = String(trackInfo?.quality_selected || trackInfo?.quality_requested || '').trim();
+        const quality = String(trackInfo?.quality_selected || trackInfo?.quality_requested || '')
+            .trim()
+            .toUpperCase();
         if (qualityInfo?.bitDepth && qualityInfo?.sampleRate) {
             const sampleRate =
                 qualityInfo.sampleRate === 44100 ? '44.1' : String(Math.round(qualityInfo.sampleRate / 1000));
-            if (quality.startsWith('UHD_')) {
-                return `HD ${qualityInfo.bitDepth}/${sampleRate}`;
-            }
-            if (quality.startsWith('HD_')) {
-                return `FLAC ${qualityInfo.bitDepth}/${sampleRate}`;
-            }
+            const prefix = qualityInfo.bitDepth > 16 || qualityInfo.sampleRate > 48000 ? 'HD' : 'FLAC';
+            return `${prefix} ${qualityInfo.bitDepth}/${sampleRate}`;
         }
         return quality.replace(/^UHD_/, 'HD ').replace(/^HD_/, 'FLAC ').replace(/_/g, ' ');
     }
@@ -2673,11 +2671,19 @@ export class LosslessAPI {
     }
 
     getUnifiedPlaybackQualityInfo(resource) {
+        const sampleRate = Number(
+            resource?.sample_rate_hz ?? resource?.sampleRateHz ?? resource?.sample_rate ?? resource?.sampleRate
+        );
+        const bitDepth = Number(resource?.bit_depth ?? resource?.bitDepth);
+        const explicitBitrateKbps = Number(resource?.bitrate_kbps ?? resource?.bitrateKbps);
+        const bandwidth = Number(resource?.bandwidth ?? resource?.bitrate);
+
         return {
             codec: this.getUnifiedPlaybackCodec(resource),
-            bandwidth: resource?.bandwidth || resource?.bitrate || null,
-            sampleRate: resource?.sample_rate || resource?.sampleRate || null,
-            bitDepth: resource?.bit_depth || resource?.bitDepth || null,
+            bandwidth: bandwidth || (explicitBitrateKbps ? explicitBitrateKbps * 1000 : null),
+            bitrateKbps: explicitBitrateKbps || (bandwidth ? Math.round(bandwidth / 1000) : null),
+            sampleRate: sampleRate || null,
+            bitDepth: bitDepth || null,
         };
     }
 
@@ -2760,14 +2766,21 @@ export class LosslessAPI {
                 quality: normalizedQuality,
                 qualityRequested: envelope.quality_requested || canonicalQuality,
                 qualityDisplay:
-                    provider === 'monochrome'
-                        ? normalizedQuality === 'LOSSLESS'
-                            ? 'FLAC'
-                            : normalizedQuality
-                        : normalizedQuality,
+                    provider === 'amazon'
+                        ? this.getAmazonQualityDisplay({ quality_selected: normalizedQuality }, qualityInfo)
+                        : provider === 'monochrome'
+                          ? normalizedQuality === 'LOSSLESS'
+                              ? 'FLAC'
+                              : normalizedQuality
+                          : normalizedQuality,
                 decryptionKey,
                 keyId: this.getUnifiedPlaybackKeyId(resource),
                 codec: qualityInfo.codec || resource.codec || null,
+                bitDepth: qualityInfo.bitDepth,
+                sampleRate: qualityInfo.sampleRate,
+                sampleRateHz: qualityInfo.sampleRate,
+                bitrateKbps: qualityInfo.bitrateKbps,
+                bandwidth: qualityInfo.bandwidth,
                 container: resource.container || null,
                 lossless: resource.lossless ?? null,
                 mediaMimeType: resource.mime_type || (provider === 'monochrome' ? 'audio/flac' : 'audio/mp4'),
@@ -2776,6 +2789,7 @@ export class LosslessAPI {
                 requestId: envelope.request_id || null,
                 intent: envelope.intent || intent,
                 rgInfo: this.getUnifiedPlaybackReplayGain(resource),
+                waveform: envelope.waveform || resource.waveform || null,
             };
 
             if (selectedSource === 'mono' || selectedSource === 'monochrome') {
@@ -2938,6 +2952,10 @@ export class LosslessAPI {
                     ...unifiedResult,
                     url: `${origin}/api/decrypt-stream?url=${encodeURIComponent(sourceUrl)}&key=${encodeURIComponent(unifiedResult.decryptionKey)}&codec=${encodeURIComponent(targetCodec)}`,
                     playbackType: 'direct',
+                    mimeType:
+                        targetCodec === 'flac-hls'
+                            ? 'application/vnd.apple.mpegurl'
+                            : unifiedResult.mediaMimeType || 'audio/mp4',
                 };
             }
 

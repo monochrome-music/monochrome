@@ -10,6 +10,9 @@ import {
     cardSettings,
     artistBannerSettings,
     waveformSettings,
+    silenceRemovalSettings,
+    crossfadeSettings,
+    donationPromptSettings,
     replayGainSettings,
     downloadQualitySettings,
     losslessContainerSettings,
@@ -5905,6 +5908,47 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    const silenceRemovalToggle = document.getElementById('silence-removal-toggle');
+    if (silenceRemovalToggle) {
+        silenceRemovalToggle.checked = silenceRemovalSettings.isEnabled();
+        silenceRemovalToggle.addEventListener('change', (e) => {
+            silenceRemovalSettings.setEnabled(e.target.checked);
+            window.dispatchEvent(new CustomEvent('waveform-update'));
+        });
+    }
+
+    const crossfadeToggle = document.getElementById('crossfade-toggle');
+    const crossfadeDuration = document.getElementById('crossfade-duration');
+    if (crossfadeToggle) {
+        crossfadeToggle.checked = crossfadeSettings.isEnabled();
+        crossfadeToggle.addEventListener('change', (e) => {
+            crossfadeSettings.setEnabled(e.target.checked);
+            if (crossfadeDuration) crossfadeDuration.disabled = !e.target.checked;
+            if (e.target.checked) {
+                const candidate = player.getNextCrossfadeCandidate?.();
+                const cachedStreamInfo = candidate ? player.preloadCache?.get(candidate.track.id) : null;
+                if (
+                    cachedStreamInfo &&
+                    player.isCrossfadeShakaStream?.(cachedStreamInfo) &&
+                    !cachedStreamInfo.crossfadeShakaPlayer
+                ) {
+                    player.preloadCache.delete(candidate.track.id);
+                }
+                player.preloadNextTracks?.();
+                void player.checkPreloadConditions?.();
+            }
+            window.dispatchEvent(new CustomEvent('waveform-update'));
+        });
+    }
+    if (crossfadeDuration) {
+        crossfadeDuration.value = String(crossfadeSettings.getDuration());
+        crossfadeDuration.disabled = !crossfadeSettings.isEnabled();
+        crossfadeDuration.addEventListener('change', (e) => {
+            crossfadeSettings.setDuration(e.target.value);
+            window.dispatchEvent(new CustomEvent('waveform-update'));
+        });
+    }
+
     // Visualizer Sensitivity
     const visualizerSensitivitySlider = document.getElementById('visualizer-sensitivity-slider');
     const visualizerSensitivityValue = document.getElementById('visualizer-sensitivity-value');
@@ -6290,6 +6334,17 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         sidebarShowDonateToggle.addEventListener('change', (e) => {
             sidebarSectionSettings.setShowDonate(e.target.checked);
             sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
+    const donationPromptToggle = document.getElementById('donation-prompts-toggle');
+    if (donationPromptToggle) {
+        donationPromptToggle.checked = donationPromptSettings.isEnabled();
+        donationPromptToggle.addEventListener('change', (e) => {
+            donationPromptSettings.setEnabled(e.target.checked);
+            if (!e.target.checked) {
+                document.querySelectorAll('.donation-prompt').forEach((prompt) => prompt.remove());
+            }
         });
     }
 
