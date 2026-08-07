@@ -26,3 +26,4 @@ qobuz-api
 Qobuz-DL
 Caddyfile
 dev-dist
+load-balancer
