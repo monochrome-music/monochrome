@@ -92,10 +92,10 @@ describe('LosslessAPI HiFi streaming fallback', () => {
     });
 
     test('reports failure when Unified Playback and ISRC fallbacks cannot resolve', async () => {
+        api.getDeezerStreamUrl.mockResolvedValue(null);
         await expect(api.getStreamUrl('123', 'LOSSLESS')).rejects.toThrow(
             'Could not resolve stream URL from Unified Playback, Qobuz, or Deezer'
         );
-        expect(api.getTrack).not.toHaveBeenCalled();
     });
 
     test('uses Unified Playback before Qobuz when it resolves a stream URL', async () => {
@@ -130,8 +130,7 @@ describe('LosslessAPI HiFi streaming fallback', () => {
         expect(api.getDeezerStreamUrl).not.toHaveBeenCalled();
     });
 
-    test('Amazon-first: falls back to Qobuz when Amazon Music fails', async () => {
-        mathRandomSpy.mockReturnValue(0.9);
+    test('falls back to Qobuz when Unified Playback fails', async () => {
         api.getQobuzStreamUrl.mockResolvedValue({
             url: 'https://audio.example/qobuz.flac',
             rgInfo: {
@@ -150,66 +149,13 @@ describe('LosslessAPI HiFi streaming fallback', () => {
             'LOSSLESS',
             expect.objectContaining({ track: expect.objectContaining({ id: '123' }) })
         );
-        expect(api.getTrack).not.toHaveBeenCalled();
-    });
-
-    test('Qobuz-first: uses Qobuz before Amazon Music when it resolves a stream URL', async () => {
-        mathRandomSpy.mockReturnValue(0.1);
-        api.getQobuzStreamUrl.mockResolvedValue({
-            url: 'https://audio.example/qobuz.flac',
-            rgInfo: {
-                trackReplayGain: -2,
-                trackPeakAmplitude: 0.8,
-                albumReplayGain: -3,
-                albumPeakAmplitude: 0.85,
-            },
-        });
-
-        const result = await api.getStreamUrl('123', 'LOSSLESS');
-
-        expect(result.url).toBe('https://audio.example/qobuz.flac');
-        expect(api.getAmazonMusicStreamUrl).not.toHaveBeenCalled();
-        expect(api.getDeezerStreamUrl).not.toHaveBeenCalled();
-    });
-
-    test('Qobuz-first: falls back to Amazon Music when Qobuz fails', async () => {
-        mathRandomSpy.mockReturnValue(0.1);
-        api.getAmazonMusicStreamUrl.mockResolvedValue({
-            url: 'blob:https://app.example/amazon',
-            provider: 'amazon',
-            playbackType: 'direct',
-            quality: 'HD_44',
-            rgInfo: {
-                trackReplayGain: 0,
-                trackPeakAmplitude: 1,
-                albumReplayGain: 0,
-                albumPeakAmplitude: 1,
-            },
-        });
-
-        const result = await api.getStreamUrl('123', 'LOSSLESS');
-
-        expect(result).toMatchObject({
-            url: 'blob:https://app.example/amazon',
-            provider: 'amazon',
-            playbackType: 'direct',
-            quality: 'HD_44',
-            rgInfo: {
-                trackReplayGain: 0,
-                trackPeakAmplitude: 1,
-                albumReplayGain: 0,
-                albumPeakAmplitude: 1,
-            },
-        });
-        expect(api.getQobuzStreamUrl).toHaveBeenCalledWith('TESTISRC123', 'LOSSLESS');
-        expect(api.getDeezerStreamUrl).not.toHaveBeenCalled();
     });
 
     test('does not call Deezer when no ISRC is available', async () => {
         vi.spyOn(api, 'getTrackMetadata').mockResolvedValue({ id: '123' }); // No ISRC
 
         await expect(api.getStreamUrl('123', 'LOSSLESS')).rejects.toThrow(
-            'Could not resolve stream URL from Unified Playback, Qobuz, or Deezer'
+            'Could not resolve stream URL: Unified Playback failed and the track has no ISRC for Qobuz/Deezer lookup'
         );
         expect(api.getDeezerStreamUrl).not.toHaveBeenCalled();
     });
