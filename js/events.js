@@ -231,7 +231,6 @@ function toggleTrackSelection(trackItem, ctrlHeld, shiftHeld) {
     document.body.classList.toggle('multi-select-mode', trackSelection.isSelecting);
 }
 
-
 // logic for ctrl+a, ctrl+c and ctrl v for copy pasting tracks to different playlists or something
 document.addEventListener('keydown', async (e) => {
     const el = document.activeElement;
@@ -246,7 +245,7 @@ document.addEventListener('keydown', async (e) => {
         if (!items?.length) return;
 
         e.preventDefault();
-        items.forEach(item => {
+        items.forEach((item) => {
             const id = item.dataset.trackId;
             if (id) {
                 trackSelection.selectedIds.add(id);
@@ -264,12 +263,12 @@ document.addEventListener('keydown', async (e) => {
         if (!list) return;
 
         const tracks = [...list.querySelectorAll('.track-item')]
-            .filter(item => trackSelection.selectedIds.has(item.dataset.trackId))
-            .map(item => trackDataStore.get(item))
+            .filter((item) => trackSelection.selectedIds.has(item.dataset.trackId))
+            .map((item) => trackDataStore.get(item))
             .filter(Boolean);
 
         if (!tracks.length) return;
-        copiedTracks = tracks.map(track => ({ ...track }));
+        copiedTracks = tracks.map((track) => ({ ...track }));
         e.preventDefault();
         console.log(`copied ${copiedTracks.length}`);
     }
@@ -281,10 +280,12 @@ document.addEventListener('keydown', async (e) => {
         e.preventDefault();
         try {
             const playlist = await db.addTracksToPlaylist(match[1], copiedTracks);
-            window.dispatchEvent(new CustomEvent('playlist-refresh', {
-                detail: { playlist }
-            }));
-            alert("tracks pasted. refresh page to see changes");
+            window.dispatchEvent(
+                new CustomEvent('playlist-refresh', {
+                    detail: { playlist },
+                })
+            );
+            alert('tracks pasted. refresh page to see changes');
         } catch (error) {
             console.error(error);
         }
