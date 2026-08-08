@@ -1,13 +1,10 @@
 window.updateDiscordRPC = async function (media) {
     if (!media) return;
 
-    const invoke = window.__TAURI__?.core?.invoke;
-    if (typeof invoke !== 'function') return;
-
-    const audio = document.querySelector('audio');
+    const audio = document.querySelector("audio");
 
     if (!audio) {
-        console.log('[RPC] no audio element');
+        console.log("[RPC] no audio element");
         return;
     }
 
@@ -15,18 +12,27 @@ window.updateDiscordRPC = async function (media) {
     const duration = Math.floor(audio.duration || 0);
 
     if (!duration || duration === Infinity) {
-        console.log('[RPC] waiting for duration');
+        console.log("[RPC] waiting for duration");
         return;
     }
 
-    await invoke('discord_update_song', {
-        title: media.title || 'Unknown Song',
-        artist: media.artist || 'Unknown Artist',
-        artwork: media.artwork?.[0]?.src || '',
-        position: Math.floor(audio.currentTime || 0),
-        duration: Math.floor(audio.duration || 0),
-        playing: !audio.paused,
-    });
+    await window.__TAURI__.core.invoke(
+        "discord_update_song",
+        {
+            title: media.title || "Unknown Song",
+            artist: media.artist || "Unknown Artist",
+            artwork: media.artwork?.[0]?.src || "",
+            position: Math.floor(audio.currentTime || 0),
+            duration: Math.floor(audio.duration || 0),
+            playing: !audio.paused
+        }
+    );
 
-    console.log('[RPC] updated', media.title, position, '/', duration);
+    console.log(
+        "[RPC] updated",
+        media.title,
+        position,
+        "/",
+        duration
+    );
 };

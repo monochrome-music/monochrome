@@ -1,17 +1,17 @@
-if (typeof window.__TAURI__?.core?.invoke === 'function') {
-    console.log('[RPC] listener loaded');
+console.log("[RPC] listener loaded");
 
-    setInterval(() => {
-        const media = navigator.mediaSession?.metadata;
+setInterval(() => {
 
-        if (!media) {
-            return;
-        }
+    const media = navigator.mediaSession?.metadata;
 
-        console.log('[RPC] listener update:', media.title);
+    if (!media) {
+        return;
+    }
 
-        if (window.updateDiscordRPC) {
-            void window.updateDiscordRPC(media);
-        }
-    }, 1000);
-}
+    console.log("[RPC] listener update:", media.title);
+
+    if (window.updateDiscordRPC) {
+        window.updateDiscordRPC(media);
+    }
+
+}, 1000);
