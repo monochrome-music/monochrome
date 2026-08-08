@@ -820,11 +820,12 @@ export const waveformSettings = {
         try {
             if (localStorage.getItem('waveform-seekbar-migrated-v2') !== 'true') {
                 localStorage.setItem('waveform-seekbar-migrated-v2', 'true');
-                localStorage.setItem(this.STORAGE_KEY, 'true');
+                const defaultEnabled = window.innerWidth > 768;
+                localStorage.setItem(this.STORAGE_KEY, defaultEnabled ? 'true' : 'false');
                 return true;
             }
             const val = localStorage.getItem(this.STORAGE_KEY);
-            return val === null ? true : val === 'true';
+            return val === null ? window.innerWidth > 768 : val === 'true';
         } catch {
             return true;
         }
