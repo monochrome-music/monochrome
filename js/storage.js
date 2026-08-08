@@ -10,7 +10,7 @@ export const apiSettings = {
     userInstances: null,
     instancesLoaded: false,
     _loadPromise: null,
-    
+
     _loadUserInstances() {
         if (this.userInstances) return this.userInstances;
         try {
@@ -76,7 +76,7 @@ export const apiSettings = {
             if (!data) {
                 console.error('Failed to load instances from all uptime APIs:', fetchError);
                 this.defaultInstances = {
-                    api: [],
+                    api: [{ url: 'https://lol.samidy.workers.dev', version: '2.10' }],
                     streaming: [],
                     qobuz: [],
                 };
@@ -109,6 +109,9 @@ export const apiSettings = {
             // Ensure default Qobuz instance is always available
             if (groupedInstances.qobuz.length === 0) {
                 groupedInstances.qobuz = [{ url: 'https://qobuz.kennyy.com.br', version: '1.0' }];
+            }
+            if (groupedInstances.api.length === 0) {
+                groupedInstances.api = [{ url: 'https://lol.samidy.workers.dev', version: '2.10' }];
             }
 
             this.defaultInstances = groupedInstances;
@@ -815,9 +818,93 @@ export const waveformSettings = {
 
     isEnabled() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+            if (localStorage.getItem('waveform-seekbar-migrated-v2') !== 'true') {
+                localStorage.setItem('waveform-seekbar-migrated-v2', 'true');
+                const defaultEnabled = window.innerWidth > 768;
+                localStorage.setItem(this.STORAGE_KEY, defaultEnabled ? 'true' : 'false');
+                return true;
+            }
+            const val = localStorage.getItem(this.STORAGE_KEY);
+            return val === null ? window.innerWidth > 768 : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+const getLegacySilenceCrossfadeSetting = () => {
+    try {
+        const value = localStorage.getItem('smart-silence-skip-enabled');
+        return value === null ? null : value === 'true';
+    } catch {
+        return null;
+    }
+};
+
+export const silenceRemovalSettings = {
+    STORAGE_KEY: 'silence-removal-enabled',
+
+    isEnabled() {
+        try {
+            const val = localStorage.getItem(this.STORAGE_KEY);
+            if (val !== null) return val === 'true';
+            return getLegacySilenceCrossfadeSetting() ?? true;
         } catch {
             return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+export const crossfadeSettings = {
+    STORAGE_KEY: 'crossfade-enabled',
+    DURATION_KEY: 'crossfade-duration-seconds',
+
+    isEnabled() {
+        try {
+            const val = localStorage.getItem(this.STORAGE_KEY);
+            if (val !== null) return val === 'true';
+            return getLegacySilenceCrossfadeSetting() ?? false;
+        } catch {
+            return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+
+    getDuration() {
+        try {
+            const duration = Number(localStorage.getItem(this.DURATION_KEY));
+            return Number.isFinite(duration) && duration >= 1 && duration <= 12 ? duration : 5;
+        } catch {
+            return 5;
+        }
+    },
+
+    setDuration(duration) {
+        const safeDuration = Math.max(1, Math.min(12, Number(duration) || 5));
+        localStorage.setItem(this.DURATION_KEY, String(safeDuration));
+    },
+};
+
+export const donationPromptSettings = {
+    STORAGE_KEY: 'donation-prompts-enabled',
+
+    isEnabled() {
+        try {
+            const value = localStorage.getItem(this.STORAGE_KEY);
+            return value === null ? true : value === 'true';
+        } catch {
+            return true;
         }
     },
 
@@ -3088,11 +3175,7 @@ export const unifiedPlaybackSettings = {
     API_BASE_URL_KEY: 'unified-playback-api-base-url',
     API_TOKEN_KEY: 'unified-playback-api-token',
     DEFAULT_API_BASE_URL: 'https://music-api.geeked.wtf',
-    LEGACY_API_BASE_URLS: [
-        'https://amz.geeked.wtf',
-        'https://track-api.monochrome.tf',
-        'https://mono.geeked.wtf',
-    ],
+    LEGACY_API_BASE_URLS: ['https://amz.geeked.wtf', 'https://track-api.monochrome.tf', 'https://mono.geeked.wtf'],
     DEFAULT_API_TOKEN: 'amp_29b2lIr4mze4tK-P8QDOxfMZ9anCgJ9_uGTUks3nIyo',
 
     isEnabled() {
@@ -3146,7 +3229,11 @@ export const unifiedPlaybackSettings = {
     isDefaultApiToken(token) {
         const currentToken = (token || this.getApiToken() || '').trim();
         const defaultToken = (this.DEFAULT_API_TOKEN || '').trim();
-        const envToken = (import.meta.env.VITE_UNIFIED_PLAYBACK_API_TOKEN || import.meta.env.VITE_AMAZON_TURNSTILE_BYPASS_TOKEN || '').trim();
+        const envToken = (
+            import.meta.env.VITE_UNIFIED_PLAYBACK_API_TOKEN ||
+            import.meta.env.VITE_AMAZON_TURNSTILE_BYPASS_TOKEN ||
+            ''
+        ).trim();
         return currentToken === defaultToken || (Boolean(envToken) && currentToken === envToken);
     },
 };

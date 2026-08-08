@@ -181,11 +181,8 @@
                 <li data-action="track-info" data-type-filter="track,video">Track info</li>
                 <li data-action="open-original-url" data-type-filter="track,video">Open original URL</li>
                 <li data-action="download">Download</li>
-                <li class="separator"
-                    data-type-filter="track,album,artist"
-                    data-action="horizantal-rule"
-                    >
-                     <!-- IDK why adding a `data-action` is necessary, but without it
+                <li class="separator" data-type-filter="track,album,artist" data-action="horizantal-rule">
+                    <!-- IDK why adding a `data-action` is necessary, but without it
                       the `data-type-filter` gets ignored; So I've added it -->
                 </li>
                 <li
@@ -2357,8 +2354,8 @@
                                         id="local-browser-warning"
                                         style="display: none; color: #ef4444; margin-top: 10px; font-size: 0.9rem"
                                     >
-                                        Your browser doesn't support the File System Access API, which is required
-                                        for Local Files. We recommend
+                                        Your browser doesn't support the File System Access API, which is required for
+                                        Local Files. We recommend
                                         <a
                                             href="https://helium.computer/"
                                             target="_blank"
@@ -3637,6 +3634,19 @@
                                     </div>
                                     <div class="setting-item">
                                         <div class="info">
+                                            <span class="label">Donation Reminders</span>
+                                            <span class="description"
+                                                >Occasionally show a notification inviting you to support
+                                                Monochrome</span
+                                            >
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="donation-prompts-toggle" checked />
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="setting-item">
+                                        <div class="info">
                                             <span class="label">Show Settings in Sidebar</span>
                                             <span class="description"
                                                 >Display the Settings link in the sidebar navigation</span
@@ -4213,7 +4223,10 @@
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Prefer Dolby Atmos</span>
-                                        <span class="description">Automatically request Dolby Atmos spatial audio on Tidal when available</span>
+                                        <span class="description"
+                                            >Automatically request Dolby Atmos spatial audio on Tidal when
+                                            available</span
+                                        >
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="prefer-dolby-atmos-toggle" />
@@ -4223,7 +4236,10 @@
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Native OS Dolby Atmos Rendering</span>
-                                        <span class="description">Render Atmos directly on Safari (Apple Spatial Audio) or Edge (Windows Dolby Audio) for full volume</span>
+                                        <span class="description"
+                                            >Render Atmos directly on Safari (Apple Spatial Audio) or Edge (Windows
+                                            Dolby Audio) for full volume</span
+                                        >
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="native-os-atmos-toggle" checked />
@@ -4261,6 +4277,49 @@
                                         <input type="checkbox" id="gapless-playback-toggle" checked />
                                         <span class="slider"></span>
                                     </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Remove Silence</span>
+                                        <span class="description"
+                                            >Skip leading silence and move to the next track when trailing silence
+                                            begins</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="silence-removal-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Crossfade</span>
+                                        <span class="description"
+                                            >Overlap tracks with an equal-power fade; when silence removal is enabled,
+                                            the fade starts before trailing silence</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="crossfade-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Crossfade Duration</span>
+                                        <span class="description">Choose how long both tracks overlap</span>
+                                    </div>
+                                    <select id="crossfade-duration">
+                                        <option value="1">1 second</option>
+                                        <option value="2">2 seconds</option>
+                                        <option value="3">3 seconds</option>
+                                        <option value="4">4 seconds</option>
+                                        <option value="5">5 seconds</option>
+                                        <option value="6">6 seconds</option>
+                                        <option value="8">8 seconds</option>
+                                        <option value="10">10 seconds</option>
+                                        <option value="12">12 seconds</option>
+                                    </select>
                                 </div>
                             </div>
 
@@ -6503,9 +6562,9 @@
                         </div>
                         <div class="donate-alt-section">
                             <p class="donate-alt-text">
-                                While donating isn't required and the service can still live on without hitting our goals,
-                                we're deeply grateful if you do! It helps the project have "just-in-case" money and
-                                helps us (the developers) out personally!
+                                While donating isn't required and the service can still live on without hitting our
+                                goals, we're deeply grateful if you do! It helps the project have "just-in-case" money
+                                and helps us (the developers) out personally!
                             </p>
                             <p class="donate-alt-text">
                                 If you cannot financially support us, please consider starring the project on GitHub and
