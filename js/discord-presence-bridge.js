@@ -9,10 +9,10 @@
     }
     window.discordRpcInjected = true;
 
-    let pendingTimer = null;   // holds a queued-but-not-yet-sent update
-    let lastSentTime = 0;      // wall-clock ms of the last successful send
-    let lastAudioTime = 0;      // audio position at last send (for drift detection)
-    let lastUpdateTime = 0;     // alias kept for syncRPCTime compatibility
+    let pendingTimer = null; // holds a queued-but-not-yet-sent update
+    let lastSentTime = 0; // wall-clock ms of the last successful send
+    let lastAudioTime = 0; // audio position at last send (for drift detection)
+    let lastUpdateTime = 0; // alias kept for syncRPCTime compatibility
     let lastState = {};
 
     const MIN_UPDATE_INTERVAL_MS = 10000; // Minimum time between updates to avoid hitting rate limits
@@ -25,7 +25,8 @@
         window.__TAURI__.event.listen('media-toggle', () => {
             const audio = document.getElementById('audio-player');
             if (audio) {
-                if (audio.paused) audio.play(); else audio.pause();
+                if (audio.paused) audio.play();
+                else audio.pause();
             }
         });
     }
@@ -58,7 +59,6 @@
     // ---------------------------------------------------------------------------
 
     function buildCurrentState(currentTrack, audioEl) {
-
         const isPaused = audioEl.paused;
         const isLocal = Boolean(currentTrack?.isLocal);
 
@@ -78,7 +78,7 @@
         const yearMatch = releaseDate.match(/^(\d{4})/);
         const year = yearMatch ? yearMatch[1] : '';
 
-        // Determine the cover image URL for the track 
+        // Determine the cover image URL for the track
         // if someone can provide a better way to get the cover image, please do so
         // cause the current method does not follow SSOT for cover images
         let image = isLocal ? 'local' : 'logo';
@@ -87,7 +87,7 @@
             if (coverId.length < 256 && coverId.startsWith('http')) {
                 image = coverId;
             } else if (uuidRegex.test(coverId)) {
-                const size = 320;   // Desired image size (can be 80, 160, 320, 640, or 1280)
+                const size = 320; // Desired image size (can be 80, 160, 320, 640, or 1280)
                 const formattedId = String(coverId).replace(/-/g, '/');
                 image = `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
             }
@@ -126,9 +126,9 @@
         const totalMs = audioEl.duration * 1000 || 0;
 
         const startTimestamp = Math.floor(Date.now() - currentMs);
-        const endTimestamp = Math.floor(totalMs > 0 && isFinite(totalMs) && (totalMs - currentMs) > 0
-            ? Date.now() + totalMs - currentMs
-            : null);
+        const endTimestamp = Math.floor(
+            totalMs > 0 && isFinite(totalMs) && totalMs - currentMs > 0 ? Date.now() + totalMs - currentMs : null
+        );
 
         return { startTimestamp, endTimestamp };
     }
@@ -143,11 +143,11 @@
 
         const currentTrack = getCurrentTrackFromQueue();
         if (!currentTrack) {
-            // No track in queue, clear RPC; though this never happens because the 
+            // No track in queue, clear RPC; though this never happens because the
             // queue always has a track, but just in case
             if (Object.keys(lastState).length > 0) {
                 lastState = {};
-                invoke('clear_discord_presence', {}).catch(() => { });
+                invoke('clear_discord_presence', {}).catch(() => {});
             }
             return;
         }
@@ -165,19 +165,8 @@
         lastState = currentState;
 
         // Destructure the current state for easier access
-        const {
-            title,
-            artist,
-            year,
-            album,
-            image,
-            isPaused,
-            isLocal,
-            trackUrl,
-            artistUrl,
-            albumUrl,
-            baseUrl
-        } = currentState;
+        const { title, artist, year, album, image, isPaused, isLocal, trackUrl, artistUrl, albumUrl, baseUrl } =
+            currentState;
 
         // ── Throttle: hold the update and send only when 3s have elapsed ────
         const elapsed = Date.now() - lastSentTime;
@@ -187,7 +176,6 @@
         pendingTimer = setTimeout(() => {
             // Timestamps are computed here — at actual send time — for maximum accuracy.
             const { startTimestamp, endTimestamp } = buildTimestamps(audioEl, isPaused);
-
 
             const payload = {
                 title,
@@ -207,12 +195,13 @@
 
             // Debug logging
             if (window.__DISCORD_RPC_DEBUG__) {
-                const held = elapsed >= MIN_UPDATE_INTERVAL_MS ? 'immediate' : `${MIN_UPDATE_INTERVAL_MS - elapsed}ms hold`;
+                const held =
+                    elapsed >= MIN_UPDATE_INTERVAL_MS ? 'immediate' : `${MIN_UPDATE_INTERVAL_MS - elapsed}ms hold`;
                 console.log(`[Discord RPC] Sending after ${held}`);
                 console.log('[Discord RPC] Payload:', JSON.stringify(payload, null, 2));
             }
 
-            invoke('update_discord_presence', { payload }).catch(() => { });
+            invoke('update_discord_presence', { payload }).catch(() => {});
             lastAudioTime = audioEl.currentTime || 0;
             lastSentTime = Date.now();
             lastUpdateTime = lastSentTime;
@@ -260,7 +249,7 @@
                     syncRPCTime();
                 }
             });
-            audio.dataset.rpcAttached = "true";
+            audio.dataset.rpcAttached = 'true';
         }
     }
 
@@ -278,7 +267,7 @@
                 // Queue changed - update immediately
                 updateRPC(true);
             }
-        } catch (e) { }
+        } catch (e) {}
     }
 
     // ---------------------------------------------------------------------------
