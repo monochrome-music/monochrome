@@ -7,7 +7,7 @@ type Params = Record<string, string | number | undefined | null>;
 class ResponseError extends Error {
     status: number;
     constructor(status: number, message: string) {
-        super(message);
+        super(message || `Request failed with status ${status}`);
         this.status = status;
     }
 }
@@ -1570,7 +1570,11 @@ class HiFiClient {
             const itemsUrl = wrapTidalUrl(
                 `https://tidal.com/v1/mixes/${mixId}/items?countryCode=${countryCode}&locale=en_US&deviceType=BROWSER`
             );
-            const data = await this.#fetchJson<{ items: any[]; totalNumberOfItems: number }>(itemsUrl, undefined, signal);
+            const data = await this.#fetchJson<{ items: any[]; totalNumberOfItems: number }>(
+                itemsUrl,
+                undefined,
+                signal
+            );
             if (data?.items?.length > 0) {
                 const firstTrack = data.items[0]?.item || data.items[0]?.track || data.items[0];
                 if (firstTrack && String(firstTrack.id) === String(id)) {

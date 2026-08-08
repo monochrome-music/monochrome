@@ -588,6 +588,36 @@ class AudioContextManager {
         }
     }
 
+    createCrossfadeOutput(audioElement) {
+        if (!this.audioContext || !audioElement) return null;
+
+        try {
+            if (!this.sources.has(audioElement)) {
+                this.sources.set(audioElement, this.audioContext.createMediaElementSource(audioElement));
+            }
+            const source = this.sources.get(audioElement);
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = 0;
+            source.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+
+            return {
+                gainNode,
+                disconnect() {
+                    try {
+                        source.disconnect(gainNode);
+                    } catch {}
+                    try {
+                        gainNode.disconnect();
+                    } catch {}
+                },
+            };
+        } catch (error) {
+            console.warn('Unable to create crossfade output:', error);
+            return null;
+        }
+    }
+
     /**
      * Connect the audio graph based on EQ and mono audio state.
      * Uses connect-before-disconnect ordering to avoid audio dropouts:

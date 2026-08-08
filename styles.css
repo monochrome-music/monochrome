@@ -3824,10 +3824,43 @@ input:checked + .slider::before {
 
 .progress-bar.has-waveform.waveform-loaded {
     height: 28px;
+    background: transparent;
+    overflow: hidden;
+}
+
+.progress-bar.has-waveform.waveform-loaded::before {
+    display: none;
 }
 
 .progress-bar.has-waveform.waveform-loaded .progress-fill {
-    background-color: var(--primary);
+    top: 0;
+    height: 100%;
+    transform: none;
+    overflow: hidden;
+    background: transparent;
+    z-index: 1;
+}
+
+.progress-bar.has-waveform.waveform-loaded .waveform-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--waveform-geometry-width);
+    min-width: var(--waveform-geometry-width);
+    max-width: none;
+    height: 100%;
+    object-fit: fill;
+    pointer-events: none;
+    filter: invert(1);
+    user-select: none;
+}
+
+.progress-bar.has-waveform.waveform-loaded > .waveform-unplayed {
+    opacity: 0.16;
+}
+
+.progress-bar.has-waveform.waveform-loaded .waveform-played {
+    opacity: 0.9;
 }
 
 .progress-bar.has-waveform.waveform-loaded .progress-fill::after {
@@ -5334,7 +5367,8 @@ input:checked + .slider::before {
     border-left: 3px solid var(--muted-foreground);
 }
 
-#download-notifications, #support-notifications {
+#download-notifications,
+#support-notifications {
     position: fixed;
     bottom: calc(max(env(safe-area-inset-bottom), 0px) + 12px);
     right: 20px;
@@ -5345,7 +5379,8 @@ input:checked + .slider::before {
     gap: 0.5rem;
 }
 
-.download-task, .support-banner {
+.download-task,
+.support-banner {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -11498,6 +11533,21 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
     #fullscreen-cover-overlay .fs-volume-bar {
         width: 100%;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-top-actions {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    #fullscreen-cover-overlay #close-fullscreen-cover-btn {
+        position: static !important;
+        display: flex !important;
+        margin-left: 0;
+        height: 38px;
+        width: 38px;
     }
 }
 
