@@ -11534,6 +11534,21 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     #fullscreen-cover-overlay .fs-volume-bar {
         width: 100%;
     }
+
+    #fullscreen-cover-overlay .fullscreen-top-actions {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    #fullscreen-cover-overlay #close-fullscreen-cover-btn {
+        position: static !important;
+        display: flex !important;
+        margin-left: 0;
+        height: 38px;
+        width: 38px;
+    }
 }
 
 /* ==========================================
