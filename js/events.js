@@ -33,6 +33,7 @@ import { LyricsManager } from './lyrics.js';
 import { Player } from './player.js';
 
 let currentTrackIdForWaveform = null;
+let copiedTracks = [];
 
 const DONATION_PROMPT_EVERY = 10;
 const DONATION_PLAY_COUNT_KEY = 'donation-prompt-play-count';
@@ -229,6 +230,66 @@ function toggleTrackSelection(trackItem, ctrlHeld, shiftHeld) {
     trackSelection.isSelecting = trackSelection.selectedIds.size > 0;
     document.body.classList.toggle('multi-select-mode', trackSelection.isSelecting);
 }
+
+
+// logic for ctrl+a, ctrl+c and ctrl v for copy pasting tracks to different playlists or something
+document.addEventListener('keydown', async (e) => {
+    const el = document.activeElement;
+    if (['INPUT', 'TEXTAREA'].includes(el?.tagName) || el?.isContentEditable) return;
+
+    const key = e.key.toLowerCase();
+    if (!(e.ctrlKey || e.metaKey)) return;
+
+    if (key === 'a') {
+        const list = document.getElementById('playlist-detail-tracklist');
+        const items = list?.querySelectorAll('.track-item');
+        if (!items?.length) return;
+
+        e.preventDefault();
+        items.forEach(item => {
+            const id = item.dataset.trackId;
+            if (id) {
+                trackSelection.selectedIds.add(id);
+                item.classList.add('selected');
+                updateCheckbox(item.querySelector('.track-checkbox'), true);
+            }
+        });
+        trackSelection.lastClickedId = null;
+    }
+
+    if (key === 'c') {
+        if (!trackSelection.selectedIds.size) return;
+
+        const list = document.getElementById('playlist-detail-tracklist');
+        if (!list) return;
+
+        const tracks = [...list.querySelectorAll('.track-item')]
+            .filter(item => trackSelection.selectedIds.has(item.dataset.trackId))
+            .map(item => trackDataStore.get(item))
+            .filter(Boolean);
+
+        if (!tracks.length) return;
+        copiedTracks = tracks.map(track => ({ ...track }));
+        e.preventDefault();
+        console.log(`copied ${copiedTracks.length}`);
+    }
+
+    if (key === 'v') {
+        if (!copiedTracks.length) return;
+        const match = window.location.pathname.match(/^\/userplaylist\/([^/]+)$/);
+        if (!match) return;
+        e.preventDefault();
+        try {
+            const playlist = await db.addTracksToPlaylist(match[1], copiedTracks);
+            window.dispatchEvent(new CustomEvent('playlist-refresh', {
+                detail: { playlist }
+            }));
+            alert("tracks pasted. refresh page to see changes");
+        } catch (error) {
+            console.error(error);
+        }
+    }
+});
 
 async function showMultiSelectPlaylistModal(tracks) {
     const modal = document.createElement('div');
