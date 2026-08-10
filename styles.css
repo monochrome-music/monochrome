@@ -4781,6 +4781,33 @@ input:checked + .slider::before {
     box-shadow: 0 2px 4px rgb(0, 0, 0, 0.3);
 }
 
+.volume-bar, .fs-volume-bar {
+    position: relative;
+}
+.volume-tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    background: rgba(20, 20, 20, 0.9);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 10;
+}
+.volume-bar:hover #volume-tooltip,
+.fs-volume-bar:hover #fs-volume-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
 @media (max-width: 768px) {
     .fullscreen-volume-container {
         gap: 0.75rem;
