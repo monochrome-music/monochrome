@@ -126,7 +126,6 @@ export async function applyAudioPostProcessing(
     }
 
     // Source is lossless but user requested lossy quality (HIGH/LOW).
-    // This can happen when Qobuz returns FLAC regardless of the quality param.
     // Transcode to AAC to match expected lossy output.
     if (sourceIsLossless && !statedLossless && !isCustomFormat(quality)) {
         try {

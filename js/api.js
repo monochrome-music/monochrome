@@ -1824,81 +1824,7 @@ export class LosslessAPI {
         return result;
     }
 
-    async getQobuzStreamUrl(isrc, quality = 'LOSSLESS') {
-        return null; // Temporarily disabled
-        let qobuzInstances = [];
-        try {
-            qobuzInstances = await this.settings.getInstances('qobuz');
-        } catch {
-            // ignore
-        }
 
-        if (!qobuzInstances || qobuzInstances.length === 0) {
-            return null;
-        }
-
-        for (const instance of qobuzInstances) {
-            const rawUrl = typeof instance === 'string' ? instance : instance?.url;
-            if (!rawUrl || typeof rawUrl !== 'string') continue;
-            const baseUrl = rawUrl.replace(/\/+$/, '');
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-                const trackRes = await fetch(
-                    getProxyUrl(`${baseUrl}/api/get-music?q=${encodeURIComponent(isrc)}&offset=0`),
-                    {
-                        signal: controller.signal,
-                    }
-                );
-                clearTimeout(timeoutId);
-                if (!trackRes.ok) continue;
-                const trackJson = await trackRes.json();
-
-                const tracks = trackJson.data?.tracks?.items || [];
-                const match = tracks.find((t) => t.isrc?.toLowerCase() === isrc.toLowerCase()) || tracks[0];
-
-                if (match && match.id) {
-                    const qobuzTrackId = match.id;
-                    const qobuzQualityMap = {
-                        HI_RES_LOSSLESS: '27',
-                        LOSSLESS: '6',
-                        HIGH: '5',
-                        LOW: '5',
-                    };
-                    const qobuzQuality = qobuzQualityMap[quality] || '6';
-
-                    const streamController = new AbortController();
-                    const streamTimeoutId = setTimeout(() => streamController.abort(), 8000);
-
-                    const streamRes = await fetch(
-                        `${baseUrl}/api/download-music?track_id=${qobuzTrackId}&quality=${qobuzQuality}`,
-                        { signal: streamController.signal }
-                    );
-                    clearTimeout(streamTimeoutId);
-                    if (!streamRes.ok) continue;
-                    const streamJson = await streamRes.json();
-
-                    if (streamJson.success && streamJson.data && streamJson.data.url) {
-                        let rgInfo = null;
-                        if (match.audio_info) {
-                            rgInfo = {
-                                trackReplayGain: match.audio_info.replaygain_track_gain,
-                                trackPeakAmplitude: match.audio_info.replaygain_track_peak,
-                                albumReplayGain: match.audio_info.replaygain_album_gain,
-                                albumPeakAmplitude: match.audio_info.replaygain_album_peak,
-                            };
-                        }
-                        return { url: streamJson.data.url, rgInfo };
-                    }
-                }
-            } catch (e) {
-                console.warn(`Qobuz instance ${baseUrl} failed for ISRC ${isrc}:`, e);
-                continue;
-            }
-        }
-        return null;
-    }
 
     getDeezerStreamFormat(quality = 'LOSSLESS') {
         const map = {
@@ -2757,7 +2683,6 @@ export class LosslessAPI {
             if (selectedSource === 'mono') provider = 'monochrome';
             else if (selectedSource === 'amazon') provider = 'amazon';
             else if (selectedSource === 'tidal') provider = 'tidal';
-            else if (selectedSource === 'qobuz') provider = 'qobuz';
 
             const isManifest =
                 resource.kind === 'manifest' ||
@@ -2868,9 +2793,7 @@ export class LosslessAPI {
                 ...baseResult,
                 url: sourceUrl,
                 playbackType: 'direct',
-                mimeType:
-                    resource.mime_type ||
-                    (provider === 'qobuz' ? (normalizedQuality === 'HIGH' ? 'audio/mpeg' : 'audio/flac') : 'audio/mp4'),
+                mimeType: resource.mime_type || 'audio/mp4',
             };
         } catch (error) {
             console.warn(`Unified Playback failed for track ${tidalTrackId}:`, error);
@@ -2977,28 +2900,9 @@ export class LosslessAPI {
             return unifiedResult;
         }
 
-        let qobuzResult = null;
         let deezerResult = null;
         if (track?.isrc) {
-            qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
-            if (!qobuzResult?.url) {
-                deezerResult = await this.getDeezerStreamUrl(track.isrc, quality);
-            }
-        }
-
-        if (qobuzResult?.url) {
-            const result = {
-                url: qobuzResult.url,
-                rgInfo: qobuzResult.rgInfo || {
-                    trackReplayGain: 0,
-                    trackPeakAmplitude: 1,
-                    albumReplayGain: 0,
-                    albumPeakAmplitude: 1,
-                },
-                provider: 'qobuz',
-            };
-            this.streamCache.set(cacheKey, result);
-            return result;
+            deezerResult = await this.getDeezerStreamUrl(track.isrc, quality);
         }
 
         if (deezerResult?.url) {
@@ -3021,8 +2925,8 @@ export class LosslessAPI {
         notifyAudioSourceMissing();
         throw new Error(
             track?.isrc
-                ? 'Could not resolve stream URL from Unified Playback, Qobuz, or Deezer'
-                : 'Could not resolve stream URL: Unified Playback failed and the track has no ISRC for Qobuz/Deezer lookup'
+                ? 'Could not resolve stream URL from Unified Playback or Deezer'
+                : 'Could not resolve stream URL: Unified Playback failed and the track has no ISRC for Deezer lookup'
         );
     }
 
@@ -3110,7 +3014,6 @@ export class LosslessAPI {
             lookup = new PlaybackInfo(await this.getTrackFromDevMode(id, cleanQuality));
         } else {
             let unifiedResult = null;
-            let qobuzResult = null;
             let deezerResult = null;
 
             const tryAtmosDownload =
@@ -3142,22 +3045,17 @@ export class LosslessAPI {
 
             if (!unifiedResult?.url) {
                 if (track?.isrc) {
-                    qobuzResult = await this.getQobuzStreamUrl(track.isrc, cleanQuality);
-                }
-                if (!qobuzResult?.url) {
-                    if (track?.isrc) {
-                        deezerResult = await this.getDeezerStreamUrl(track.isrc, cleanQuality);
-                    }
+                    deezerResult = await this.getDeezerStreamUrl(track.isrc, cleanQuality);
                 }
             }
 
-            const externalResult = unifiedResult?.url ? unifiedResult : qobuzResult?.url ? qobuzResult : deezerResult;
+            const externalResult = unifiedResult?.url ? unifiedResult : deezerResult;
             if (externalResult?.url) {
                 externalStreamUrl = externalResult.url;
                 externalRgInfo = externalResult.rgInfo;
                 externalStreamType = externalResult.playbackType || null;
                 externalProvider =
-                    externalResult.provider || (unifiedResult?.url ? 'unified' : qobuzResult?.url ? 'qobuz' : 'deezer');
+                    externalResult.provider || (unifiedResult?.url ? 'unified' : 'deezer');
                 externalDecryptionKey = externalResult.decryptionKey || null;
                 externalKeyId = externalResult.keyId || null;
                 externalMimeType = externalResult.mimeType || null;
@@ -3191,8 +3089,8 @@ export class LosslessAPI {
                     notifyAudioSourceMissing();
                     throw new Error(
                         track?.isrc
-                            ? 'Could not resolve audio stream from Unified Playback, Qobuz, or Deezer'
-                            : 'Cannot resolve audio stream: Unified Playback failed and track has no ISRC for Qobuz/Deezer lookup'
+                            ? 'Could not resolve audio stream from Unified Playback or Deezer'
+                            : 'Cannot resolve audio stream: Unified Playback failed and track has no ISRC for Deezer lookup'
                     );
                 }
             }
@@ -3262,9 +3160,7 @@ export class LosslessAPI {
             result.externalMediaMimeType = externalMediaMimeType;
             result.externalSourceUrl = externalSourceUrl;
         }
-        if (externalProvider === 'qobuz') {
-            result.qobuzStreamUrl = externalStreamUrl;
-        }
+
         if (externalProvider === 'amazon') {
             result.amazonMusicStreamUrl = externalSourceUrl || externalStreamUrl;
         }
@@ -3318,7 +3214,7 @@ export class LosslessAPI {
                 : await this.enrichTrack(inputTrackObj || id, { downloadQuality });
             const { lookup, enrichedTrack, isVideo } = enriched;
 
-            let streamUrl = enriched.externalStreamUrl || enriched.qobuzStreamUrl || null;
+            let streamUrl = enriched.externalStreamUrl || null;
             let postProcessingQuality = lookup.info?.audioQuality ?? null;
             let blob;
 

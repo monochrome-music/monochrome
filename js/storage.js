@@ -6,7 +6,7 @@ import { isIos, isSafari } from './platform-detection.js';
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances-v9',
     INSTANCES_URLS: [],
-    defaultInstances: { api: [], streaming: [], qobuz: [] },
+    defaultInstances: { api: [], streaming: [] },
     userInstances: null,
     instancesLoaded: false,
     _loadPromise: null,
@@ -15,11 +15,10 @@ export const apiSettings = {
         if (this.userInstances) return this.userInstances;
         try {
             const stored = localStorage.getItem('monochrome-user-api-instances-v1');
-            const parsed = stored ? JSON.parse(stored) : { api: [], streaming: [], qobuz: [] };
-            if (!parsed.qobuz) parsed.qobuz = [];
+            const parsed = stored ? JSON.parse(stored) : { api: [], streaming: [] };
             this.userInstances = parsed;
         } catch {
-            this.userInstances = { api: [], streaming: [], qobuz: [] };
+            this.userInstances = { api: [], streaming: [] };
         }
         return this.userInstances;
     },
@@ -78,14 +77,13 @@ export const apiSettings = {
                 this.defaultInstances = {
                     api: [{ url: 'https://lol.samidy.workers.dev', version: '2.10' }],
                     streaming: [],
-                    qobuz: [],
                 };
                 this.instancesLoaded = true;
                 this._loadPromise = null;
                 return this.defaultInstances;
             }
 
-            let groupedInstances = { api: [], streaming: [], qobuz: [] };
+            let groupedInstances = { api: [], streaming: [] };
 
             const isBlockedInstance = (item) => {
                 const url = typeof item === 'string' ? item : item.url;
@@ -102,14 +100,6 @@ export const apiSettings = {
                 groupedInstances.streaming = [...groupedInstances.api];
             }
 
-            if (data.qobuz && Array.isArray(data.qobuz)) {
-                groupedInstances.qobuz = data.qobuz;
-            }
-
-            // Ensure default Qobuz instance is always available
-            if (groupedInstances.qobuz.length === 0) {
-                groupedInstances.qobuz = [{ url: 'https://qobuz.kennyy.com.br', version: '1.0' }];
-            }
             if (groupedInstances.api.length === 0) {
                 groupedInstances.api = [{ url: 'https://lol.samidy.workers.dev', version: '2.10' }];
             }
@@ -216,10 +206,6 @@ export const apiSettings = {
 
         if (instances.streaming && instances.streaming.length) {
             instances.streaming = prioritySort([...instances.streaming]);
-        }
-
-        if (instances.qobuz && instances.qobuz.length) {
-            instances.qobuz = shuffle([...instances.qobuz]);
         }
 
         this.saveInstances(instances);
