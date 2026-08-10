@@ -377,6 +377,7 @@ const sleepTimerBtnDesktop = document.getElementById('sleep-timer-btn-desktop');
 const _volumeBar = document.getElementById('volume-bar');
 const volumeFill = document.getElementById('volume-fill');
 const volumeBtn = document.getElementById('volume-btn');
+const volumeTooltips = document.querySelectorAll('.volume-tooltip');
 
 const updateVolumeUI = () => {
     const activeEl = Player.instance.activeElement;
@@ -384,8 +385,12 @@ const updateVolumeUI = () => {
     const volume = Player.instance.userVolume;
     volumeBtn.innerHTML = muted || volume === 0 ? SVG_MUTE(20) : SVG_VOLUME(20);
     const effectiveVolume = muted ? 0 : volume * 100;
+    const roundedVolume = Math.round(effectiveVolume);
     volumeFill.style.setProperty('--volume-level', `${effectiveVolume}%`);
     volumeFill.style.width = `${effectiveVolume}%`;
+    volumeTooltips.forEach((tooltip) => {
+        tooltip.textContent = `${roundedVolume}%`;
+    });
 };
 
 function clearSelection() {
