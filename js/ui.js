@@ -4460,7 +4460,12 @@ export class UIRenderer {
                 artists: finalArtists,
                 albums: finalAlbums,
                 playlists: finalPlaylists,
-                communityPlaylists: await searchCommunityPlaylists(query),
+                communityPlaylists: await searchCommunityPlaylists(query, signal).catch((err) => {
+                    if (err.name === 'AbortError') {
+                        throw err;
+                    }
+                    return [];
+                }),
                 artistsEnriched: false,
                 rendered: {},
             };
