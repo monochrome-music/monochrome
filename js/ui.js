@@ -6959,10 +6959,7 @@ export class UIRenderer {
 
     renderApiSettings() {
         const container = document.getElementById('api-instance-list');
-        Promise.allSettled([
-            this.api.settings.getInstances('api'),
-            this.api.settings.getInstances('streaming'),
-        ])
+        Promise.allSettled([this.api.settings.getInstances('api'), this.api.settings.getInstances('streaming')])
             .then((results) => {
                 const apiInstances = results[0].status === 'fulfilled' ? results[0].value : [];
                 const streamingInstances = results[1].status === 'fulfilled' ? results[1].value : [];

@@ -1824,8 +1824,6 @@ export class LosslessAPI {
         return result;
     }
 
-
-
     getDeezerStreamFormat(quality = 'LOSSLESS') {
         const map = {
             HI_RES_LOSSLESS: 'FLAC',
@@ -3054,8 +3052,7 @@ export class LosslessAPI {
                 externalStreamUrl = externalResult.url;
                 externalRgInfo = externalResult.rgInfo;
                 externalStreamType = externalResult.playbackType || null;
-                externalProvider =
-                    externalResult.provider || (unifiedResult?.url ? 'unified' : 'deezer');
+                externalProvider = externalResult.provider || (unifiedResult?.url ? 'unified' : 'deezer');
                 externalDecryptionKey = externalResult.decryptionKey || null;
                 externalKeyId = externalResult.keyId || null;
                 externalMimeType = externalResult.mimeType || null;

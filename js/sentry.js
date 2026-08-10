@@ -15,10 +15,7 @@ export function initSentry() {
     Sentry.init({
         dsn: SENTRY_DSN,
         release: '5.0.0',
-        integrations: [
-            Sentry.browserTracingIntegration(),
-            Sentry.replayIntegration(),
-        ],
+        integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
         // Performance Monitoring
         tracesSampleRate: 1.0,
         tracePropagationTargets: ['localhost', /^https:\/\/.*\.edideaur\.works/],
