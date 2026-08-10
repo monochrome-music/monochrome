@@ -1,7 +1,4 @@
-const PANORA_INSTANCES = [
-    'https://panora-api-us.dyamuh.dev',
-    'https://panora-api-de.dyamuh.dev',
-];
+const PANORA_INSTANCES = ['https://panora-api-us.dyamuh.dev', 'https://panora-api-de.dyamuh.dev'];
 
 const REQUEST_TIMEOUT_MS = 5000;
 const MAX_CACHE_ENTRIES = 50;
@@ -36,7 +33,7 @@ function getCommunityPlaylistCache() {
 function saveCommunityPlaylist(playlist) {
     try {
         const cache = getCommunityPlaylistCache();
-        
+
         delete cache[playlist.uuid];
         cache[playlist.uuid] = playlist;
 
@@ -49,16 +46,11 @@ function saveCommunityPlaylist(playlist) {
         }
 
         localStorage.setItem(COMMUNITY_PLAYLIST_CACHE_KEY, JSON.stringify(cache));
-    } catch {
-        
-    }
+    } catch {}
 }
 
 export async function searchCommunityPlaylists(query, signal) {
-    const response = await getPanora(
-        `/playlists/?source=ytm&query=${encodeURIComponent(query)}`,
-        signal
-    );
+    const response = await getPanora(`/playlists/?source=ytm&query=${encodeURIComponent(query)}`, signal);
 
     const data = await response.json();
 
@@ -94,10 +86,7 @@ export async function getCommunityPlaylist(id, signal) {
         numberOfTracks: 0,
     };
 
-    const response = await getPanora(
-        `/tracklist/?source=ytm&query=${encodeURIComponent(id)}`,
-        signal
-    );
+    const response = await getPanora(`/tracklist/?source=ytm&query=${encodeURIComponent(id)}`, signal);
 
     const data = await response.json();
 

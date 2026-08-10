@@ -191,11 +191,11 @@ export class MusicAPI {
     }
 
     async getPlaylist(id, _provider = null) {
-    if (id?.startsWith('VL')) {
-        return getCommunityPlaylist(id);
-    }
+        if (id?.startsWith('VL')) {
+            return getCommunityPlaylist(id);
+        }
 
-    return this.tidalAPI.getPlaylist(id);
+        return this.tidalAPI.getPlaylist(id);
     }
 
     async getMix(id) {
