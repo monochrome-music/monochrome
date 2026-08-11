@@ -118,7 +118,8 @@ describe('utils.js', () => {
             expect(utils.normalizeQualityToken('HI_RES_LOSSLESS')).toBe('HI_RES_LOSSLESS');
             expect(utils.normalizeQualityToken('MASTER')).toBe('HI_RES_LOSSLESS');
             expect(utils.normalizeQualityToken('HIFI')).toBe('LOSSLESS');
-            expect(utils.normalizeQualityToken('ATMOS')).toBe('DOLBY_ATMOS');
+            expect(utils.normalizeQualityToken('ATMOS')).toBe('DOLBY_ATMOS_EAC3_HIGH');
+            expect(utils.normalizeQualityToken('DOLBY_ATMOS_AC4_LOW')).toBe('DOLBY_ATMOS_AC4_LOW');
         });
 
         test('returns null for unknown quality', () => {
@@ -130,7 +131,7 @@ describe('utils.js', () => {
         test('picks the highest quality from list', () => {
             expect(utils.pickBestQuality(['LOSSLESS', 'HI_RES_LOSSLESS', 'HIGH'])).toBe('HI_RES_LOSSLESS');
             expect(utils.pickBestQuality(['LOW', 'HIGH'])).toBe('HIGH');
-            expect(utils.pickBestQuality(['DOLBY_ATMOS', 'HI_RES_LOSSLESS'])).toBe('DOLBY_ATMOS');
+            expect(utils.pickBestQuality(['DOLBY_ATMOS_EAC3_HIGH', 'HI_RES_LOSSLESS'])).toBe('DOLBY_ATMOS_EAC3_HIGH');
         });
     });
 
@@ -286,6 +287,24 @@ describe('utils.js', () => {
             });
 
             expect(badge).toContain('HD 24/96');
+            expect(badge).not.toContain('HD FLAC');
+        });
+
+        test('shows Atmos separately from lossless and includes delivered technical details', () => {
+            const badge = utils.createQualityBadgeHTML({
+                playbackQualityInfo: {
+                    codec: 'ac4',
+                    quality: 'DOLBY_ATMOS_AC4_HIGH',
+                    lossless: false,
+                    sampleRateHz: 48000,
+                    bitrateKbps: 261,
+                    channels: 6,
+                    channelLayout: '5.1',
+                },
+            });
+
+            expect(badge).toContain('quality-atmos');
+            expect(badge).toContain('Dolby Atmos · AC-4 · 261 kbps · 48 kHz · 5.1');
             expect(badge).not.toContain('HD FLAC');
         });
     });

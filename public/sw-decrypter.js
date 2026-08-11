@@ -1,4 +1,4 @@
-self.__AMAZON_SW_DECRYPTER_VERSION__ = '2026-08-06-crossfade-v10';
+self.__AMAZON_SW_DECRYPTER_VERSION__ = '2026-08-09-atmos-v11';
 console.log(`[SW Decrypter] Loaded ${self.__AMAZON_SW_DECRYPTER_VERSION__}`);
 
 // A native HLS media element asks for the playlist more than once while it is
@@ -88,6 +88,8 @@ function getDecryptedContentType(targetCodec) {
     if (targetCodec === 'flac-raw') return 'audio/flac';
     if (targetCodec === 'mp4a') return 'audio/mp4; codecs="mp4a.40.2"';
     if (targetCodec === 'opus') return 'audio/mp4; codecs="Opus"';
+    if (targetCodec === 'eac3') return 'audio/mp4; codecs="ec-3"';
+    if (targetCodec === 'ac4') return 'audio/mp4; codecs="ac-4"';
     return 'audio/mp4';
 }
 
@@ -572,6 +574,16 @@ class Mp4DecryptTransformer {
                         boxData[i + 1] = 0x70; // p
                         boxData[i + 2] = 0x75; // u
                         boxData[i + 3] = 0x73; // s
+                    } else if (this.targetCodec === 'eac3') {
+                        boxData[i] = 0x65; // e
+                        boxData[i + 1] = 0x63; // c
+                        boxData[i + 2] = 0x2d; // -
+                        boxData[i + 3] = 0x33; // 3
+                    } else if (this.targetCodec === 'ac4') {
+                        boxData[i] = 0x61; // a
+                        boxData[i + 1] = 0x63; // c
+                        boxData[i + 2] = 0x2d; // -
+                        boxData[i + 3] = 0x34; // 4
                     }
                 }
 

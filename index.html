@@ -4209,16 +4209,44 @@
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Streaming Quality</span>
-                                        <span class="description">Default playback quality for streams</span>
+                                        <span class="description" id="streaming-quality-sources"
+                                            >Default playback quality for streams</span
+                                        >
                                     </div>
                                     <select id="streaming-quality-setting">
-                                        <option value="auto">Auto (Adaptive)</option>
-                                        <option value="DOLBY_ATMOS">Dolby Atmos</option>
-                                        <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
-                                        <option value="LOSSLESS">Lossless (16-bit)</option>
-                                        <option value="HIGH">AAC 320kbps</option>
-                                        <option value="LOW">AAC 96kbps</option>
+                                        <option value="auto" data-sources="Amazon and Mono">Auto (Adaptive)</option>
+                                        <option value="DOLBY_ATMOS_EAC3_HIGH" data-sources="Amazon and Tidal">
+                                            Dolby Atmos — E-AC-3 High
+                                        </option>
+                                        <option value="DOLBY_ATMOS_EAC3_LOW" data-sources="Amazon">
+                                            Dolby Atmos — E-AC-3 Low
+                                        </option>
+                                        <option value="DOLBY_ATMOS_AC4_HIGH" data-sources="Amazon">
+                                            Dolby Atmos — AC-4 High
+                                        </option>
+                                        <option value="DOLBY_ATMOS_AC4_LOW" data-sources="Amazon">
+                                            Dolby Atmos — AC-4 Low
+                                        </option>
+                                        <option value="HI_RES_LOSSLESS" data-sources="Amazon and Mono">
+                                            Hi-Res Lossless (24-bit)
+                                        </option>
+                                        <option value="LOSSLESS" data-sources="Amazon and Mono">
+                                            Lossless (16-bit)
+                                        </option>
+                                        <option value="HIGH" data-sources="Amazon">High</option>
+                                        <option value="LOW" data-sources="Amazon">Low</option>
                                     </select>
+                                </div>
+                                <div
+                                    class="setting-item codec-warning"
+                                    id="atmos-streaming-warning"
+                                    role="status"
+                                    aria-live="polite"
+                                    style="display: none"
+                                >
+                                    <div class="info setting-details">
+                                        <span class="description" id="atmos-streaming-warning-text"></span>
+                                    </div>
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
@@ -5491,14 +5519,31 @@
                                     <div class="setting-item">
                                         <div class="info">
                                             <span class="label">Download Quality</span>
-                                            <span class="description">Quality for track downloads</span>
+                                            <span class="description" id="download-quality-sources"
+                                                >Quality for track downloads</span
+                                            >
                                         </div>
                                         <select id="download-quality-setting">
-                                            <option value="DOLBY_ATMOS">Dolby Atmos</option>
-                                            <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
-                                            <option value="LOSSLESS">Lossless (16-bit)</option>
-                                            <option value="HIGH">AAC 320kbps</option>
-                                            <option value="LOW">AAC 96kbps</option>
+                                            <option value="DOLBY_ATMOS_EAC3_HIGH" data-sources="Amazon and Tidal">
+                                                Dolby Atmos — E-AC-3 High
+                                            </option>
+                                            <option value="DOLBY_ATMOS_EAC3_LOW" data-sources="Amazon">
+                                                Dolby Atmos — E-AC-3 Low
+                                            </option>
+                                            <option value="DOLBY_ATMOS_AC4_HIGH" data-sources="Amazon">
+                                                Dolby Atmos — AC-4 High
+                                            </option>
+                                            <option value="DOLBY_ATMOS_AC4_LOW" data-sources="Amazon">
+                                                Dolby Atmos — AC-4 Low
+                                            </option>
+                                            <option value="HI_RES_LOSSLESS" data-sources="Amazon and Mono">
+                                                Hi-Res Lossless (24-bit)
+                                            </option>
+                                            <option value="LOSSLESS" data-sources="Amazon and Mono">
+                                                Lossless (16-bit)
+                                            </option>
+                                            <option value="HIGH" data-sources="Amazon">High</option>
+                                            <option value="LOW" data-sources="Amazon">Low</option>
                                         </select>
                                     </div>
                                     <div class="setting-item" id="hi-res-download-warning" style="display: none">

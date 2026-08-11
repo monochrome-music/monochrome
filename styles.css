@@ -3128,6 +3128,15 @@ body.multi-select-mode .track-item:hover {
     font-size: 0.8rem;
 }
 
+.setting-item.codec-warning {
+    color: var(--color-warning);
+}
+
+.setting-item.codec-warning .description {
+    color: inherit;
+    text-wrap: pretty;
+}
+
 .setting-item select,
 .setting-item input[type='number'] {
     background-color: var(--input);

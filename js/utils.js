@@ -12,17 +12,30 @@ export const REPEAT_MODE = {
 };
 
 export const AUDIO_QUALITIES = {
-    DOLBY_ATMOS: 'DOLBY_ATMOS',
+    DOLBY_ATMOS_EAC3_HIGH: 'DOLBY_ATMOS_EAC3_HIGH',
+    DOLBY_ATMOS_EAC3_LOW: 'DOLBY_ATMOS_EAC3_LOW',
+    DOLBY_ATMOS_AC4_HIGH: 'DOLBY_ATMOS_AC4_HIGH',
+    DOLBY_ATMOS_AC4_LOW: 'DOLBY_ATMOS_AC4_LOW',
     HI_RES_LOSSLESS: 'HI_RES_LOSSLESS',
     LOSSLESS: 'LOSSLESS',
     HIGH: 'HIGH',
     LOW: 'LOW',
 };
 
-export const QUALITY_PRIORITY = ['DOLBY_ATMOS', 'HI_RES_LOSSLESS', 'LOSSLESS', 'HIGH', 'LOW'];
+export const ATMOS_QUALITIES = [
+    'DOLBY_ATMOS_EAC3_HIGH',
+    'DOLBY_ATMOS_EAC3_LOW',
+    'DOLBY_ATMOS_AC4_HIGH',
+    'DOLBY_ATMOS_AC4_LOW',
+];
+
+export const QUALITY_PRIORITY = [...ATMOS_QUALITIES, 'HI_RES_LOSSLESS', 'LOSSLESS', 'HIGH', 'LOW'];
 
 export const QUALITY_TOKENS = {
-    DOLBY_ATMOS: ['DOLBY_ATMOS', 'ATMOS', 'EAC3_JOC'],
+    DOLBY_ATMOS_EAC3_HIGH: ['DOLBY_ATMOS_EAC3_HIGH', 'DOLBY_ATMOS', 'ATMOS', 'EAC3_JOC'],
+    DOLBY_ATMOS_EAC3_LOW: ['DOLBY_ATMOS_EAC3_LOW'],
+    DOLBY_ATMOS_AC4_HIGH: ['DOLBY_ATMOS_AC4_HIGH'],
+    DOLBY_ATMOS_AC4_LOW: ['DOLBY_ATMOS_AC4_LOW'],
     HI_RES_LOSSLESS: [
         'HI_RES_LOSSLESS',
         'HIRES_LOSSLESS',
@@ -245,7 +258,10 @@ export const getExtensionForQuality = (quality) => {
     switch (quality) {
         case 'LOW':
         case 'HIGH':
-        case 'DOLBY_ATMOS':
+        case 'DOLBY_ATMOS_EAC3_HIGH':
+        case 'DOLBY_ATMOS_EAC3_LOW':
+        case 'DOLBY_ATMOS_AC4_HIGH':
+        case 'DOLBY_ATMOS_AC4_LOW':
             return 'm4a';
         default:
             return 'flac';
@@ -290,10 +306,58 @@ export const normalizeQualityToken = (value) => {
     return null;
 };
 
+export const isAtmosQuality = (value) => {
+    const quality = normalizeQualityToken(value) || sanitizeToken(value);
+    return ATMOS_QUALITIES.includes(quality);
+};
+
+export const isAc4AtmosQuality = (value) => {
+    const quality = normalizeQualityToken(value) || sanitizeToken(value);
+    return quality === 'DOLBY_ATMOS_AC4_HIGH' || quality === 'DOLBY_ATMOS_AC4_LOW';
+};
+
+export const formatAtmosPlaybackDetails = (playbackInfo = {}) => {
+    const rawCodec = String(playbackInfo.codec || '').toLowerCase();
+    const quality = normalizeQualityToken(playbackInfo.quality) || sanitizeToken(playbackInfo.quality);
+    const codec = rawCodec.includes('ac-4') || rawCodec === 'ac4' || quality?.includes('_AC4_') ? 'AC-4' : 'E-AC-3 JOC';
+    const bitrateKbps = Number(playbackInfo.bitrateKbps ?? playbackInfo.bitrate_kbps) || null;
+    const sampleRateHz =
+        Number(
+            playbackInfo.sampleRateHz ??
+                playbackInfo.sample_rate_hz ??
+                playbackInfo.sampleRate ??
+                playbackInfo.sample_rate
+        ) || null;
+    const channelLayout = playbackInfo.channelLayout || playbackInfo.channel_layout || null;
+    const channels = Number(playbackInfo.channels) || null;
+    const details = ['Dolby Atmos', codec];
+    if (bitrateKbps) details.push(`${bitrateKbps} kbps`);
+    if (sampleRateHz) {
+        const sampleRateKHz = sampleRateHz >= 1000 ? sampleRateHz / 1000 : sampleRateHz;
+        details.push(`${Number.isInteger(sampleRateKHz) ? sampleRateKHz : sampleRateKHz.toFixed(1)} kHz`);
+    }
+    if (channelLayout) details.push(channelLayout);
+    else if (channels) details.push(`${channels} channels`);
+    return details.join(' · ');
+};
+
 export const createQualityBadgeHTML = (track) => {
     if (!track || !qualityBadgeSettings.isEnabled()) return '';
 
     const playbackInfo = track.playbackQualityInfo || track;
+    const derivedQuality = deriveTrackQuality(track);
+    const isAtmos =
+        isAtmosQuality(playbackInfo.quality) ||
+        isAtmosQuality(derivedQuality) ||
+        track?.audioQuality === 'DOLBY_ATMOS' ||
+        track?.quality === 'DOLBY_ATMOS' ||
+        track?.audioModes?.includes('DOLBY_ATMOS');
+
+    if (isAtmos) {
+        const title = formatAtmosPlaybackDetails(playbackInfo);
+        return `<span class="quality-badge quality-atmos" title="${escapeHtml(title)}">${SVG_ATMOS(20)}</span>`;
+    }
+
     const hasDetailedLosslessInfo =
         (playbackInfo.bitDepth || playbackInfo.bit_depth) &&
         (playbackInfo.sampleRateHz ||
@@ -305,17 +369,6 @@ export const createQualityBadgeHTML = (track) => {
         if (badgeText) {
             return `<span class="quality-badge quality-hires" title="${escapeHtml(badgeText)}">${escapeHtml(badgeText)}</span>`;
         }
-    }
-
-    const derivedQuality = deriveTrackQuality(track);
-    const isAtmos =
-        derivedQuality === 'DOLBY_ATMOS' ||
-        track?.audioQuality === 'DOLBY_ATMOS' ||
-        track?.quality === 'DOLBY_ATMOS' ||
-        track?.audioModes?.includes('DOLBY_ATMOS');
-
-    if (isAtmos) {
-        return `<span class="quality-badge quality-atmos" title="Dolby Atmos">${SVG_ATMOS(20)}</span>`;
     }
 
     if (derivedQuality === 'HI_RES_LOSSLESS') {

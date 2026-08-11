@@ -24,7 +24,7 @@ import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.j
 import { createRouter, updateTabTitle, navigate } from './router.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
 import { initializeUIInteractions, updateLocalFilesSupportUI } from './ui-interactions.js';
-import { debounce, getShareUrl, sanitizeForFilename } from './utils.js';
+import { debounce, getShareUrl, normalizeQualityToken, sanitizeForFilename } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { showNotification } from './downloads.js';
@@ -58,7 +58,7 @@ import {
 } from './icons.js';
 import { HiFiClient } from './HiFi.js';
 
-const AMAZON_DECRYPTER_SW_VERSION = '2026-08-06-crossfade-v10';
+const AMAZON_DECRYPTER_SW_VERSION = '2026-08-09-atmos-v11';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
@@ -576,7 +576,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const audioPlayer = document.getElementById('audio-player');
 
     // i love ios and macos!!!! webkit fucking SUCKS BULLSHIT sorry ios/macos heads yall getting lossless only playback
-    const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
+    const storedQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
+    const currentQuality = normalizeQualityToken(storedQuality) || storedQuality;
+    if (currentQuality !== storedQuality) localStorage.setItem('playback-quality', currentQuality);
     await Player.initialize(audioPlayer, MusicAPI.instance, currentQuality);
 
     // Initialize tracker

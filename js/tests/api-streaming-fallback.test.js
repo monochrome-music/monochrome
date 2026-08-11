@@ -8,6 +8,8 @@ vi.mock('../utils.js', () => ({
     getExtensionFromBlob: vi.fn(),
     getTrackDiscNumber: vi.fn(),
     normalizeQualityToken: vi.fn((quality) => quality),
+    isAtmosQuality: vi.fn((quality) => String(quality || '').startsWith('DOLBY_ATMOS_')),
+    isAc4AtmosQuality: vi.fn((quality) => String(quality || '').startsWith('DOLBY_ATMOS_AC4_')),
     getTrackCoverId: vi.fn(),
     getCoverBlob: vi.fn(),
 }));
@@ -52,6 +54,7 @@ vi.mock('../platform-detection.js', () => ({
     isChrome: true,
     canUseNativeAmazonCenc: true,
     getAmazonDecrypterCodec: vi.fn(() => 'flac'),
+    canBrowserStreamAtmosQuality: vi.fn(() => true),
 }));
 vi.mock('../container-classes.js', () => ({
     TrackAlbum: class {},
@@ -82,7 +85,7 @@ describe('LosslessAPI HiFi streaming fallback', () => {
         api = new LosslessAPI(settings);
         vi.spyOn(api, 'getTrackMetadata').mockResolvedValue({ id: '123', isrc: 'TESTISRC123' });
         vi.spyOn(api, 'getUnifiedPlaybackStreamUrl').mockResolvedValue(null);
-        vi.spyOn(api, 'getQobuzStreamUrl').mockResolvedValue(null);
+        vi.spyOn(api, 'getDeezerStreamUrl').mockResolvedValue(null);
         vi.spyOn(api, 'getTrack').mockResolvedValue({
             track: { id: 123, duration: 180 },
             info: {
@@ -98,12 +101,12 @@ describe('LosslessAPI HiFi streaming fallback', () => {
 
     test('reports failure when Unified Playback and ISRC fallbacks cannot resolve', async () => {
         await expect(api.getStreamUrl('123', 'LOSSLESS')).rejects.toThrow(
-            'Could not resolve stream URL from Unified Playback, Qobuz, or Deezer'
+            'Could not resolve stream URL from Unified Playback or Deezer'
         );
         expect(api.getTrack).not.toHaveBeenCalled();
     });
 
-    test('uses Unified Playback before Qobuz when it resolves a stream URL', async () => {
+    test('uses Unified Playback before Deezer when it resolves a stream URL', async () => {
         api.getUnifiedPlaybackStreamUrl.mockResolvedValue({
             url: 'blob:https://app.example/amazon',
             provider: 'amazon',
@@ -131,13 +134,15 @@ describe('LosslessAPI HiFi streaming fallback', () => {
                 albumPeakAmplitude: 1,
             },
         });
-        expect(api.getQobuzStreamUrl).not.toHaveBeenCalled();
+        expect(api.getDeezerStreamUrl).not.toHaveBeenCalled();
         expect(api.getTrack).not.toHaveBeenCalled();
     });
 
-    test('keeps using Qobuz when it resolves a stream URL', async () => {
-        api.getQobuzStreamUrl.mockResolvedValue({
-            url: 'https://audio.example/qobuz.flac',
+    test('uses Deezer when it resolves a fallback stream URL', async () => {
+        api.getDeezerStreamUrl.mockResolvedValue({
+            url: 'https://audio.example/deezer.flac',
+            format: 'FLAC',
+            provider: 'deezer',
             rgInfo: {
                 trackReplayGain: -2,
                 trackPeakAmplitude: 0.8,
@@ -148,7 +153,7 @@ describe('LosslessAPI HiFi streaming fallback', () => {
 
         const result = await api.getStreamUrl('123', 'LOSSLESS');
 
-        expect(result.url).toBe('https://audio.example/qobuz.flac');
+        expect(result.url).toBe('https://audio.example/deezer.flac');
         expect(api.getUnifiedPlaybackStreamUrl).toHaveBeenCalledWith(
             '123',
             'LOSSLESS',
@@ -161,7 +166,7 @@ describe('LosslessAPI HiFi streaming fallback', () => {
         settings.getInstances.mockResolvedValue([]);
 
         await expect(api.getStreamUrl('123', 'LOSSLESS')).rejects.toThrow(
-            'Could not resolve stream URL from Unified Playback, Qobuz, or Deezer'
+            'Could not resolve stream URL from Unified Playback or Deezer'
         );
         expect(api.getTrack).not.toHaveBeenCalled();
     });
