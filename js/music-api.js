@@ -3,6 +3,7 @@
 import { LosslessAPI } from './api.js';
 import { PodcastsAPI } from './podcasts-api.js';
 import { musicProviderSettings } from './storage.js';
+import { getCommunityPlaylist } from './community-playlists.js';
 
 /**
  * MusicAPI - Singleton class that provides a unified interface for accessing music streaming services.
@@ -190,7 +191,10 @@ export class MusicAPI {
     }
 
     async getPlaylist(id, _provider = null) {
-        // Playlists are always Tidal for now
+        if (id?.startsWith('VL')) {
+            return getCommunityPlaylist(id);
+        }
+
         return this.tidalAPI.getPlaylist(id);
     }
 
