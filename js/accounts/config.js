@@ -1,5 +1,5 @@
 // js/accounts/config.js
-import { createAuthClient } from 'https://esm.sh/better-auth/client';
+import { createAuthClient } from 'better-auth/client';
 
 const getBaseURL = () => {
     const local = localStorage.getItem('monochrome-auth-url');
