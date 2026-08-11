@@ -7,6 +7,8 @@ import {
     getExtensionFromBlob,
     getTrackDiscNumber,
     normalizeQualityToken,
+    isAtmosQuality,
+    isAc4AtmosQuality,
     getTrackCoverId,
     getCoverBlob,
 } from './utils.js';
@@ -28,7 +30,7 @@ import { DownloadProgress } from './progressEvents.js';
 import { resolveDownloadTotalBytes } from './downloadProgressUtils.js';
 import { readableStreamIterator } from './readableStreamIterator.js';
 import { HiFiClient, TidalResponse } from './HiFi.ts';
-import { canUseNativeAmazonCenc, getAmazonDecrypterCodec } from './platform-detection.js';
+import { canUseNativeAmazonCenc, getAmazonDecrypterCodec, canBrowserStreamAtmosQuality } from './platform-detection.js';
 import {
     TrackAlbum,
     EnrichedAlbum,
@@ -42,6 +44,8 @@ import {
 } from './container-classes.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
+export const UNSUPPORTED_PLAYBACK_CODEC_CODE = 'UNSUPPORTED_PLAYBACK_CODEC';
+export const STRICT_QUALITY_UNAVAILABLE_CODE = 'STRICT_QUALITY_UNAVAILABLE';
 export { resolveDownloadTotalBytes };
 let lastAudioSourceMissingNotifyAt = 0;
 const UNIFIED_PLAYBACK_RATE_LIMITED_UNTIL_KEY = 'unified-playback-rate-limited-until';
@@ -65,6 +69,7 @@ export class LosslessAPI {
             ttl: 1000 * 60 * 30,
         });
         this.streamCache = new Map();
+        this.unifiedPlaybackRequests = new Map();
         this.turnstileLoadPromise = null;
 
         setInterval(
@@ -1607,7 +1612,8 @@ export class LosslessAPI {
 
     getTrackManifestFormats(quality) {
         switch (normalizeQualityToken(quality) || quality) {
-            case 'DOLBY_ATMOS':
+            case 'DOLBY_ATMOS_EAC3_HIGH':
+            case 'DOLBY_ATMOS_EAC3_LOW':
                 return ['EAC3_JOC'];
             case 'HI_RES_LOSSLESS':
                 return ['FLAC_HIRES'];
@@ -1639,7 +1645,7 @@ export class LosslessAPI {
     }
 
     getAudioQualityFromManifestFormats(formats = []) {
-        if (formats.includes('EAC3_JOC')) return 'DOLBY_ATMOS';
+        if (formats.includes('EAC3_JOC')) return 'DOLBY_ATMOS_EAC3_HIGH';
         if (formats.includes('FLAC_HIRES')) return 'HI_RES_LOSSLESS';
         if (formats.includes('FLAC')) return 'LOSSLESS';
         if (formats.includes('AACLC')) return 'HIGH';
@@ -1824,87 +1830,10 @@ export class LosslessAPI {
         return result;
     }
 
-    async getQobuzStreamUrl(isrc, quality = 'LOSSLESS') {
-        return null; // Temporarily disabled
-        let qobuzInstances = [];
-        try {
-            qobuzInstances = await this.settings.getInstances('qobuz');
-        } catch {
-            // ignore
-        }
-
-        if (!qobuzInstances || qobuzInstances.length === 0) {
-            return null;
-        }
-
-        for (const instance of qobuzInstances) {
-            const rawUrl = typeof instance === 'string' ? instance : instance?.url;
-            if (!rawUrl || typeof rawUrl !== 'string') continue;
-            const baseUrl = rawUrl.replace(/\/+$/, '');
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-                const trackRes = await fetch(
-                    getProxyUrl(`${baseUrl}/api/get-music?q=${encodeURIComponent(isrc)}&offset=0`),
-                    {
-                        signal: controller.signal,
-                    }
-                );
-                clearTimeout(timeoutId);
-                if (!trackRes.ok) continue;
-                const trackJson = await trackRes.json();
-
-                const tracks = trackJson.data?.tracks?.items || [];
-                const match = tracks.find((t) => t.isrc?.toLowerCase() === isrc.toLowerCase()) || tracks[0];
-
-                if (match && match.id) {
-                    const qobuzTrackId = match.id;
-                    const qobuzQualityMap = {
-                        HI_RES_LOSSLESS: '27',
-                        LOSSLESS: '6',
-                        HIGH: '5',
-                        LOW: '5',
-                    };
-                    const qobuzQuality = qobuzQualityMap[quality] || '6';
-
-                    const streamController = new AbortController();
-                    const streamTimeoutId = setTimeout(() => streamController.abort(), 8000);
-
-                    const streamRes = await fetch(
-                        `${baseUrl}/api/download-music?track_id=${qobuzTrackId}&quality=${qobuzQuality}`,
-                        { signal: streamController.signal }
-                    );
-                    clearTimeout(streamTimeoutId);
-                    if (!streamRes.ok) continue;
-                    const streamJson = await streamRes.json();
-
-                    if (streamJson.success && streamJson.data && streamJson.data.url) {
-                        let rgInfo = null;
-                        if (match.audio_info) {
-                            rgInfo = {
-                                trackReplayGain: match.audio_info.replaygain_track_gain,
-                                trackPeakAmplitude: match.audio_info.replaygain_track_peak,
-                                albumReplayGain: match.audio_info.replaygain_album_gain,
-                                albumPeakAmplitude: match.audio_info.replaygain_album_peak,
-                            };
-                        }
-                        return { url: streamJson.data.url, rgInfo };
-                    }
-                }
-            } catch (e) {
-                console.warn(`Qobuz instance ${baseUrl} failed for ISRC ${isrc}:`, e);
-                continue;
-            }
-        }
-        return null;
-    }
-
     getDeezerStreamFormat(quality = 'LOSSLESS') {
         const map = {
             HI_RES_LOSSLESS: 'FLAC',
             LOSSLESS: 'FLAC',
-            DOLBY_ATMOS: 'FLAC',
             HIGH: 'MP3_320',
             LOW: 'MP3_128',
             NORMAL: 'MP3_128',
@@ -1953,7 +1882,10 @@ export class LosslessAPI {
             HIGH: 'SD_HIGH',
             LOW: 'SD_LOW',
             NORMAL: 'SD_MEDIUM',
-            DOLBY_ATMOS: 'UHD',
+            DOLBY_ATMOS_EAC3_HIGH: 'DOLBY_ATMOS_EAC3_HIGH',
+            DOLBY_ATMOS_EAC3_LOW: 'DOLBY_ATMOS_EAC3_LOW',
+            DOLBY_ATMOS_AC4_HIGH: 'DOLBY_ATMOS_AC4_HIGH',
+            DOLBY_ATMOS_AC4_LOW: 'DOLBY_ATMOS_AC4_LOW',
         };
         return qualityMap[quality] || qualityMap[normalizeQualityToken(quality)] || 'HD';
     }
@@ -2004,7 +1936,8 @@ export class LosslessAPI {
         if (normalized === 'flac') return 'fLaC';
         if (normalized === 'opus') return 'Opus';
         if (normalized === 'aac' || normalized === 'aac-lc' || normalized === 'mp4a') return 'mp4a.40.2';
-        if (normalized === 'eac3' || normalized === 'e-ac-3') return 'ec-3';
+        if (['eac3', 'e-ac-3', 'eac3-joc', 'eac3_joc', 'ec-3'].includes(normalized)) return 'ec-3';
+        if (normalized === 'ac4' || normalized === 'ac-4') return 'ac-4';
         return normalized;
     }
 
@@ -2482,6 +2415,7 @@ export class LosslessAPI {
         const codec = this.getAmazonCodecString(qualityInfo?.codec);
         const bandwidth = Number(qualityInfo?.bandwidth) || 1000000;
         const sampleRate = Number(qualityInfo?.sampleRate) || 48000;
+        const channels = Number(qualityInfo?.channels) || 2;
         const duration = this.formatDurationForMpd(mp4Info?.sidx?.durationSeconds);
         const initEnd = Number.isFinite(mp4Info?.initRangeEnd) ? mp4Info.initRangeEnd : mp4Info.sidx.start - 1;
         const segmentBaseAttrs =
@@ -2504,7 +2438,7 @@ export class LosslessAPI {
   <Period id="0" start="PT0S" duration="${duration}">
     <AdaptationSet id="1" contentType="audio" mimeType="audio/mp4" codecs="${this.escapeXml(codec)}" audioSamplingRate="${sampleRate}" segmentAlignment="true" startWithSAP="1">${contentProtection}
       <Representation id="${representationId}" bandwidth="${bandwidth}" codecs="${this.escapeXml(codec)}">
-        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"/>
+        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="${channels}"/>
         <BaseURL>${escapedStreamUrl}</BaseURL>
         <SegmentBase indexRange="${mp4Info.sidx.start}-${mp4Info.sidx.end}"${segmentBaseAttrs}>
           <Initialization range="0-${initEnd}"/>
@@ -2596,72 +2530,89 @@ export class LosslessAPI {
             : apiToken === unifiedPlaybackSettings?.DEFAULT_API_TOKEN;
 
         const params = this.buildUnifiedPlaybackLookupParams(track, quality, options);
-        for (let attempt = 0; attempt < 2; attempt++) {
-            let turnstileJwt = null;
-            if (isDefaultKey || attempt > 0) {
-                turnstileJwt = await this.getUnifiedTurnstileJwt({ forceRefresh: attempt > 0 }).catch(() => null);
-                if (!turnstileJwt) return null;
-            } else {
-                turnstileJwt = this.getCachedUnifiedTurnstileJwt();
-            }
+        const requestKey = `${apiBaseUrl}\n${apiToken}\n${params.toString()}`;
+        const pendingRequest = this.unifiedPlaybackRequests.get(requestKey);
+        if (pendingRequest) return pendingRequest;
 
-            const headers = {
-                Accept: 'application/json',
-                Authorization: `Bearer ${apiToken}`,
-            };
-            if (turnstileJwt) {
-                headers['X-Turnstile-JWT'] = turnstileJwt;
-            }
+        // Coalesce only overlapping identical lookups. The entry is removed as
+        // soon as it settles because playback resources can contain one-use URLs.
+        const request = (async () => {
+            for (let attempt = 0; attempt < 2; attempt++) {
+                let turnstileJwt = null;
+                if (isDefaultKey || attempt > 0) {
+                    turnstileJwt = await this.getUnifiedTurnstileJwt({ forceRefresh: attempt > 0 }).catch(() => null);
+                    if (!turnstileJwt) return null;
+                } else {
+                    turnstileJwt = this.getCachedUnifiedTurnstileJwt();
+                }
 
-            const response = await this.fetchWithTimeout(
-                `${apiBaseUrl}/api/v2/track/?${params.toString()}`,
-                {
-                    headers,
-                    cache: 'no-store',
-                },
-                20000
-            );
+                const headers = {
+                    Accept: 'application/json',
+                    Authorization: `Bearer ${apiToken}`,
+                };
+                if (turnstileJwt) {
+                    headers['X-Turnstile-JWT'] = turnstileJwt;
+                }
 
-            let envelope = null;
-            try {
-                envelope = await response.json();
-            } catch {}
-
-            if ((response.status === 401 || response.status === 428) && attempt === 0) {
-                this.clearUnifiedTurnstileJwt();
-                continue;
-            }
-            if (response.status === 429) {
-                this.setUnifiedPlaybackRateLimited(response);
-                return null;
-            }
-            if (response.status === 404 || response.status === 502) {
-                console.warn('Unified Playback could not resolve the track:', envelope?.sources || envelope);
-                return null;
-            }
-            if (response.status === 401 || response.status === 403 || response.status === 428) {
-                throw new Error(`Unified Playback API authorization failed: ${response.status}`);
-            }
-            if (!response.ok) {
-                throw new Error(`Unified Playback API failed: ${response.status}`);
-            }
-
-            const schemaMajor = String(envelope?.schema_version || '').split('.')[0];
-            if (schemaMajor !== '1' && schemaMajor !== '2') {
-                throw new Error(
-                    `Unsupported Unified Playback schema version: ${envelope?.schema_version || 'missing'}`
+                const response = await this.fetchWithTimeout(
+                    `${apiBaseUrl}/api/v2/track/?${params.toString()}`,
+                    {
+                        headers,
+                        cache: 'no-store',
+                    },
+                    20000
                 );
+
+                let envelope = null;
+                try {
+                    envelope = await response.json();
+                } catch {}
+
+                if ((response.status === 401 || response.status === 428) && attempt === 0) {
+                    this.clearUnifiedTurnstileJwt();
+                    continue;
+                }
+                if (response.status === 429) {
+                    this.setUnifiedPlaybackRateLimited(response);
+                    return null;
+                }
+                if (response.status === 404 || response.status === 502) {
+                    console.warn('Unified Playback could not resolve the track:', envelope?.sources || envelope);
+                    return null;
+                }
+                if (response.status === 401 || response.status === 403 || response.status === 428) {
+                    throw new Error(`Unified Playback API authorization failed: ${response.status}`);
+                }
+                if (!response.ok) {
+                    throw new Error(`Unified Playback API failed: ${response.status}`);
+                }
+
+                const schemaMajor = String(envelope?.schema_version || '').split('.')[0];
+                if (schemaMajor !== '1' && schemaMajor !== '2') {
+                    throw new Error(
+                        `Unsupported Unified Playback schema version: ${envelope?.schema_version || 'missing'}`
+                    );
+                }
+                if (!Array.isArray(envelope.playback) || envelope.playback.length === 0) {
+                    console.warn(
+                        'Unified Playback response contained no playable resources:',
+                        envelope?.sources || envelope
+                    );
+                    return null;
+                }
+                return envelope;
             }
-            if (!Array.isArray(envelope.playback) || envelope.playback.length === 0) {
-                console.warn(
-                    'Unified Playback response contained no playable resources:',
-                    envelope?.sources || envelope
-                );
-                return null;
+            return null;
+        })();
+
+        this.unifiedPlaybackRequests.set(requestKey, request);
+        try {
+            return await request;
+        } finally {
+            if (this.unifiedPlaybackRequests.get(requestKey) === request) {
+                this.unifiedPlaybackRequests.delete(requestKey);
             }
-            return envelope;
         }
-        return null;
     }
 
     getUnifiedPlaybackResource(envelope) {
@@ -2679,6 +2630,8 @@ export class LosslessAPI {
     getUnifiedPlaybackCodec(resource) {
         const source = String(resource?.source || '').toLowerCase();
         const quality = String(resource?.quality || '').toUpperCase();
+        if (quality.startsWith('DOLBY_ATMOS_AC4_')) return 'ac4';
+        if (quality.startsWith('DOLBY_ATMOS_EAC3_') || quality === 'DOLBY_ATMOS') return 'eac3-joc';
         if (source === 'amazon' && /^(UHD|HD|HI_RES_LOSSLESS|LOSSLESS)(_|$)/.test(quality)) return 'flac';
         if (source === 'amazon' && /^(SD|HIGH|LOW)(_|$)/.test(quality)) return 'opus';
         return resource?.codec?.toLowerCase() || null;
@@ -2691,6 +2644,7 @@ export class LosslessAPI {
         const bitDepth = Number(resource?.bit_depth ?? resource?.bitDepth);
         const explicitBitrateKbps = Number(resource?.bitrate_kbps ?? resource?.bitrateKbps);
         const bandwidth = Number(resource?.bandwidth ?? resource?.bitrate);
+        const channels = Number(resource?.channels);
 
         return {
             codec: this.getUnifiedPlaybackCodec(resource),
@@ -2698,6 +2652,8 @@ export class LosslessAPI {
             bitrateKbps: explicitBitrateKbps || (bandwidth ? Math.round(bandwidth / 1000) : null),
             sampleRate: sampleRate || null,
             bitDepth: bitDepth || null,
+            channels: channels || null,
+            channelLayout: resource?.channel_layout ?? resource?.channelLayout ?? null,
         };
     }
 
@@ -2752,12 +2708,14 @@ export class LosslessAPI {
             }
 
             const selectedSource = String(resource.source || envelope.selected_source || '').toLowerCase();
+            if (!['amazon', 'tidal', 'mono', 'monochrome'].includes(selectedSource)) {
+                throw new Error(`Unified Playback selected an unsupported source: ${selectedSource || 'unknown'}`);
+            }
 
             let provider = selectedSource;
             if (selectedSource === 'mono') provider = 'monochrome';
             else if (selectedSource === 'amazon') provider = 'amazon';
             else if (selectedSource === 'tidal') provider = 'tidal';
-            else if (selectedSource === 'qobuz') provider = 'qobuz';
 
             const isManifest =
                 resource.kind === 'manifest' ||
@@ -2773,7 +2731,8 @@ export class LosslessAPI {
             const sourceUrl = resource.url;
             const decryptionKey = this.getAmazonDecryptionKey(resource);
             const qualityInfo = this.getUnifiedPlaybackQualityInfo(resource);
-            const normalizedQuality = resource.quality || envelope.quality_requested || canonicalQuality || quality;
+            const deliveredQuality = resource.quality || envelope.quality_requested || canonicalQuality || quality;
+            const normalizedQuality = normalizeQualityToken(deliveredQuality) || deliveredQuality;
             const baseResult = {
                 sourceUrl,
                 provider,
@@ -2795,6 +2754,8 @@ export class LosslessAPI {
                 sampleRateHz: qualityInfo.sampleRate,
                 bitrateKbps: qualityInfo.bitrateKbps,
                 bandwidth: qualityInfo.bandwidth,
+                channels: qualityInfo.channels,
+                channelLayout: qualityInfo.channelLayout,
                 container: resource.container || null,
                 lossless: resource.lossless ?? null,
                 mediaMimeType: resource.mime_type || (provider === 'monochrome' ? 'audio/flac' : 'audio/mp4'),
@@ -2868,9 +2829,7 @@ export class LosslessAPI {
                 ...baseResult,
                 url: sourceUrl,
                 playbackType: 'direct',
-                mimeType:
-                    resource.mime_type ||
-                    (provider === 'qobuz' ? (normalizedQuality === 'HIGH' ? 'audio/mpeg' : 'audio/flac') : 'audio/mp4'),
+                mimeType: resource.mime_type || 'audio/mp4',
             };
         } catch (error) {
             console.warn(`Unified Playback failed for track ${tidalTrackId}:`, error);
@@ -2879,6 +2838,16 @@ export class LosslessAPI {
     }
 
     async getStreamUrl(id, quality = 'LOSSLESS') {
+        quality = normalizeQualityToken(quality) || quality || 'LOSSLESS';
+        if (isAtmosQuality(quality) && !canBrowserStreamAtmosQuality(quality)) {
+            const codecName = isAc4AtmosQuality(quality) ? 'AC-4' : 'E-AC-3';
+            const error = new Error(
+                `${codecName} streaming is not supported by this browser. Choose another playable quality to stream; ${codecName} remains available for downloads.`
+            );
+            error.code = UNSUPPORTED_PLAYBACK_CODEC_CODE;
+            throw error;
+        }
+
         const cacheKey = `stream_info_${id}_${quality}`;
 
         if (this.streamCache.has(cacheKey)) {
@@ -2915,27 +2884,33 @@ export class LosslessAPI {
         const needsProxyDecryption = !canUseNativeAmazonCenc;
         let unifiedResult = null;
 
-        const tryAtmosFirst =
-            quality === 'DOLBY_ATMOS' ||
-            preferDolbyAtmosSettings.isEnabled() ||
-            track?.audioModes?.includes('DOLBY_ATMOS');
+        const exactAtmosQuality = isAtmosQuality(quality) ? quality : null;
+        const preferredAtmosQuality = preferDolbyAtmosSettings.isEnabled() ? 'DOLBY_ATMOS_EAC3_HIGH' : null;
+        const atmosQuality = exactAtmosQuality || preferredAtmosQuality;
 
-        if (tryAtmosFirst && (quality === 'DOLBY_ATMOS' || preferDolbyAtmosSettings.isEnabled())) {
+        if (atmosQuality) {
             try {
-                unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, 'DOLBY_ATMOS', {
+                unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, atmosQuality, {
                     preferAdaptiveAuto: true,
                     track,
                     allowCencWithoutKeyId: needsProxyDecryption,
                     intent: 'stream',
                 });
             } catch (err) {
-                console.debug('Unified Playback Dolby Atmos lookup failed, falling back:', err);
+                console.debug('Unified Playback Dolby Atmos lookup failed:', err);
             }
         }
 
+        if (!unifiedResult?.url && exactAtmosQuality) {
+            const error = new Error(
+                `The requested ${exactAtmosQuality.replaceAll('_', ' ')} tier is unavailable. Atmos requests are strict, so no stereo fallback was used.`
+            );
+            error.code = STRICT_QUALITY_UNAVAILABLE_CODE;
+            throw error;
+        }
+
         if (!unifiedResult?.url) {
-            const fallbackQuality = quality === 'DOLBY_ATMOS' ? 'HI_RES_LOSSLESS' : quality;
-            unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, fallbackQuality, {
+            unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, quality, {
                 preferAdaptiveAuto: true,
                 track,
                 allowCencWithoutKeyId: needsProxyDecryption,
@@ -2955,9 +2930,13 @@ export class LosslessAPI {
                 const targetCodec =
                     resourceCodec === 'opus'
                         ? 'opus'
-                        : resourceCodec === 'aac' || resourceCodec.startsWith('mp4a')
-                          ? 'mp4a'
-                          : getAmazonDecrypterCodec(quality);
+                        : resourceCodec === 'ac4' || resourceCodec === 'ac-4'
+                          ? 'ac4'
+                          : resourceCodec === 'eac3' || resourceCodec === 'eac3-joc' || resourceCodec === 'ec-3'
+                            ? 'eac3'
+                            : resourceCodec === 'aac' || resourceCodec.startsWith('mp4a')
+                              ? 'mp4a'
+                              : getAmazonDecrypterCodec(quality);
                 const origin =
                     typeof window !== 'undefined' && window.location
                         ? `${window.location.protocol}//${window.location.host}`
@@ -2977,29 +2956,7 @@ export class LosslessAPI {
             return unifiedResult;
         }
 
-        let qobuzResult = null;
-        let deezerResult = null;
-        if (track?.isrc) {
-            qobuzResult = await this.getQobuzStreamUrl(track.isrc, quality);
-            if (!qobuzResult?.url) {
-                deezerResult = await this.getDeezerStreamUrl(track.isrc, quality);
-            }
-        }
-
-        if (qobuzResult?.url) {
-            const result = {
-                url: qobuzResult.url,
-                rgInfo: qobuzResult.rgInfo || {
-                    trackReplayGain: 0,
-                    trackPeakAmplitude: 1,
-                    albumReplayGain: 0,
-                    albumPeakAmplitude: 1,
-                },
-                provider: 'qobuz',
-            };
-            this.streamCache.set(cacheKey, result);
-            return result;
-        }
+        const deezerResult = track?.isrc ? await this.getDeezerStreamUrl(track.isrc, quality) : null;
 
         if (deezerResult?.url) {
             const result = {
@@ -3021,8 +2978,8 @@ export class LosslessAPI {
         notifyAudioSourceMissing();
         throw new Error(
             track?.isrc
-                ? 'Could not resolve stream URL from Unified Playback, Qobuz, or Deezer'
-                : 'Could not resolve stream URL: Unified Playback failed and the track has no ISRC for Qobuz/Deezer lookup'
+                ? 'Could not resolve stream URL from Unified Playback or Deezer'
+                : 'Could not resolve stream URL: Unified Playback failed and the track has no ISRC for Deezer lookup'
         );
     }
 
@@ -3074,13 +3031,7 @@ export class LosslessAPI {
     }
 
     async enrichTrack(input, { downloadQuality = 'HI_RES_LOSSLESS' }) {
-        if (
-            downloadQuality == 'DOLBY_ATMOS' &&
-            !input?.audioModes?.includes('DOLBY_ATMOS') &&
-            !unifiedPlaybackSettings.isEnabled()
-        ) {
-            downloadQuality = 'LOSSLESS';
-        }
+        downloadQuality = normalizeQualityToken(downloadQuality) || downloadQuality;
 
         const id = input?.id || input;
         const inputTrack = typeof input === 'object' ? input : null;
@@ -3110,16 +3061,18 @@ export class LosslessAPI {
             lookup = new PlaybackInfo(await this.getTrackFromDevMode(id, cleanQuality));
         } else {
             let unifiedResult = null;
-            let qobuzResult = null;
             let deezerResult = null;
 
-            const tryAtmosDownload =
-                cleanQuality === 'DOLBY_ATMOS' ||
-                (preferDolbyAtmosSettings.isEnabled() && track?.audioModes?.includes('DOLBY_ATMOS'));
+            const exactAtmosQuality = isAtmosQuality(cleanQuality) ? cleanQuality : null;
+            const preferredAtmosQuality =
+                !exactAtmosQuality && preferDolbyAtmosSettings.isEnabled() && track?.audioModes?.includes('DOLBY_ATMOS')
+                    ? 'DOLBY_ATMOS_EAC3_HIGH'
+                    : null;
+            const atmosQuality = exactAtmosQuality || preferredAtmosQuality;
 
-            if (tryAtmosDownload) {
+            if (atmosQuality) {
                 try {
-                    unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, 'DOLBY_ATMOS', {
+                    unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, atmosQuality, {
                         track,
                         intent: 'download',
                     });
@@ -3128,10 +3081,17 @@ export class LosslessAPI {
                 }
             }
 
+            if (!unifiedResult?.url && exactAtmosQuality) {
+                const error = new Error(
+                    `The requested ${exactAtmosQuality.replaceAll('_', ' ')} tier is unavailable. Atmos downloads are strict, so no stereo fallback was used.`
+                );
+                error.code = STRICT_QUALITY_UNAVAILABLE_CODE;
+                throw error;
+            }
+
             if (!unifiedResult?.url) {
-                const fallbackQuality = cleanQuality === 'DOLBY_ATMOS' ? 'HI_RES_LOSSLESS' : cleanQuality;
                 try {
-                    unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, fallbackQuality, {
+                    unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, cleanQuality, {
                         track,
                         intent: 'download',
                     });
@@ -3142,22 +3102,16 @@ export class LosslessAPI {
 
             if (!unifiedResult?.url) {
                 if (track?.isrc) {
-                    qobuzResult = await this.getQobuzStreamUrl(track.isrc, cleanQuality);
-                }
-                if (!qobuzResult?.url) {
-                    if (track?.isrc) {
-                        deezerResult = await this.getDeezerStreamUrl(track.isrc, cleanQuality);
-                    }
+                    deezerResult = await this.getDeezerStreamUrl(track.isrc, cleanQuality);
                 }
             }
 
-            const externalResult = unifiedResult?.url ? unifiedResult : qobuzResult?.url ? qobuzResult : deezerResult;
+            const externalResult = unifiedResult?.url ? unifiedResult : deezerResult;
             if (externalResult?.url) {
                 externalStreamUrl = externalResult.url;
                 externalRgInfo = externalResult.rgInfo;
                 externalStreamType = externalResult.playbackType || null;
-                externalProvider =
-                    externalResult.provider || (unifiedResult?.url ? 'unified' : qobuzResult?.url ? 'qobuz' : 'deezer');
+                externalProvider = externalResult.provider || (unifiedResult?.url ? 'unified' : 'deezer');
                 externalDecryptionKey = externalResult.decryptionKey || null;
                 externalKeyId = externalResult.keyId || null;
                 externalMimeType = externalResult.mimeType || null;
@@ -3173,7 +3127,12 @@ export class LosslessAPI {
                     },
                 };
             } else {
-                deezerResult = track?.isrc ? await this.getDeezerStreamUrl(track.isrc, 'LOSSLESS') : null;
+                const requestedDeezerFormat = this.getDeezerStreamFormat(cleanQuality);
+                const losslessDeezerFormat = this.getDeezerStreamFormat('LOSSLESS');
+                deezerResult =
+                    track?.isrc && requestedDeezerFormat !== losslessDeezerFormat
+                        ? await this.getDeezerStreamUrl(track.isrc, 'LOSSLESS')
+                        : null;
                 if (deezerResult?.url) {
                     externalProvider = 'deezer';
                     externalStreamUrl = deezerResult.url;
@@ -3191,8 +3150,8 @@ export class LosslessAPI {
                     notifyAudioSourceMissing();
                     throw new Error(
                         track?.isrc
-                            ? 'Could not resolve audio stream from Unified Playback, Qobuz, or Deezer'
-                            : 'Cannot resolve audio stream: Unified Playback failed and track has no ISRC for Qobuz/Deezer lookup'
+                            ? 'Could not resolve audio stream from Unified Playback or Deezer'
+                            : 'Cannot resolve audio stream: Unified Playback failed and track has no ISRC for Deezer lookup'
                     );
                 }
             }
@@ -3251,7 +3210,7 @@ export class LosslessAPI {
         }
 
         const finalEnriched = new EnrichedTrack(enrichedTrack);
-        const result = { lookup, enrichedTrack: finalEnriched, isVideo };
+        const result = { lookup, enrichedTrack: finalEnriched, isVideo, downloadQuality: cleanQuality };
         if (externalStreamUrl) {
             result.externalStreamUrl = externalStreamUrl;
             result.externalStreamType = externalStreamType;
@@ -3261,9 +3220,6 @@ export class LosslessAPI {
             result.externalMimeType = externalMimeType;
             result.externalMediaMimeType = externalMediaMimeType;
             result.externalSourceUrl = externalSourceUrl;
-        }
-        if (externalProvider === 'qobuz') {
-            result.qobuzStreamUrl = externalStreamUrl;
         }
         if (externalProvider === 'amazon') {
             result.amazonMusicStreamUrl = externalSourceUrl || externalStreamUrl;
@@ -3286,6 +3242,7 @@ export class LosslessAPI {
      * @param {Function} [options.onProgress] - Callback function for progress updates with signature:
      *                                          `(progressEvent) => void`
      * @param {Object} [options.track] - Track metadata object to attach to the audio file
+     * @param {Object} [options.enriched] - A result from enrichTrack for this download operation
      * @param {boolean} [options.calculateDashBytes=true] - Whether to calculate total bytes for DASH streams
      * @param {AbortSignal} [options.signal] - AbortSignal to cancel the download
      * @param {boolean} [options.triggerDownload=true] - Whether to trigger browser download after completion
@@ -3308,17 +3265,18 @@ export class LosslessAPI {
 
         try {
             // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
+            quality = normalizeQualityToken(quality) || quality;
             let downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
 
             const inputTrackObj = options.track || (typeof inputTrack === 'object' ? inputTrack : null);
-            const isAlreadyEnriched = inputTrackObj && (inputTrackObj.externalStreamUrl || inputTrackObj.lookup);
-
-            const enriched = isAlreadyEnriched
-                ? inputTrackObj
-                : await this.enrichTrack(inputTrackObj || id, { downloadQuality });
+            const legacyEnrichedInput = inputTrackObj?.enrichedTrack && inputTrackObj?.lookup ? inputTrackObj : null;
+            const enriched =
+                options.enriched ||
+                legacyEnrichedInput ||
+                (await this.enrichTrack(inputTrackObj || id, { downloadQuality }));
             const { lookup, enrichedTrack, isVideo } = enriched;
 
-            let streamUrl = enriched.externalStreamUrl || enriched.qobuzStreamUrl || null;
+            let streamUrl = enriched.externalStreamUrl || null;
             let postProcessingQuality = lookup.info?.audioQuality ?? null;
             let blob;
 
@@ -3358,13 +3316,13 @@ export class LosslessAPI {
 
                     if (preferDolbyAtmosSettings.isEnabled() && enrichedTrack.audioModes?.includes('DOLBY_ATMOS')) {
                         try {
-                            const stream = await this.getStreamUrl(id, 'DOLBY_ATMOS', true);
+                            const stream = await this.getStreamUrl(id, 'DOLBY_ATMOS_EAC3_HIGH');
                             const manifestRes = await fetch(stream.url, { signal: options.signal });
                             const manifestText = await manifestRes.text();
                             streamUrl = this.extractStreamUrlFromManifest(btoa(manifestText));
 
                             if (streamUrl) {
-                                postProcessingQuality = 'DOLBY_ATMOS';
+                                postProcessingQuality = 'DOLBY_ATMOS_EAC3_HIGH';
                             }
                         } catch (err) {
                             console.error('Failed to extract Dolby Atmos stream URL:', err);
@@ -3391,6 +3349,9 @@ export class LosslessAPI {
                 }
 
                 const encryptedBlob = await response.blob();
+                const preserveAtmos = isAtmosQuality(downloadQuality) || isAtmosQuality(postProcessingQuality);
+                const outputName = preserveAtmos ? 'output.m4a' : 'output.flac';
+                const outputMime = preserveAtmos ? 'audio/mp4' : 'audio/flac';
                 blob = await ffmpeg(encryptedBlob, {
                     rawArgs: [
                         '-decryption_key',
@@ -3398,11 +3359,11 @@ export class LosslessAPI {
                         '-i',
                         'input',
                         '-c:a',
-                        'flac',
-                        'output.flac',
+                        preserveAtmos ? 'copy' : 'flac',
+                        outputName,
                     ],
-                    outputName: 'output.flac',
-                    outputMime: 'audio/flac',
+                    outputName,
+                    outputMime,
                     onProgress,
                     signal: options.signal,
                 });
@@ -3424,9 +3385,15 @@ export class LosslessAPI {
                     if (isVideo) throw dashError;
 
                     // Fallback to LOSSLESS if DASH fails, but not if we're already downloading LOSSLESS
-                    if (downloadQuality !== 'LOSSLESS') {
+                    if (downloadQuality !== 'LOSSLESS' && !isAtmosQuality(downloadQuality)) {
                         console.warn('Falling back to LOSSLESS (16-bit) download.');
-                        return this.downloadTrack(id, 'LOSSLESS', filename, options);
+                        return this.downloadTrack(id, 'LOSSLESS', filename, {
+                            ...options,
+                            // The previous resolution belongs to a different strict
+                            // quality and may contain a one-use playback URL.
+                            track: options.track?.enrichedTrack || options.track,
+                            enriched: undefined,
+                        });
                     }
                     throw dashError;
                 }
@@ -3549,6 +3516,9 @@ export class LosslessAPI {
             }
             console.error('Download failed:', error);
             if (error instanceof FfmpegError || error.code === 'MP3_ENCODING_FAILED') {
+                throw error;
+            }
+            if (error.code === STRICT_QUALITY_UNAVAILABLE_CODE) {
                 throw error;
             }
             if (error.message === RATE_LIMIT_ERROR_MESSAGE) {

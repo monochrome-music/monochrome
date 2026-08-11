@@ -9,6 +9,7 @@ import {
     escapeHtml,
     deriveTrackQuality,
     formatQualityBadgeText,
+    normalizeQualityToken,
 } from './utils.js';
 import {
     queueManager,
@@ -55,7 +56,7 @@ export class Player {
         this.audioElements = [audioElement, crossfadeAudio];
         this.video = document.getElementById('video-player');
         this.api = api;
-        this.quality = quality;
+        this.quality = normalizeQualityToken(quality) || quality;
         this.queue = [];
         this.shuffledQueue = [];
         this.originalQueueBeforeShuffle = [];
@@ -665,7 +666,7 @@ export class Player {
     }
 
     setQuality(quality) {
-        this.quality = quality;
+        this.quality = normalizeQualityToken(quality) || quality;
     }
 
     preloadNextTracks() {
@@ -862,6 +863,8 @@ export class Player {
     getAmazonNativeDecrypterCodec(streamInfo = null) {
         const resourceCodec = String(streamInfo?.codec || '').toLowerCase();
         if (resourceCodec === 'opus') return 'opus';
+        if (resourceCodec === 'ac4' || resourceCodec === 'ac-4') return 'ac4';
+        if (resourceCodec === 'eac3' || resourceCodec === 'eac3-joc' || resourceCodec === 'ec-3') return 'eac3';
         if (resourceCodec === 'aac' || resourceCodec.startsWith('mp4a')) return 'mp4a';
         return getAmazonDecrypterCodec(this.quality);
     }
@@ -1673,6 +1676,8 @@ export class Player {
                     bitDepth: resolvedStreamInfo.bitDepth,
                     sampleRateHz: resolvedStreamInfo.sampleRateHz || resolvedStreamInfo.sampleRate,
                     bitrateKbps: resolvedStreamInfo.bitrateKbps,
+                    channels: resolvedStreamInfo.channels,
+                    channelLayout: resolvedStreamInfo.channelLayout,
                 };
                 if (resolvedStreamInfo.provider === 'amazon' && resolvedStreamInfo.quality) {
                     track.amazonMusicQualitySelected = resolvedStreamInfo.quality;
@@ -1844,6 +1849,11 @@ export class Player {
             }
 
             console.error(`Could not play track: ${trackTitle}`, error);
+            if (error?.code === 'UNSUPPORTED_PLAYBACK_CODEC' || error?.code === 'STRICT_QUALITY_UNAVAILABLE') {
+                import('./downloads.js')
+                    .then(({ showNotification }) => showNotification(error.message))
+                    .catch(() => {});
+            }
         } finally {
             if (this.playbackSequence === currentSequence) {
                 this.setLoadingState(false);
@@ -3083,7 +3093,9 @@ export class Player {
 
             const isAtmosPlaying =
                 this.currentStreamInfo?.codec === 'eac3-joc' ||
-                this.currentStreamInfo?.quality === 'DOLBY_ATMOS' ||
+                this.currentStreamInfo?.codec === 'ac4' ||
+                this.currentStreamInfo?.codec === 'ac-4' ||
+                this.currentStreamInfo?.quality?.startsWith('DOLBY_ATMOS') ||
                 (activeVariant?.audioCodec &&
                     (activeVariant.audioCodec.toLowerCase().includes('ec-3') ||
                         activeVariant.audioCodec.toLowerCase().includes('ac-3') ||

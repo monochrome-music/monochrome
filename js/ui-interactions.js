@@ -276,9 +276,9 @@ export function initializeUIInteractions(player, api, ui) {
         if (isPlaying && player.currentStreamInfo) {
             const isAtmos =
                 player.currentStreamInfo.codec === 'eac3-joc' ||
-                player.currentStreamInfo.quality === 'DOLBY_ATMOS' ||
-                track?.audioQuality === 'DOLBY_ATMOS' ||
-                track?.quality === 'DOLBY_ATMOS' ||
+                player.currentStreamInfo.quality?.startsWith('DOLBY_ATMOS') ||
+                track?.audioQuality?.startsWith('DOLBY_ATMOS') ||
+                track?.quality?.startsWith('DOLBY_ATMOS') ||
                 track?.audioModes?.includes('DOLBY_ATMOS');
 
             if (isAtmos) {

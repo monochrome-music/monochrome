@@ -59,6 +59,7 @@ import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { containerFormats, customFormats } from './ffmpegFormats.ts';
 import { BulkDownloadMethod, modernSettings } from './ModernSettings.js';
+import { canBrowserStreamAtmosQuality } from './platform-detection.js';
 
 async function getButterchurnPresets(...args) {
     const butterchurnModule = await import('./visualizers/butterchurn.js');
@@ -899,7 +900,13 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // Streaming Quality setting
     const streamingQualitySetting = document.getElementById('streaming-quality-setting');
     if (streamingQualitySetting) {
-        const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
+        const storedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
+        const savedAdaptiveQuality =
+            storedAdaptiveQuality === 'DOLBY_ATMOS' ? 'DOLBY_ATMOS_EAC3_HIGH' : storedAdaptiveQuality;
+        if (storedAdaptiveQuality !== savedAdaptiveQuality) {
+            localStorage.setItem('adaptive-playback-quality', savedAdaptiveQuality);
+            localStorage.setItem('playback-quality', savedAdaptiveQuality);
+        }
 
         // Map the stored auto state to the dropdown, or if it doesn't match an option, use the playback-quality value
         const optionExists = Array.from(streamingQualitySetting.options).some(
@@ -914,6 +921,30 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         const apiQuality = streamingQualitySetting.value === 'auto' ? 'HI_RES_LOSSLESS' : streamingQualitySetting.value;
         player.setQuality(localStorage.getItem('playback-quality') || apiQuality);
 
+        const sourcesDescription = document.getElementById('streaming-quality-sources');
+        const atmosWarning = document.getElementById('atmos-streaming-warning');
+        const atmosWarningText = document.getElementById('atmos-streaming-warning-text');
+        const updateStreamingQualityDetails = () => {
+            const option = streamingQualitySetting.selectedOptions?.[0];
+            if (sourcesDescription) {
+                sourcesDescription.textContent = option?.dataset.sources
+                    ? `Supported sources: ${option.dataset.sources}`
+                    : 'Default playback quality for streams';
+            }
+
+            const isAc4 = streamingQualitySetting.value.startsWith('DOLBY_ATMOS_AC4_');
+            const isEac3 = streamingQualitySetting.value.startsWith('DOLBY_ATMOS_EAC3_');
+            const supported = canBrowserStreamAtmosQuality(streamingQualitySetting.value);
+            const showWarning = isAc4 || (isEac3 && !supported);
+            if (atmosWarning) atmosWarning.style.display = showWarning ? '' : 'none';
+            if (showWarning && atmosWarningText) {
+                atmosWarningText.textContent = supported
+                    ? 'AC-4 streaming support is experimental and may still fail in this browser. AC-4 downloads remain available.'
+                    : `This browser does not report ${isAc4 ? 'AC-4' : 'E-AC-3'} playback support, so this quality cannot be streamed here. You can still use it for downloads.`;
+            }
+        };
+        updateStreamingQualityDetails();
+
         streamingQualitySetting.addEventListener('change', (e) => {
             const val = e.target.value;
 
@@ -925,6 +956,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const newApiQuality = val === 'auto' ? 'HI_RES_LOSSLESS' : val;
             player.setQuality(newApiQuality);
             localStorage.setItem('playback-quality', newApiQuality);
+            updateStreamingQualityDetails();
         });
     }
 
@@ -949,7 +981,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (downloadQualitySetting) {
         // Assign categories to the static (native) options already in the HTML
         const staticCategories = {
-            DOLBY_ATMOS: 'Spatial',
+            DOLBY_ATMOS_EAC3_HIGH: 'Immersive',
+            DOLBY_ATMOS_EAC3_LOW: 'Immersive',
+            DOLBY_ATMOS_AC4_HIGH: 'Immersive',
+            DOLBY_ATMOS_AC4_LOW: 'Immersive',
             HI_RES_LOSSLESS: 'Lossless',
             LOSSLESS: 'Lossless',
             HIGH: 'AAC',
@@ -957,28 +992,36 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         };
 
         // Collect static options first (preserving their original order)
-        const allOptions = Array.from(downloadQualitySetting.options).map((opt) => ({
+        const allOptions = Array.from(downloadQualitySetting.options).map((opt, index) => ({
             value: opt.value,
-            text: opt.textContent,
+            text: opt.textContent.trim(),
             category: staticCategories[opt.value] || 'Other',
+            sources: opt.dataset.sources || '',
+            order: index,
         }));
 
         // Append custom (ffmpeg-transcoded) format options
         for (const [key, fmt] of Object.entries(customFormats)) {
-            allOptions.push({ value: key, text: fmt.displayName, category: fmt.category });
+            allOptions.push({
+                value: key,
+                text: fmt.displayName,
+                category: fmt.category,
+                sources: '',
+                order: allOptions.length,
+            });
         }
 
         // Sort by category order first, then by bitrate descending within each category
         // so higher-quality options always appear before lower-quality ones.
         // Options without an explicit kbps value (lossless) use Infinity so they
-        // sort to the top; ties fall back to display-name descending.
+        // sort to the top; ties preserve the authored option order.
         const getBitrate = (text) => {
             const m = text.match(/(\d+)\s*kbps/i);
             return m ? parseInt(m[1], 10) : Infinity;
         };
-        const categoryOrder = ['Lossless', 'AAC', 'MP3', 'OGG', 'Opus'];
+        const categoryOrder = ['Immersive', 'Lossless', 'AAC', 'MP3', 'OGG', 'Opus'];
         allOptions.sort((a, b) => {
-            if (a.category == b.category && a.category === 'Lossless') return 0; // Preserve original order for lossless options
+            if (a.category === b.category && (a.category === 'Immersive' || a.category === 'Lossless')) return 0;
             const ai = categoryOrder.indexOf(a.category);
             const bi = categoryOrder.indexOf(b.category);
             const categoryDiff = (ai === -1 ? categoryOrder.length : ai) - (bi === -1 ? categoryOrder.length : bi);
@@ -986,7 +1029,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const bitrateA = getBitrate(a.text);
             const bitrateB = getBitrate(b.text);
             if (bitrateA !== bitrateB) return bitrateB - bitrateA;
-            return b.text.localeCompare(a.text);
+            return a.order - b.order;
         });
 
         // Rebuild the select with optgroup elements per category
@@ -1003,14 +1046,27 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const option = document.createElement('option');
             option.value = opt.value;
             option.textContent = opt.text;
+            if (opt.sources) option.dataset.sources = opt.sources;
             currentGroup.appendChild(option);
         }
 
         downloadQualitySetting.value = downloadQualitySettings.getQuality();
 
+        const sourcesDescription = document.getElementById('download-quality-sources');
+        const updateDownloadQualityDetails = () => {
+            const sources = downloadQualitySetting.selectedOptions?.[0]?.dataset.sources;
+            if (sourcesDescription) {
+                sourcesDescription.textContent = sources
+                    ? `Supported sources: ${sources}`
+                    : 'Quality for track downloads';
+            }
+        };
+        updateDownloadQualityDetails();
+
         downloadQualitySetting.addEventListener('change', (e) => {
             downloadQualitySettings.setQuality(e.target.value);
             updateLosslessContainerVisibility();
+            updateDownloadQualityDetails();
         });
     }
 

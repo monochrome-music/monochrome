@@ -6932,20 +6932,14 @@ export class UIRenderer {
 
     renderApiSettings() {
         const container = document.getElementById('api-instance-list');
-        Promise.allSettled([
-            this.api.settings.getInstances('api'),
-            this.api.settings.getInstances('streaming'),
-            this.api.settings.getInstances('qobuz'),
-        ])
+        Promise.allSettled([this.api.settings.getInstances('api'), this.api.settings.getInstances('streaming')])
             .then((results) => {
                 const apiInstances = results[0].status === 'fulfilled' ? results[0].value : [];
                 const streamingInstances = results[1].status === 'fulfilled' ? results[1].value : [];
-                const qobuzInstances = results[2].status === 'fulfilled' ? results[2].value : [];
                 const renderGroup = (instances, type) => {
                     const groupLabels = {
                         api: 'API Instances',
                         streaming: 'Streaming Instances',
-                        qobuz: 'Qobuz Instances',
                     };
 
                     const listHtml = (instances || [])
@@ -6998,8 +6992,7 @@ export class UIRenderer {
                     renderGroup(apiInstances, 'api') +
                     (streamingInstances && streamingInstances.length > 0
                         ? renderGroup(streamingInstances, 'streaming')
-                        : '') +
-                    renderGroup(qobuzInstances, 'qobuz');
+                        : '');
 
                 const stats = this.api.getCacheStats();
                 const cacheInfo = document.getElementById('cache-info');
