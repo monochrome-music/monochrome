@@ -232,9 +232,16 @@ function getDirectUrl(rawUrl) {
 
 // Convert tracker song to standard track format
 export function createTrackFromSong(song, era, artistName, index, sheetId = '') {
-    const isValidUrl = (u) => u && typeof u === 'string' && u.trim().length > 0;
-    const rawUrl = song.links && song.links.length ? song.links.find(isValidUrl) : null;
-    const directUrl = getDirectUrl(rawUrl);
+    const isValidUrl = (u) => u && u.url && typeof u.url === 'string' && u.url.trim().length > 0;
+    const rawUrl = Array.isArray(song?.links) ? song.links.find(isValidUrl) : null;
+    let directUrl = null;
+    if (rawUrl) {
+        try {
+            directUrl = getDirectUrl(rawUrl.url.trim());
+        } catch (e) {
+            directUrl = null;
+        }
+    }
     const duration = parseDuration(song.track_length);
     const title = (song.name && (song.name.title || song.name.raw)) || 'Unknown';
     const cleanTitle = cleanSongTitle(title);
