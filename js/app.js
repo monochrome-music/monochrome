@@ -2958,7 +2958,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (user) {
                 const data = await syncManager.getUserData();
                 if (data && data.profile && data.profile.avatar_url) {
-                    headerAccountImg.src = data.profile.avatar_url + '&s=100';
+                    headerAccountImg.src = data.profile.avatar_url + '?s=100';
                     headerAccountImg.style.display = 'block';
                     headerAccountIcon.style.display = 'none';
                     return;
