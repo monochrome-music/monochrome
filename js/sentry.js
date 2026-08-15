@@ -63,7 +63,9 @@ function isInjectionNoise(event) {
     }
 
     const stackText = values
-        .map((v) => (Array.isArray(v.stacktrace?.frames) ? v.stacktrace.frames.map((f) => f.filename || '').join('\n') : ''))
+        .map((v) =>
+            Array.isArray(v.stacktrace?.frames) ? v.stacktrace.frames.map((f) => f.filename || '').join('\n') : ''
+        )
         .join('\n');
     return INJECTION_NOISE_PATTERNS.some((re) => re.test(`${message}\n${exceptionText}\n${stackText}`));
 }
