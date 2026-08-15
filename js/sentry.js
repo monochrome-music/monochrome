@@ -2,7 +2,7 @@
 import * as Sentry from '@sentry/browser';
 import { analyticsSettings } from './storage.js';
 
-export const SENTRY_DSN = 'http://33e55746a9904532835bee180d60d9b1@rustrak-api.edideaur.works/2';
+export const SENTRY_DSN = 'https://33e55746a9904532835bee180d60d9b1@rustrak-api.edideaur.works/2';
 
 /**
  * Errors raised by scripts injected into users' browsers by malicious
@@ -80,7 +80,7 @@ export function initSentry() {
 
     Sentry.init({
         dsn: SENTRY_DSN,
-        release: '5.0.0',
+        release: '5.0.1',
         integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
         // The Turnstile SDK throws this internally (uncaught, from its own async
         // cleanup) after a widget has already been removed. It is harmless and
