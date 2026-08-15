@@ -752,7 +752,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         UIRenderer.instance.setCurrentTrack(Player.instance.currentTrack);
     }
 
-    document.querySelector('.now-playing-bar').addEventListener('click', async (e) => {
+    document.querySelector('.now-playing-bar')?.addEventListener('click', async (e) => {
         if (!e.target.closest('.cover')) return;
 
         if (!Player.instance.currentTrack) {
