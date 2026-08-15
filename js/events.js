@@ -2745,21 +2745,21 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     });
 
     // Now playing bar interactions
-    document.querySelector('.now-playing-bar .title').addEventListener('click', () => {
+    document.querySelector('.now-playing-bar .title')?.addEventListener('click', () => {
         const track = player.currentTrack;
         if (track?.album?.id) {
             navigate(`/album/${track.album.id}`);
         }
     });
 
-    document.querySelector('.now-playing-bar .album').addEventListener('click', () => {
+    document.querySelector('.now-playing-bar .album')?.addEventListener('click', () => {
         const track = player.currentTrack;
         if (track?.album?.id) {
             navigate(`/album/${track.album.id}`);
         }
     });
 
-    document.querySelector('.now-playing-bar .artist').addEventListener('click', (e) => {
+    document.querySelector('.now-playing-bar .artist')?.addEventListener('click', (e) => {
         const link = e.target.closest('.artist-link');
         if (link) {
             e.stopPropagation();

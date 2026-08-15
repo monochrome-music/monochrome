@@ -2051,33 +2051,46 @@ export class LosslessAPI {
         return await new Promise((resolve, reject) => {
             let widgetId = null;
             let timeoutId = null;
+            let settled = false;
             const finish = (error, token = null) => {
+                if (settled) return;
+                settled = true;
                 clearTimeout(timeoutId);
+                // Remove the widget, but keep the container attached to the DOM.
+                // Cloudflare's SDK schedules an internal reset asynchronously when a
+                // widget settles, and it throws "Nothing to reset found for provided
+                // container" if the container was already detached. Hiding the panel
+                // instead of removing it keeps the container reachable so that
+                // cleanup can complete without erroring.
                 if (widgetId != null && turnstile.remove) {
                     try {
                         turnstile.remove(widgetId);
                     } catch {}
                 }
-                panel?.remove();
+                if (panel) panel.style.display = 'none';
                 if (error) reject(error);
                 else resolve(token);
             };
             timeoutId = setTimeout(() => finish(new Error('Turnstile timed out')), 30000);
 
-            widgetId = turnstile.render(container, {
-                sitekey: UNIFIED_TURNSTILE_SITE_KEY,
-                action: 'auth',
-                execution: 'execute',
-                appearance: 'interaction-only',
-                theme: 'auto',
-                'before-interactive-callback': () => {
-                    if (panel) panel.style.display = 'block';
-                },
-                callback: (token) => finish(null, token),
-                'error-callback': () => finish(new Error('Turnstile failed')),
-                'expired-callback': () => finish(new Error('Turnstile expired')),
-            });
-            turnstile.execute(widgetId);
+            try {
+                widgetId = turnstile.render(container, {
+                    sitekey: UNIFIED_TURNSTILE_SITE_KEY,
+                    action: 'auth',
+                    execution: 'execute',
+                    appearance: 'interaction-only',
+                    theme: 'auto',
+                    'before-interactive-callback': () => {
+                        if (panel) panel.style.display = 'block';
+                    },
+                    callback: (token) => finish(null, token),
+                    'error-callback': () => finish(new Error('Turnstile failed')),
+                    'expired-callback': () => finish(new Error('Turnstile expired')),
+                });
+                turnstile.execute(widgetId);
+            } catch (error) {
+                finish(error);
+            }
         });
     }
 

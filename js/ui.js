@@ -108,6 +108,11 @@ import {
 const AOTY_BASE = 'https://aoty.prigoana.pw';
 const AOTY_CACHE_TTL = 86_400_000; // 24 hours
 
+function aotyCoverUrl(url) {
+    if (!url) return url;
+    return String(url).replace(/(https?:\/\/cdn2\.albumoftheyear\.org\/)\d+x0\//, '$15000x0/');
+}
+
 async function fetchAOTY(path) {
     const key = `aoty_cache_${path}`;
     try {
@@ -3299,7 +3304,7 @@ export class UIRenderer {
                 const img = document.createElement('img');
                 img.crossOrigin = 'anonymous';
                 img.referrerPolicy = 'no-referrer';
-                img.src = item.image || 'assets/logo.svg';
+                img.src = aotyCoverUrl(item.image) || 'assets/logo.svg';
                 img.width = 88;
                 img.height = 56;
                 img.style.cssText =
@@ -3464,7 +3469,7 @@ export class UIRenderer {
 
                 row.innerHTML = `
                     <span style="font-size:0.8rem;font-weight:700;color:var(--primary);min-width:2rem;text-align:right;flex-shrink:0;">#${escapeHtml(item.rank || '')}</span>
-                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${item.cover || 'assets/logo.svg'}" width="48" height="48"
+                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${aotyCoverUrl(item.cover) || 'assets/logo.svg'}" width="48" height="48"
                         style="border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);"
                         loading="lazy" onerror="this.src='assets/logo.svg';this.onerror=null;">
                     <div style="flex:1;min-width:0;">
@@ -3594,7 +3599,7 @@ export class UIRenderer {
     createAOTYAlbumCardHTML(album, isUpcoming = false) {
         const title = escapeHtml(album.title || 'Unknown Album');
         const artist = escapeHtml(album.artist || '');
-        const cover = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${album.cover || 'assets/logo.svg'}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='assets/logo.svg'">`;
+        const cover = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${aotyCoverUrl(album.cover) || 'assets/logo.svg'}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='assets/logo.svg'">`;
 
         const scoreParts = [];
         if (album.criticScore) scoreParts.push(`${album.criticScore} critic`);
@@ -6096,7 +6101,7 @@ export class UIRenderer {
 
             // "In your library" section: find liked tracks and playlist tracks for this artist
             if (inLibraryContainer && inLibrarySection) {
-                const artistNameLower = artist.name.toLowerCase();
+                const artistNameLower = (artist.name || '').toLowerCase();
 
                 const isTrackByArtist = (track) => {
                     if (track.artists && Array.isArray(track.artists)) {
@@ -7050,6 +7055,11 @@ export class UIRenderer {
 
         const playBtn = document.getElementById('play-track-btn');
         const likeBtn = document.getElementById('like-track-btn');
+
+        if (!imageEl || !titleEl || !artistEl || !albumEl || !yearEl || !albumTracksContainer) {
+            console.warn('Track page elements missing; aborting renderTrackPage');
+            return;
+        }
 
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';

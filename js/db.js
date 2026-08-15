@@ -18,6 +18,18 @@ export class MusicDatabase {
 
             request.onsuccess = (event) => {
                 this.db = event.target.result;
+                // If another tab upgrades the schema (versionchange) or the
+                // connection closes, drop our reference so the next open()
+                // re-opens instead of using a closing connection.
+                this.db.onversionchange = () => {
+                    try {
+                        this.db?.close();
+                    } catch {}
+                    this.db = null;
+                };
+                this.db.onclose = () => {
+                    this.db = null;
+                };
                 resolve(this.db);
             };
 
@@ -127,7 +139,7 @@ export class MusicDatabase {
                 }
 
                 const timestamp = Math.max(Date.now(), lastTimestamp + 1);
-                const entry = { ...minified, timestamp };
+                const entry = this._toCloneable({ ...minified, timestamp }, { id: track.id, timestamp });
 
                 const dedupeReq = index.openCursor(null, 'prev');
                 dedupeReq.onsuccess = (e2) => {
@@ -192,7 +204,7 @@ export class MusicDatabase {
             return false; // Removed
         } else {
             const minified = this._minifyItem(type, item);
-            const entry = { ...minified, addedAt: Date.now() };
+            const entry = this._toCloneable({ ...minified, addedAt: Date.now() }, { id: key, addedAt: Date.now() });
             await this.performTransaction(storeName, 'readwrite', (store) => store.put(entry));
             window.dispatchEvent(new CustomEvent('favorites-changed'));
             return true; // Added
@@ -231,6 +243,15 @@ export class MusicDatabase {
             };
             request.onerror = () => reject(request.error);
         });
+    }
+
+    _toCloneable(value, fallback = {}) {
+        try {
+            const json = JSON.stringify(value);
+            return json === undefined ? fallback : JSON.parse(json);
+        } catch {
+            return fallback;
+        }
     }
 
     _minifyItem(type, item) {

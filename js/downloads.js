@@ -146,6 +146,15 @@ function createDownloadNotification() {
     return downloadNotificationContainer;
 }
 
+function friendlyEnrichError(error) {
+    const msg = String(error?.message || error || '');
+    if (msg.includes('Could not resolve audio stream')) return 'no audio stream is available for this track';
+    if (msg.includes('DOLBY ATMOS') || msg.includes('Dolby Atmos')) return msg;
+    if (msg.includes('status 404')) return 'this track was not found on the provider';
+    if (msg.includes('status 422')) return 'this track cannot be downloaded';
+    return msg || 'the track could not be prepared for download';
+}
+
 export function showNotification(message) {
     const container = createDownloadNotification();
 
@@ -1104,7 +1113,9 @@ export async function downloadTrackWithMetadata(
         enriched = await tidalAPI.enrichTrack(track, { downloadQuality: quality });
     } catch (error) {
         ongoingDownloads.delete(downloadKey);
-        throw error;
+        const title = track?.title || track?.name || 'this track';
+        showNotification(`Couldn't download "${title}": ${friendlyEnrichError(error)}`);
+        return;
     }
     const { enrichedTrack } = enriched;
     const filename = buildTrackFilename(enrichedTrack, quality);

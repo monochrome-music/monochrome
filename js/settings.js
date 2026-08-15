@@ -83,7 +83,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // Initialize account system UI & Settings
-    authManager.updateUI(authManager.user);
+    authManager.updateUI?.(authManager.user ?? null);
 
     // ========================================
     // Dev Mode
