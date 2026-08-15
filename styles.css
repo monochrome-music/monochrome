@@ -4048,6 +4048,10 @@ input:checked + .slider::before {
     color: var(--foreground);
 }
 
+#context-menu li.danger:hover {
+    background-color: var(--color-danger-hover);
+}
+
 #context-menu li.separator,
 #eq-node-context-menu li.separator {
     height: 1px;

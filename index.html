@@ -182,7 +182,7 @@
                 <li data-action="track-info" data-type-filter="track,video">Track info</li>
                 <li data-action="open-original-url" data-type-filter="track,video">Open original URL</li>
                 <li data-action="download">Download</li>
-                <li class="separator" data-type-filter="track,album,artist" data-action="horizantal-rule">
+                <li class="separator" data-type-filter="track,album,artist,user-playlist" data-action="horizantal-rule">
                     <!-- IDK why adding a `data-action` is necessary, but without it
                       the `data-type-filter` gets ignored; So I've added it -->
                 </li>
@@ -209,6 +209,13 @@
                     data-label-unblock="Unblock artist"
                 >
                     Block artist
+                </li>
+                <li 
+                    data-action="delete-user-playlist"
+                    data-type-filter="user-playlist"
+                    class="danger"
+                >
+                    Delete Playlist
                 </li>
             </ul>
         </div>

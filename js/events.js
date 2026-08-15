@@ -31,6 +31,7 @@ import { partyManager } from './listening-party.js';
 import { MusicAPI } from './music-api.js';
 import { LyricsManager } from './lyrics.js';
 import { Player } from './player.js';
+import { UIRenderer } from './ui.js';
 
 let currentTrackIdForWaveform = null;
 let copiedTracks = [];
@@ -2105,6 +2106,14 @@ export async function handleTrackAction(
         } else {
             contentBlockingSettings.blockArtist(artistObj);
             showNotification(`Blocked artist: ${artistName || 'Unknown Artist'}`);
+        }
+    } else if (action === 'delete-user-playlist') {
+        const contextMenu = document.getElementById('context-menu');
+        const playlistId = item.id || item.uuid;
+        if (confirm('Are you sure you want to delete this playlist?')) {
+        await db.deletePlaylist(playlistId);
+        await syncManager.syncUserPlaylist({ id: playlistId }, 'delete');
+        UIRenderer.instance.renderLibraryPage();
         }
     }
 }
