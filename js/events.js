@@ -2113,7 +2113,12 @@ export async function handleTrackAction(
         if (confirm('Are you sure you want to delete this playlist?')) {
         await db.deletePlaylist(playlistId);
         await syncManager.syncUserPlaylist({ id: playlistId }, 'delete');
-        UIRenderer.instance.renderLibraryPage();
+        try {
+            await UIRenderer.instance.renderLibraryPage();
+        } catch (error) {
+            console.error('Failed to refresh library after playlist deletion:', error);
+            showNotification('Playlist deleted, but the library could not be refreshed.');
+        }
         }
     }
 }
