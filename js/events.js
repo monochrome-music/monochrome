@@ -2111,14 +2111,14 @@ export async function handleTrackAction(
         const contextMenu = document.getElementById('context-menu');
         const playlistId = item.id || item.uuid;
         if (confirm('Are you sure you want to delete this playlist?')) {
-        await db.deletePlaylist(playlistId);
-        await syncManager.syncUserPlaylist({ id: playlistId }, 'delete');
-        try {
-            await UIRenderer.instance.renderLibraryPage();
-        } catch (error) {
-            console.error('Failed to refresh library after playlist deletion:', error);
-            showNotification('Playlist deleted, but the library could not be refreshed.');
-        }
+            await db.deletePlaylist(playlistId);
+            await syncManager.syncUserPlaylist({ id: playlistId }, 'delete');
+            try {
+                await UIRenderer.instance.renderLibraryPage();
+            } catch (error) {
+                console.error('Failed to refresh library after playlist deletion:', error);
+                showNotification('Playlist deleted, but the library could not be refreshed.');
+            }
         }
     }
 }
