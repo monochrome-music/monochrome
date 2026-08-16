@@ -85,6 +85,7 @@ export class LastFMScrobbler {
         }
 
         if (typeof artistName !== 'string') return 'Unknown Artist';
+        return artistName || 'Unknown Artist';
     }
 
     async generateSignature(params) {
