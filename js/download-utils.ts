@@ -18,15 +18,25 @@ export function triggerDownload(blob: Blob, filename: string): void {
     if (dl && typeof dl.saveDownload === 'function') {
         const r = new FileReader();
         r.onloadend = () => {
-            const s = (r.result as string) || '';
-            const c = s.indexOf(',');
-            const b64 = c >= 0 ? s.substring(c + 1) : s;
-            dl.saveDownload(b64, filename, blob.type || 'application/octet-stream');
+            try {
+                const s = (r.result as string) || '';
+                const c = s.indexOf(',');
+                const b64 = c >= 0 ? s.substring(c + 1) : s;
+                dl.saveDownload(b64, filename, blob.type || 'application/octet-stream');
+            } catch {
+                // Java bridge unavailable/failed; fall back to the standard browser download.
+                downloadBlobViaAnchor(blob, filename);
+            }
         };
+        r.onerror = () => downloadBlobViaAnchor(blob, filename);
         r.readAsDataURL(blob);
         return;
     }
 
+    downloadBlobViaAnchor(blob, filename);
+}
+
+function downloadBlobViaAnchor(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

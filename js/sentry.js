@@ -1,5 +1,5 @@
 // js/sentry.js - Sentry error tracking and performance monitoring
-import * as Sentry from '@sentry/browser';
+// import * as Sentry from '@sentry/browser';
 import { analyticsSettings } from './storage.js';
 
 export const SENTRY_DSN = 'https://33e55746a9904532835bee180d60d9b1@rustrak-api.edideaur.works/2';
@@ -32,6 +32,9 @@ const INJECTION_NOISE_PATTERNS = [
     /n\.target\.matches is not a function|^l is not a function$|reading 'M_ID'/,
     /Failed to start the audio device|The operation is not supported\./,
     /AbortError/,
+    /DecompressionStream is not defined/,
+    /Can't find variable: [a-z]$/,
+    /\.entries\.at is not a function/,
 ];
 
 function isForeignOrigin(filename) {
@@ -78,30 +81,68 @@ export function initSentry() {
         return;
     }
 
-    Sentry.init({
-        dsn: SENTRY_DSN,
-        release: '5.0.1',
-        integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
-        // The Turnstile SDK throws this internally (uncaught, from its own async
-        // cleanup) after a widget has already been removed. It is harmless and
-        // outside our control, so drop it instead of flooding the error tracker.
-        ignoreErrors: ['Nothing to reset found for provided container'],
-        beforeSend(event) {
-            if (isInjectionNoise(event)) {
-                return null;
-            }
-            return event;
-        },
-        // Performance Monitoring
-        tracesSampleRate: 1.0,
-        tracePropagationTargets: ['localhost', /^https:\/\/.*\.edideaur\.works/],
-        // Session Replay
-        replaysSessionSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1.0,
-    });
+    // Sentry.init({
+    //     dsn: SENTRY_DSN,
+    //     release: '5.0.1',
+    //     integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
+    //     // The Turnstile SDK throws this internally (uncaught, from its own async
+    //     // cleanup) after a widget has already been removed. It is harmless and
+    //     // outside our control, so drop it instead of flooding the error tracker.
+    //     ignoreErrors: [
+    //         'Nothing to reset found for provided container',
+    //         /\[Cloudflare Turnstile\] Error: \d+/,
+    //         // Environmental: browser storage/quota/filesystem failures.
+    //         /QuotaExceededError/,
+    //         /Access is denied for this document/,
+    //         /Encountered full disk while opening backing store/,
+    //         /NoModificationAllowedError/,
+    //         /NotFoundError: A requested file or directory could not be found/,
+    //         /UnknownError: (Unable to open database|Unable to establish IDB|Database deleted by request|Connection to Indexed Database|Internal error|Attempt to get)/,
+    //         /Out of memory/,
+    //         // Expected when a track has no resolvable stream (Unified Playback and
+    //         // Deezer both fail). This is handled and surfaced to the user as a
+    //         // friendly notification, not a code defect, so don't track it.
+    //         /Could not resolve (audio stream|stream URL) from Unified Playback or Deezer/,
+    //         /Cannot resolve audio stream: Unified Playback failed and track has no ISRC/,
+    //         /Could not resolve stream URL: Unified Playback failed and the track has no ISRC/,
+    //         // Expected when an Atmos download is unavailable with strict quality enabled.
+    //         /tier is unavailable\. Atmos downloads are strict, so no stereo fallback was used/,
+    //         // Transient chunk load failures (network blips or a stale service worker
+    //         // referencing old hashed assets). Self-heal on reload; not actionable.
+    //         /Failed to fetch dynamically imported module/,
+    //         /error loading dynamically imported module/,
+    //         /^Importing a module script failed\.$/,
+    //         /'text\/html' is not a valid JavaScript MIME type/,
+    //         // Third-party lyrics backends (user-configured) failing to respond.
+    //         /Failed to fetch \(lyrics/i,
+    //         // Third-party CDN/proxy fetch failures outside our control.
+    //         /Failed to fetch \((resources\.tidal\.com|dzr\.tabs-vs-spaces\.wtf|tabs-vs-spaces\.wtf|canine\.tools)\)/i,
+    //         // Android WebView native-bridge invocation failures (outside our JS).
+    //         /Error invoking \w+: Java/,
+    //         /Window message "chrome: call method" timed out/,
+    //         // Click handler fired on a non-element target (rare DOM edge case).
+    //         /\.target\.closest is not a function/,
+    //         // Stale browser-extension contexts calling chrome.runtime.sendMessage.
+    //         /Invalid call to runtime\.sendMessage\(\)\. Tab not found/,
+    //         // Browser cannot play the assigned media source (codec/format unsupported).
+    //         /The element has no supported sources/,
+    //     ],
+    //     beforeSend(event) {
+    //         if (isInjectionNoise(event)) {
+    //             return null;
+    //         }
+    //         return event;
+    //     },
+    //     // Performance Monitoring
+    //     tracesSampleRate: 1.0,
+    //     tracePropagationTargets: ['localhost', /^https:\/\/.*\.edideaur\.works/],
+    //     // Session Replay
+    //     replaysSessionSampleRate: 0.1,
+    //     replaysOnErrorSampleRate: 1.0,
+    // });
 }
 
 // Auto-initialize Sentry on load
 initSentry();
 
-export { Sentry };
+// export { Sentry };

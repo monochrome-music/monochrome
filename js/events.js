@@ -237,7 +237,7 @@ document.addEventListener('keydown', async (e) => {
     const el = document.activeElement;
     if (['INPUT', 'TEXTAREA'].includes(el?.tagName) || el?.isContentEditable) return;
 
-    const key = e.key.toLowerCase();
+    const key = (e.key || '').toLowerCase();
     if (!(e.ctrlKey || e.metaKey)) return;
 
     if (key === 'a') {

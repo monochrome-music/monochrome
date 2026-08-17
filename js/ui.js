@@ -1310,7 +1310,7 @@ export class UIRenderer {
 
         const isRealVideo = track.type === 'video';
         const visualizerContainer = document.getElementById('visualizer-container');
-        overlay.classList.toggle('is-video-mode', isRealVideo);
+        if (overlay) overlay.classList.toggle('is-video-mode', isRealVideo);
 
         const toggleUiBtn = document.getElementById('toggle-ui-btn');
         if (toggleUiBtn) {
@@ -1415,13 +1415,16 @@ export class UIRenderer {
         }
 
         this.updateFullscreenQualityBadgePlacement(track, overlay);
-        artist.textContent = getTrackArtists(track);
+        if (artist) artist.textContent = getTrackArtists(track);
 
-        if (nextTrack) {
-            nextTrackEl.style.display = 'flex';
-            nextTrackEl.querySelector('.value').textContent = `${nextTrack.title} • ${getTrackArtists(nextTrack)}`;
-        } else {
-            nextTrackEl.style.display = 'none';
+        if (nextTrackEl) {
+            if (nextTrack) {
+                nextTrackEl.style.display = 'flex';
+                const valueEl = nextTrackEl.querySelector('.value');
+                if (valueEl) valueEl.textContent = `${nextTrack.title} • ${getTrackArtists(nextTrack)}`;
+            } else {
+                nextTrackEl.style.display = 'none';
+            }
         }
     }
 
@@ -4323,13 +4326,22 @@ export class UIRenderer {
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 // safari supports HLS natively
-                video.src = url;
+                try {
+                    video.src = url;
+                } catch {
+                    video.replaceWith(fallbackImg);
+                }
             } else {
                 video.replaceWith(fallbackImg);
             }
         } else {
             // MP4
-            video.src = url;
+            try {
+                video.src = url;
+            } catch {
+                video.replaceWith(fallbackImg);
+                return;
+            }
             video.play().catch((e) => {
                 console.warn('MP4 autoplay failed:', e);
                 video.muted = true;
@@ -4662,19 +4674,37 @@ export class UIRenderer {
     }
 
     removeFromSearchHistory(query) {
-        let history = JSON.parse(localStorage.getItem('search-history') || '[]');
+        let history = [];
+        try {
+            history = JSON.parse(localStorage.getItem('search-history') || '[]');
+        } catch {
+            history = [];
+        }
         history = history.filter((q) => q !== query);
-        localStorage.setItem('search-history', JSON.stringify(history));
+        try {
+            localStorage.setItem('search-history', JSON.stringify(history));
+        } catch {
+            /* ignore quota/parse failures */
+        }
         this.renderSearchHistory();
     }
 
     addToSearchHistory(query) {
         if (!query || query.trim().length === 0) return;
-        let history = JSON.parse(localStorage.getItem('search-history') || '[]');
+        let history = [];
+        try {
+            history = JSON.parse(localStorage.getItem('search-history') || '[]');
+        } catch {
+            history = [];
+        }
         history = history.filter((q) => q !== query);
         history.unshift(query);
         history = history.slice(0, 10);
-        localStorage.setItem('search-history', JSON.stringify(history));
+        try {
+            localStorage.setItem('search-history', JSON.stringify(history));
+        } catch {
+            /* ignore quota failures */
+        }
     }
 
     async renderAlbumPage(albumId, provider = null) {
@@ -4693,6 +4723,11 @@ export class UIRenderer {
         if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD(20)}<span>Download Album</span>`;
         const mixBtn = document.getElementById('album-mix-btn');
         if (mixBtn) mixBtn.style.display = 'none';
+
+        if (!imageEl || !tracklistContainer) {
+            console.warn('Album page elements missing; skipping render.');
+            return;
+        }
 
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';

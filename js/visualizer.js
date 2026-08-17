@@ -107,7 +107,7 @@ export class Visualizer {
     }
 
     initContext() {
-        const preset = this.activePreset;
+        const preset = this.activePreset || {};
         const type = preset.contextType || '2d';
         const currentType = this._currentContextType;
 
