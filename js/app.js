@@ -317,7 +317,7 @@ function initializeKeyboardShortcuts(player, _audioPlayer) {
         if (e.target.matches('input, textarea, [contenteditable="true"]')) return;
 
         const shortcuts = keyboardShortcuts.getShortcuts();
-        const pressedKey = e.key.toLowerCase();
+        const pressedKey = (e.key || '').toLowerCase();
         const hasShift = e.shiftKey;
         const hasCtrl = e.ctrlKey || e.metaKey;
         const hasAlt = e.altKey;
@@ -900,17 +900,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('xml-import-panel').style.display = importType === 'xml' ? 'block' : 'none';
             document.getElementById('m3u-import-panel').style.display = importType === 'm3u' ? 'block' : 'none';
 
-            // Clear all file inputs except the active one
-            document.getElementById('csv-file-input').value =
-                importType === 'csv' ? document.getElementById('csv-file-input').value : '';
-            document.getElementById('jspf-file-input').value =
-                importType === 'jspf' ? document.getElementById('jspf-file-input').value : '';
-            document.getElementById('xspf-file-input').value =
-                importType === 'xspf' ? document.getElementById('xspf-file-input').value : '';
-            document.getElementById('xml-file-input').value =
-                importType === 'xml' ? document.getElementById('xml-file-input').value : '';
-            document.getElementById('m3u-file-input').value =
-                importType === 'm3u' ? document.getElementById('m3u-file-input').value : '';
+            // Clear all file inputs except the active one (setting a file input's
+            // value to a non-empty string throws InvalidStateError)
+            if (importType !== 'csv') document.getElementById('csv-file-input').value = '';
+            if (importType !== 'jspf') document.getElementById('jspf-file-input').value = '';
+            if (importType !== 'xspf') document.getElementById('xspf-file-input').value = '';
+            if (importType !== 'xml') document.getElementById('xml-file-input').value = '';
+            if (importType !== 'm3u') document.getElementById('m3u-file-input').value = '';
         });
     });
     const spotifyBtn = document.getElementById('csv-spotify-btn');

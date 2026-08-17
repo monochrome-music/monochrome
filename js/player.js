@@ -52,7 +52,11 @@ export class Player {
         crossfadeAudio.crossOrigin = 'anonymous';
         crossfadeAudio.preload = 'auto';
         crossfadeAudio.style.display = 'none';
-        audioElement.insertAdjacentElement('afterend', crossfadeAudio);
+        try {
+            audioElement.insertAdjacentElement('afterend', crossfadeAudio);
+        } catch {
+            /* audio element unavailable; crossfade will be skipped */
+        }
         this.audioElements = [audioElement, crossfadeAudio];
         this.video = document.getElementById('video-player');
         this.api = api;
@@ -435,7 +439,14 @@ export class Player {
         const el = this.activeElement;
 
         if (el.playbackRate !== speed) {
-            el.playbackRate = speed;
+            // Browsers only support ~0.0625–16; values outside that throw
+            // NotSupportedError. Clamp defensively.
+            const clamped = Math.max(0.0625, Math.min(16, Number(speed) || 1));
+            try {
+                el.playbackRate = clamped;
+            } catch {
+                /* unsupported rate; keep current */
+            }
         }
 
         const preservePitch = audioEffectsSettings.isPreservePitchEnabled();
@@ -450,7 +461,9 @@ export class Player {
 
     setPlaybackSpeed(speed) {
         const parsed = parseFloat(speed);
-        const validSpeed = Math.max(0.01, Math.min(100, isNaN(parsed) ? 1.0 : parsed));
+        // Browsers only accept ~0.0625–16; clamp so setting an extreme rate
+        // cannot throw NotSupportedError.
+        const validSpeed = Math.max(0.0625, Math.min(16, isNaN(parsed) ? 1.0 : parsed));
         audioEffectsSettings.setSpeed(validSpeed);
         this.applyAudioEffects();
     }
@@ -2144,20 +2157,47 @@ export class Player {
                         oldCurve[i] = oldOutputGain * Math.cos((progress * Math.PI) / 2);
                         nextCurve[i] = Math.sin((progress * Math.PI) / 2);
                     }
-                    const startAt = audioContext.currentTime;
-                    oldOutputGainNode.cancelScheduledValues(startAt);
-                    crossfadeOutput.gainNode.gain.cancelScheduledValues(startAt);
-                    oldOutputGainNode.value = oldOutputGain;
-                    crossfadeOutput.gainNode.gain.value = 0;
-                    oldOutputGainNode.setValueCurveAtTime(oldCurve, startAt, fadeDurationSeconds);
-                    crossfadeOutput.gainNode.gain.setValueCurveAtTime(nextCurve, startAt, fadeDurationSeconds);
-                    await new Promise((resolve) => setTimeout(resolve, durationMs));
+                    let scheduledFade = false;
+                    try {
+                        const startAt = audioContext.currentTime;
+                        oldOutputGainNode.cancelScheduledValues(startAt);
+                        crossfadeOutput.gainNode.gain.cancelScheduledValues(startAt);
+                        oldOutputGainNode.value = oldOutputGain;
+                        crossfadeOutput.gainNode.gain.value = 0;
+                        oldOutputGainNode.setValueCurveAtTime(oldCurve, startAt, fadeDurationSeconds);
+                        crossfadeOutput.gainNode.gain.setValueCurveAtTime(nextCurve, startAt, fadeDurationSeconds);
+                        scheduledFade = true;
+                    } catch (e) {
+                        // Overlapping AudioParam automation (e.g. EQ/volume setValueAtTime)
+                        // can throw NotSupportedError; fall back to a manual JS fade.
+                        console.warn('Crossfade scheduling failed, using manual fade:', e);
+                    }
+                    if (scheduledFade) {
+                        await new Promise((resolve) => setTimeout(resolve, durationMs));
+                    } else {
+                        const startedAt = performance.now();
+                        while (this.playbackSequence === sequence) {
+                            const progress = Math.min(1, (performance.now() - startedAt) / durationMs);
+                            try {
+                                oldOutputGainNode.value = oldOutputGain * Math.cos((progress * Math.PI) / 2);
+                                crossfadeOutput.gainNode.gain.value = Math.sin((progress * Math.PI) / 2);
+                            } catch {
+                                break;
+                            }
+                            if (progress >= 1) break;
+                            await new Promise((resolve) => setTimeout(resolve, 16));
+                        }
+                    }
                 } else {
                     const startedAt = performance.now();
                     while (this.playbackSequence === sequence) {
                         const progress = Math.min(1, (performance.now() - startedAt) / durationMs);
-                        oldOutputGainNode.value = oldOutputGain * Math.cos((progress * Math.PI) / 2);
-                        crossfadeOutput.gainNode.gain.value = Math.sin((progress * Math.PI) / 2);
+                        try {
+                            oldOutputGainNode.value = oldOutputGain * Math.cos((progress * Math.PI) / 2);
+                            crossfadeOutput.gainNode.gain.value = Math.sin((progress * Math.PI) / 2);
+                        } catch {
+                            break;
+                        }
                         if (progress >= 1) break;
                         await new Promise((resolve) => setTimeout(resolve, 16));
                     }

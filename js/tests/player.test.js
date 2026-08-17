@@ -219,7 +219,10 @@ describe('Player', () => {
         expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(2.0);
 
         player.setPlaybackSpeed(0);
-        expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(0.01);
+        expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(0.0625);
+
+        player.setPlaybackSpeed(100);
+        expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(16);
     });
 
     test('compensates when Safari lands a direct FLAC seek before the requested time', async () => {

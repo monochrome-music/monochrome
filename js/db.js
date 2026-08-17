@@ -1,3 +1,13 @@
+// A value IndexedDB can use as a record key for a keyPath store.
+function isValidIDBKey(value) {
+    if (value === null || value === undefined) return false;
+    const type = typeof value;
+    if (type === 'number') return Number.isFinite(value);
+    if (type === 'string' || value instanceof Date) return true;
+    if (Array.isArray(value)) return value.every((v) => isValidIDBKey(v));
+    return ArrayBuffer.isView(value) || value instanceof ArrayBuffer;
+}
+
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
@@ -92,6 +102,22 @@ export class MusicDatabase {
     // Generic Helper
     async performTransaction(storeName, mode, callback) {
         const db = await this.open();
+        try {
+            return await this._runTransaction(db, storeName, mode, callback);
+        } catch (error) {
+            // The connection may have closed (another tab upgraded/deleted the DB)
+            // between open() and starting the transaction. Drop our cached handle
+            // and retry once against a freshly opened connection.
+            if (error?.name === 'InvalidStateError') {
+                this.db = null;
+                const freshDb = await this.open();
+                return this._runTransaction(freshDb, storeName, mode, callback);
+            }
+            throw error;
+        }
+    }
+
+    _runTransaction(db, storeName, mode, callback) {
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(storeName, mode);
             const store = transaction.objectStore(storeName);
@@ -135,7 +161,8 @@ export class MusicDatabase {
             lastReq.onsuccess = (e) => {
                 const cursor = e.target.result;
                 if (cursor && lastTimestamp === 0) {
-                    lastTimestamp = cursor.value.timestamp;
+                    const ts = Number(cursor.value.timestamp);
+                    lastTimestamp = Number.isFinite(ts) ? ts : 0;
                 }
 
                 const timestamp = Math.max(Date.now(), lastTimestamp + 1);
@@ -195,7 +222,10 @@ export class MusicDatabase {
     async toggleFavorite(type, item) {
         const plural = type === 'mix' ? 'mixes' : `${type}s`;
         const storeName = `favorites_${plural}`;
-        const key = type === 'playlist' ? item.uuid : item.id;
+        let key = type === 'playlist' ? item.uuid : item.id;
+        if (!isValidIDBKey(key)) {
+            key = `${Date.now()}-${Math.random()}`;
+        }
         const exists = await this.isFavorite(type, key);
 
         if (exists) {
@@ -204,7 +234,10 @@ export class MusicDatabase {
             return false; // Removed
         } else {
             const minified = this._minifyItem(type, item);
-            const entry = this._toCloneable({ ...minified, addedAt: Date.now() }, { id: key, addedAt: Date.now() });
+            const entry = this._toCloneable(
+                { ...minified, [type === 'playlist' ? 'uuid' : 'id']: key, addedAt: Date.now() },
+                { [type === 'playlist' ? 'uuid' : 'id']: key, addedAt: Date.now() }
+            );
             await this.performTransaction(storeName, 'readwrite', (store) => store.put(entry));
             window.dispatchEvent(new CustomEvent('favorites-changed'));
             return true; // Added
@@ -423,7 +456,10 @@ export class MusicDatabase {
         if (!minifiedItem) return;
 
         const key = minifiedItem.id;
-        const exists = await this.isPinned(key);
+        if (!isValidIDBKey(key)) {
+            minifiedItem.id = `${Date.now()}-${Math.random()}`;
+        }
+        const exists = await this.isPinned(minifiedItem.id);
 
         if (exists) {
             await this.performTransaction(storeName, 'readwrite', (store) => store.delete(key));
@@ -550,13 +586,13 @@ export class MusicDatabase {
                         });
                     }
 
-                    // Critical: Ensure key exists for IndexedDB store.put()
+                    // Critical: Ensure key exists and is a valid IndexedDB key for store.put()
                     const keyPath = store.keyPath;
-                    if (keyPath && !item[keyPath]) {
+                    if (keyPath && !isValidIDBKey(item[keyPath])) {
                         console.warn(`Item missing keyPath "${keyPath}" in ${storeName}, generating fallback.`);
                         if (keyPath === 'uuid') item.uuid = crypto.randomUUID();
                         else if (keyPath === 'id')
-                            item.id = item.trackId || item.albumId || item.artistId || Date.now() + Math.random();
+                            item.id = item.trackId || item.albumId || item.artistId || `${Date.now()}-${Math.random()}`;
                         else if (keyPath === 'timestamp') item.timestamp = Date.now() + Math.random();
                     }
 

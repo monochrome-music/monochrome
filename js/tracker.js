@@ -5,7 +5,6 @@ import { SVG_MENU, SVG_PLAY, SVG_HEART } from './icons.js';
 import { Player } from './player.js';
 
 let artistsData = [];
-let artistsPopularity = new Map(); // name -> popularity score
 
 // Map to store artist info keyed by sheetId for quick lookup
 const artistBySheetId = new Map();
@@ -27,23 +26,6 @@ function cleanSongTitle(title) {
         .replace(/\s*[([]\s*produced\s+by\s+[^)\]]+[)\]]/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
-}
-
-async function loadArtistsPopularity() {
-    try {
-        const response = await fetch('https://trends.artistgrid.cx');
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data.results) {
-            data.results.forEach((artist, index) => {
-                // Store popularity score based on visitors and position
-                const score = artist.visitors * (1 - index / data.results.length);
-                artistsPopularity.set(artist.name, score);
-            });
-        }
-    } catch (e) {
-        console.log('Could not load popularity data:', e);
-    }
 }
 
 // Parse RFC4180-style CSV (quoted fields, escaped "" quotes, commas/newlines inside quotes)
@@ -106,13 +88,6 @@ async function loadArtistsData() {
         if (!response.ok) throw new Error('Network response was not ok');
         const text = await response.text();
         artistsData = parseArtistsCSV(text);
-
-        // Sort by popularity if available
-        artistsData.sort((a, b) => {
-            const popA = artistsPopularity.get(a.name) || 0;
-            const popB = artistsPopularity.get(b.name) || 0;
-            return popB - popA;
-        });
 
         // Build sheetId lookup map
         artistBySheetId.clear();
@@ -791,7 +766,6 @@ export async function renderUnreleasedPage(container) {
     let allArtistCards = [];
 
     if (artistsData.length === 0) {
-        await loadArtistsPopularity();
         await loadArtistsData();
     }
 
@@ -1001,7 +975,7 @@ export async function renderTrackerTrackPage(trackId, container, _ui) {
 }
 
 export async function initTracker() {
-    await Promise.all([loadArtistsPopularity(), loadArtistsData()]);
+    await loadArtistsData();
 }
 
 // Helper function to find a tracker artist by name (for use in normal artist pages)
