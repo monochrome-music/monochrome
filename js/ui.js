@@ -2094,6 +2094,7 @@ export class UIRenderer {
         const repeatBtn = document.getElementById('fs-repeat-btn');
         const visualizerBtn = document.getElementById('fs-visualizer-btn');
         const progressBar = document.getElementById('fs-progress-bar');
+        const seekTooltip = document.getElementById('fs-seek-tooltip');
         const progressFill = document.getElementById('fs-progress-fill');
         const currentTimeEl = document.getElementById('fs-current-time');
         const totalDurationEl = document.getElementById('fs-total-duration');
@@ -2213,6 +2214,25 @@ export class UIRenderer {
             },
             { passive: false }
         );
+
+        progressBar.addEventListener('mousemove', (e) => {
+            if (isFsSeeking) return; // drag already shows seek time, no need for tooltip
+
+            const activeEl = this.player.activeElement;
+            const duration = activeEl.duration;
+
+            const rect = progressBar.getBoundingClientRect();
+            const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+
+
+            seekTooltip.textContent = formatTime(pos * duration);
+            seekTooltip.style.left = `${e.clientX - rect.left}px`;
+            seekTooltip.style.opacity = `1`;
+        });
+
+        progressBar.addEventListener('mouseleave', () => {
+            seekTooltip.style.opacity = `0`;
+        });
 
         document.addEventListener('mousemove', (e) => {
             if (isFsSeeking) {

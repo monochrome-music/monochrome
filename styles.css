@@ -3799,6 +3799,21 @@ input:checked + .slider::before {
     border-radius: var(--radius-xs);
 }
 
+.seek-tooltip {
+    position: absolute;
+    bottom: 100%;
+    transform: translateX(-50%);
+    margin-bottom: 8px;
+    padding: 2px 6px;
+    background: var(--secondary);
+    color: var(--foreground);
+    font-size: 0.8rem;
+    border-radius: 4px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+}
+
 .progress-bar:hover {
     height: 8px;
 }
