@@ -1023,6 +1023,26 @@ function initializeSmoothSliders(player) {
         updateSeekUI(position);
     });
 
+    // Hover tooltip showing seek target time
+    const seekTooltip = document.getElementById('seek-tooltip');
+
+    progressBar.addEventListener('mousemove', (e) => {
+        if (isSeeking) return; // drag already shows seek time, no need for tooltip
+
+        const activeEl = player.activeElement;
+        const duration = activeEl.duration;
+
+        seek(progressBar, e, (position) => {
+            seekTooltip.textContent = formatTime(position * duration);
+            seekTooltip.style.left = `${e.clientX - progressBar.getBoundingClientRect().left}px`;
+            seekTooltip.style.opacity = `1`;
+        });
+    });
+
+    progressBar.addEventListener('mouseleave', () => {
+        seekTooltip.style.opacity = `0`;
+    });
+
     document.addEventListener('mousemove', (e) => {
         if (isSeeking) {
             seek(progressBar, e, (position) => {
