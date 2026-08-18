@@ -545,8 +545,8 @@ export class LosslessAPI {
                 if (manifest.urls && Array.isArray(manifest.urls)) {
                     const priorityKeywords = ['flac', 'lossless', 'hi-res', 'high'];
                     const sortedUrls = [...manifest.urls].sort((a, b) => {
-                        const aLow = a.toLowerCase();
-                        const bLow = b.toLowerCase();
+                        const aLow = String(a ?? '').toLowerCase();
+                        const bLow = String(b ?? '').toLowerCase();
                         const aScore = priorityKeywords.findIndex((k) => aLow.includes(k));
                         const bScore = priorityKeywords.findIndex((k) => bLow.includes(k));
 
@@ -574,8 +574,8 @@ export class LosslessAPI {
                 if (parsed?.urls && Array.isArray(parsed.urls)) {
                     const priorityKeywords = ['flac', 'lossless', 'hi-res', 'high'];
                     const sortedUrls = [...parsed.urls].sort((a, b) => {
-                        const aLow = a.toLowerCase();
-                        const bLow = b.toLowerCase();
+                        const aLow = String(a ?? '').toLowerCase();
+                        const bLow = String(b ?? '').toLowerCase();
                         const aScore = priorityKeywords.findIndex((k) => aLow.includes(k));
                         const bScore = priorityKeywords.findIndex((k) => bLow.includes(k));
                         const finalAScore = aScore === -1 ? 999 : aScore;

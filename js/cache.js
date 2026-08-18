@@ -19,6 +19,18 @@ export class APICache {
             request.onerror = () => reject(request.error);
             request.onsuccess = () => {
                 this.db = request.result;
+                // If another tab upgrades or deletes the DB, the connection
+                // closes; drop our reference so the next operation re-opens
+                // instead of throwing InvalidStateError on a stale handle.
+                this.db.onversionchange = () => {
+                    try {
+                        this.db?.close();
+                    } catch {}
+                    this.db = null;
+                };
+                this.db.onclose = () => {
+                    this.db = null;
+                };
                 resolve(this.db);
             };
 
@@ -124,14 +136,19 @@ export class APICache {
         this.memoryCache.clear();
 
         if (this.db) {
-            return new Promise((resolve, reject) => {
+            try {
                 const transaction = this.db.transaction(['responses'], 'readwrite');
                 const store = transaction.objectStore('responses');
                 const request = store.clear();
 
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
+                await new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            } catch (error) {
+                this.db = null;
+                console.log('Failed to clear IndexedDB cache:', error);
+            }
         }
     }
 
@@ -156,10 +173,14 @@ export class APICache {
                 const request = index.openCursor(range);
 
                 request.onsuccess = (event) => {
-                    const cursor = event.target.result;
-                    if (cursor) {
-                        cursor.delete();
-                        cursor.continue();
+                    try {
+                        const cursor = event.target.result;
+                        if (cursor) {
+                            cursor.delete();
+                            cursor.continue();
+                        }
+                    } catch (error) {
+                        console.log('Failed to clear expired IndexedDB entry:', error);
                     }
                 };
             } catch (error) {

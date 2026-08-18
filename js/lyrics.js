@@ -109,11 +109,11 @@ class GeniusManager {
         const data = await response.json();
         if (data.response.hits.length === 0) return null;
 
-        const normalize = (str) => str.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+        const normalize = (str) => String(str ?? '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
         const targetArtist = normalize(artist);
 
         const hit = data.response.hits.find((h) => {
-            const hitArtist = normalize(h.result.primary_artist.name);
+            const hitArtist = normalize(h.result.primary_artist?.name);
             return hitArtist.includes(targetArtist) || targetArtist.includes(hitArtist);
         });
 

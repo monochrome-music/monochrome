@@ -1062,7 +1062,7 @@ export class UIRenderer {
 
         // Create new listener
         const listener = () => {
-            const query = searchInput.value.toLowerCase().trim();
+            const query = (searchInput.value || '').toLowerCase().trim();
             const trackItems = tracklistContainer.querySelectorAll('.track-item');
 
             trackItems.forEach((item) => {
@@ -1097,7 +1097,7 @@ export class UIRenderer {
         }
 
         const listener = () => {
-            const query = searchInput.value.toLowerCase().trim();
+            const query = (searchInput.value || '').toLowerCase().trim();
             const selector = container.classList.contains('card-grid') ? '.card[data-track-id]' : '.track-item';
             container.querySelectorAll(selector).forEach((item) => {
                 const track = trackDataStore.get(item);
