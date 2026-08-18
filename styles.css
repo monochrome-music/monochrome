@@ -4577,7 +4577,7 @@ input:checked + .slider::before {
     overflow-wrap: break-word;
 }
 
-#fullscreen-track-artist {
+#fullscreen-track-artist, #fullscreen-track-album {
     font-size: 1.25rem;
     color: color-mix(in srgb, var(--foreground), transparent 40%);
     font-weight: 500;
@@ -4586,7 +4586,7 @@ input:checked + .slider::before {
         text-decoration 0.2s;
 }
 
-#fullscreen-track-artist:hover {
+#fullscreen-track-artist:hover, #fullscreen-track-album:hover {
     color: var(--primary);
     text-decoration: underline;
     cursor: pointer;
@@ -10843,6 +10843,12 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 #fullscreen-cover-overlay #fullscreen-track-artist {
+    margin: 0.12rem 0 0;
+    font-size: 0.84rem;
+    color: rgb(255 255 255 / 0.74);
+}
+
+#fullscreen-cover-overlay #fullscreen-track-album {
     margin: 0.12rem 0 0;
     font-size: 0.94rem;
     color: rgb(255 255 255 / 0.74);

@@ -1305,6 +1305,7 @@ export class UIRenderer {
         const image = document.getElementById('fullscreen-cover-image');
         const videoContainer = document.getElementById('fullscreen-video-container');
         const title = document.getElementById('fullscreen-track-title');
+        const album = document.getElementById('fullscreen-track-album');
         const artist = document.getElementById('fullscreen-track-artist');
         const nextTrackEl = document.getElementById('fullscreen-next-track');
 
@@ -1416,6 +1417,7 @@ export class UIRenderer {
 
         this.updateFullscreenQualityBadgePlacement(track, overlay);
         if (artist) artist.textContent = getTrackArtists(track);
+        if (album) album.textContent = track.album?.title;
 
         if (nextTrackEl) {
             if (nextTrack) {
@@ -2104,6 +2106,7 @@ export class UIRenderer {
         const fsCastBtn = document.getElementById('fs-cast-btn');
         const fsQueueBtn = document.getElementById('fs-queue-btn');
         const artistEl = document.getElementById('fullscreen-track-artist');
+        const albumEl = document.getElementById('fullscreen-track-album');
 
         if (artistEl) {
             artistEl.style.cursor = 'pointer';
@@ -2111,6 +2114,16 @@ export class UIRenderer {
                 if (this.player.currentTrack && this.player.currentTrack.artist) {
                     this.closeFullscreenCover();
                     navigate(`/artist/${this.player.currentTrack.artist.id}`);
+                }
+            };
+        }
+
+        if (albumEl) {
+            albumEl.style.cursor = 'pointer';
+            albumEl.onclick = () => {
+                if (this.player.currentTrack && this.player.currentTrack.album) {
+                    this.closeFullscreenCover();
+                    navigate(`/album/${this.player.currentTrack.album.id}`);
                 }
             };
         }
