@@ -5,7 +5,7 @@ import { analyticsSettings } from './storage.js';
 export const SENTRY_DSN = 'https://33e55746a9904532835bee180d60d9b1@rustrak-api.edideaur.works/2';
 
 // Bump this on every release so Rustrak groups errors per deploy.
-const RELEASE = '5.0.2';
+const RELEASE = '5.0.5';
 
 /**
  * Errors raised by scripts injected into users' browsers by malicious
