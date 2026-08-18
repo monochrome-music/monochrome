@@ -2224,7 +2224,6 @@ export class UIRenderer {
             const rect = progressBar.getBoundingClientRect();
             const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
 
-
             seekTooltip.textContent = formatTime(pos * duration);
             seekTooltip.style.left = `${e.clientX - rect.left}px`;
             seekTooltip.style.opacity = `1`;
