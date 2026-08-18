@@ -491,7 +491,7 @@ export async function renderTrackerArtistPage(sheetId, container) {
     // Add search functionality
     const searchInput = document.getElementById('unreleased-search-input');
     searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
+        const query = (e.target.value || '').toLowerCase().trim();
         if (!query) {
             // Reset view
             projectsContainer.style.display = '';
@@ -781,7 +781,7 @@ export async function renderUnreleasedPage(container) {
         const artistCard = document.createElement('div');
         artistCard.className = 'card';
         artistCard.style.cursor = 'pointer';
-        artistCard.dataset.artistName = artist.name.toLowerCase();
+        artistCard.dataset.artistName = (artist.name || '').toLowerCase();
 
         artistCard.innerHTML = `
             <div class="card-image-wrapper">
@@ -809,7 +809,7 @@ export async function renderUnreleasedPage(container) {
     // Setup search functionality
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
+            const query = (e.target.value || '').toLowerCase().trim();
             let visibleCount = 0;
 
             allArtistCards.forEach((card) => {

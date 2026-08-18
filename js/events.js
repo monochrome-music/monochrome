@@ -1253,7 +1253,9 @@ export async function showAddToPlaylistModal(track) {
     const modal = document.getElementById('playlist-select-modal');
     const list = document.getElementById('playlist-select-list');
     const cancelBtn = document.getElementById('playlist-select-cancel');
+    if (!modal || !list || !cancelBtn) return;
     const overlay = modal.querySelector('.modal-overlay');
+    if (!overlay) return;
 
     const renderModal = async () => {
         const playlists = await db.getPlaylists(true);
@@ -1751,7 +1753,9 @@ export async function handleTrackAction(
         const modal = document.getElementById('playlist-select-modal');
         const list = document.getElementById('playlist-select-list');
         const cancelBtn = document.getElementById('playlist-select-cancel');
+        if (!modal || !list || !cancelBtn) return;
         const overlay = modal.querySelector('.modal-overlay');
+        if (!overlay) return;
 
         const renderModal = async () => {
             const playlists = await db.getPlaylists(true);
