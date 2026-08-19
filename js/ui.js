@@ -4445,12 +4445,14 @@ export class UIRenderer {
         const artistsContainer = document.getElementById('search-artists-container');
         const albumsContainer = document.getElementById('search-albums-container');
         const playlistsContainer = document.getElementById('search-playlists-container');
+        const communityPlaylistsContainer = document.getElementById('search-community-playlists-container');
         const podcastsContainer = document.getElementById('search-podcasts-container');
 
         tracksContainer.innerHTML = this.createSkeletonTracks(8, true);
         artistsContainer.innerHTML = this.createSkeletonCards(6, true);
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
         playlistsContainer.innerHTML = this.createSkeletonCards(6, false);
+        communityPlaylistsContainer.innerHTML = this.createSkeletonCards(6, false);
         podcastsContainer.innerHTML = this.createSkeletonCards(6, true);
 
         if (this.searchAbortController) {
@@ -4461,76 +4463,21 @@ export class UIRenderer {
 
         this.setupSearchTabsLazyLoad();
 
-        try {
-            const provider = this.api.getCurrentProvider();
-            const results = await this.api.search(query, { signal, provider, enrichArtists: false });
+        this._searchState = {
+            query,
+            signal,
+            provider: this.api.getCurrentProvider(),
+            tracks: null,
+            artists: null,
+            albums: null,
+            playlists: null,
+            communityPlaylists: null,
+            artistsEnriched: false,
+            rendered: {},
+        };
 
-            let finalTracks = (results.tracks && results.tracks.items) || [];
-            let finalVideos = (results.videos && results.videos.items) || [];
-            let finalArtists = (results.artists && results.artists.items) || [];
-            let finalAlbums = (results.albums && results.albums.items) || [];
-            let finalPlaylists = (results.playlists && results.playlists.items) || [];
-
-            if (finalArtists.length === 0 && finalTracks.length > 0) {
-                const artistMap = new Map();
-                finalTracks.forEach((track) => {
-                    if (track.artist && !artistMap.has(track.artist.id)) {
-                        artistMap.set(track.artist.id, track.artist);
-                    }
-                    if (track.artists) {
-                        track.artists.forEach((artist) => {
-                            if (!artistMap.has(artist.id)) {
-                                artistMap.set(artist.id, artist);
-                            }
-                        });
-                    }
-                });
-                finalArtists = Array.from(artistMap.values());
-            }
-
-            if (finalAlbums.length === 0 && finalTracks.length > 0) {
-                const albumMap = new Map();
-                finalTracks.forEach((track) => {
-                    if (track.album && !albumMap.has(track.album.id)) {
-                        albumMap.set(track.album.id, track.album);
-                    }
-                });
-                finalAlbums = Array.from(albumMap.values());
-            }
-
-            finalTracks = finalTracks.filter((t) => !_isBlockedCopyright(t.copyright));
-            finalVideos = finalVideos.filter((t) => !_isBlockedCopyright(t.copyright));
-            finalAlbums = finalAlbums.filter((t) => !_isBlockedCopyright(t.copyright));
-
-            this._searchState = {
-                query,
-                tracks: finalTracks,
-                videos: finalVideos,
-                artists: finalArtists,
-                albums: finalAlbums,
-                playlists: finalPlaylists,
-                communityPlaylists: await searchCommunityPlaylists(query, signal).catch((err) => {
-                    if (err.name === 'AbortError') {
-                        throw err;
-                    }
-                    return [];
-                }),
-                artistsEnriched: false,
-                rendered: {},
-            };
-
-            const activeTab = document.querySelector('#page-search .search-tab.active')?.dataset.tab || 'tracks';
-            await this.renderSearchTab(activeTab);
-        } catch (error) {
-            if (error.name === 'AbortError') return;
-            console.error('Search failed:', error);
-            const errorMsg = createPlaceholder(`Error during search. ${error.message}`);
-            tracksContainer.innerHTML = errorMsg;
-            artistsContainer.innerHTML = errorMsg;
-            albumsContainer.innerHTML = errorMsg;
-            playlistsContainer.innerHTML = errorMsg;
-            podcastsContainer.innerHTML = errorMsg;
-        }
+        const activeTab = document.querySelector('#page-search .search-tab.active')?.dataset.tab || 'tracks';
+        await this.renderSearchTab(activeTab);
     }
 
     setupSearchTabsLazyLoad() {
@@ -4549,25 +4496,106 @@ export class UIRenderer {
         if (!state || state.rendered[tabName]) return;
         state.rendered[tabName] = true;
 
-        switch (tabName) {
-            case 'tracks':
-                await this._renderSearchTracks(state);
-                break;
-            case 'albums':
-                await this._renderSearchAlbums(state);
-                break;
-            case 'artists':
-                await this._renderSearchArtists(state);
-                break;
-            case 'playlists':
-                await this._renderSearchPlaylists(state);
-                break;
-            case 'community-playlists':
-                await this._renderSearchCommunityPlaylists(state);
-                break;
-            case 'podcasts':
-                await this.renderPodcastSearchResults(state.query);
-                break;
+        const fetchOptions = { signal: state.signal, provider: state.provider };
+
+        try {
+            switch (tabName) {
+                case 'tracks': {
+                    if (!state.tracks) {
+                        document.getElementById('search-tracks-container').innerHTML = this.createSkeletonTracks(
+                            8,
+                            true
+                        );
+                        const result = await this.api.searchTracks(state.query, fetchOptions);
+                        state.tracks = (result.items || []).filter((t) => !_isBlockedCopyright(t.copyright));
+                    }
+                    await this._renderSearchTracks(state);
+                    break;
+                }
+                case 'albums': {
+                    if (!state.albums) {
+                        document.getElementById('search-albums-container').innerHTML = this.createSkeletonCards(
+                            6,
+                            false
+                        );
+                        const result = await this.api.searchAlbums(state.query, fetchOptions);
+                        let albums = (result.items || []).filter((a) => !_isBlockedCopyright(a.copyright));
+                        if (albums.length === 0 && state.tracks?.length > 0) {
+                            const albumMap = new Map();
+                            state.tracks.forEach((track) => {
+                                if (track.album && !albumMap.has(track.album.id)) {
+                                    albumMap.set(track.album.id, track.album);
+                                }
+                            });
+                            albums = Array.from(albumMap.values());
+                        }
+                        state.albums = albums;
+                    }
+                    await this._renderSearchAlbums(state);
+                    break;
+                }
+                case 'artists': {
+                    if (!state.artists) {
+                        document.getElementById('search-artists-container').innerHTML = this.createSkeletonCards(
+                            6,
+                            true
+                        );
+                        const result = await this.api.searchArtists(state.query, fetchOptions);
+                        let artists = result.items || [];
+                        if (artists.length === 0 && state.tracks?.length > 0) {
+                            const artistMap = new Map();
+                            state.tracks.forEach((track) => {
+                                if (track.artist && !artistMap.has(track.artist.id)) {
+                                    artistMap.set(track.artist.id, track.artist);
+                                }
+                                if (track.artists) {
+                                    track.artists.forEach((artist) => {
+                                        if (!artistMap.has(artist.id)) {
+                                            artistMap.set(artist.id, artist);
+                                        }
+                                    });
+                                }
+                            });
+                            artists = Array.from(artistMap.values());
+                        }
+                        state.artists = artists;
+                    }
+                    await this._renderSearchArtists(state);
+                    break;
+                }
+                case 'playlists': {
+                    if (!state.playlists) {
+                        document.getElementById('search-playlists-container').innerHTML = this.createSkeletonCards(
+                            6,
+                            false
+                        );
+                        const result = await this.api.searchPlaylists(state.query, fetchOptions);
+                        state.playlists = result.items || [];
+                    }
+                    await this._renderSearchPlaylists(state);
+                    break;
+                }
+                case 'community-playlists':
+                    await this._renderSearchCommunityPlaylists(state);
+                    break;
+                case 'podcasts':
+                    await this.renderPodcastSearchResults(state.query);
+                    break;
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error(`Search tab "${tabName}" failed:`, error);
+            const containerIds = {
+                tracks: 'search-tracks-container',
+                albums: 'search-albums-container',
+                artists: 'search-artists-container',
+                playlists: 'search-playlists-container',
+                'community-playlists': 'search-community-playlists-container',
+            };
+            const container = document.getElementById(containerIds[tabName]);
+            if (container) {
+                container.innerHTML = createPlaceholder(`Error during search. ${error.message}`);
+            }
         }
     }
 
@@ -4634,7 +4662,8 @@ export class UIRenderer {
         const container = document.getElementById('search-community-playlists-container');
 
         if (!state.communityPlaylists) {
-            state.communityPlaylists = await searchCommunityPlaylists(state.query);
+            container.innerHTML = this.createSkeletonCards(6, false);
+            state.communityPlaylists = await searchCommunityPlaylists(state.query, state.signal);
         }
         container.innerHTML = state.communityPlaylists.length
             ? state.communityPlaylists.map((playlist) => this.createPlaylistCardHTML(playlist)).join('')

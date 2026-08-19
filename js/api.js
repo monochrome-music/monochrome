@@ -71,6 +71,7 @@ export class LosslessAPI {
         this.streamCache = new Map();
         this.unifiedPlaybackRequests = new Map();
         this.turnstileLoadPromise = null;
+        this._combinedSearchUnavailable = false;
 
         setInterval(
             async () => {
@@ -635,78 +636,83 @@ export class LosslessAPI {
         const cached = await this.cache.get('search_all', query);
         if (cached) return cached;
 
-        try {
-            const response = await this.fetchWithRetry(`/search/?q=${encodeURIComponent(query)}`, options);
-            const data = await response.json();
+        if (!this._combinedSearchUnavailable) {
+            try {
+                const response = await this.fetchWithRetry(`/search/?q=${encodeURIComponent(query)}`, options);
+                const data = await response.json();
 
-            const extractSection = (key) => this.normalizeSearchResponse(data, key);
+                const extractSection = (key) => this.normalizeSearchResponse(data, key);
 
-            const tracksData = extractSection('tracks');
-            const artistsData = extractSection('artists');
-            const albumsData = extractSection('albums');
-            const playlistsData = extractSection('playlists');
-            const videosData = extractSection('videos');
+                const tracksData = extractSection('tracks');
+                const artistsData = extractSection('artists');
+                const albumsData = extractSection('albums');
+                const playlistsData = extractSection('playlists');
+                const videosData = extractSection('videos');
 
-            const preparedTracks = tracksData.items.map((t) => this.prepareTrack(t));
-            const preparedArtists = artistsData.items.map((a) => this.prepareArtist(a));
+                const preparedTracks = tracksData.items.map((t) => this.prepareTrack(t));
+                const preparedArtists = artistsData.items.map((a) => this.prepareArtist(a));
 
-            const [enrichedTracks, enrichedArtists] = await Promise.all([
-                this.enrichTracksWithAlbumCover(preparedTracks),
-                options.enrichArtists === false
-                    ? Promise.resolve(preparedArtists)
-                    : this.enrichArtistsWithPicture(preparedArtists),
-            ]);
+                const [enrichedTracks, enrichedArtists] = await Promise.all([
+                    this.enrichTracksWithAlbumCover(preparedTracks),
+                    options.enrichArtists === false
+                        ? Promise.resolve(preparedArtists)
+                        : this.enrichArtistsWithPicture(preparedArtists),
+                ]);
 
-            const results = {
-                tracks: {
-                    ...tracksData,
-                    items: enrichedTracks,
-                },
-                artists: {
-                    ...artistsData,
-                    items: enrichedArtists,
-                },
-                albums: {
-                    ...albumsData,
-                    items: albumsData.items.map((a) => this.prepareAlbum(a)),
-                },
-                playlists: playlistsData
-                    ? {
-                          ...playlistsData,
-                          items: playlistsData.items.map((p) => this.preparePlaylist(p)),
-                      }
-                    : { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 },
-                videos: {
-                    ...videosData,
-                    items: videosData.items.map((v) => this.prepareTrack(v)),
-                },
-            };
+                const results = {
+                    tracks: {
+                        ...tracksData,
+                        items: enrichedTracks,
+                    },
+                    artists: {
+                        ...artistsData,
+                        items: enrichedArtists,
+                    },
+                    albums: {
+                        ...albumsData,
+                        items: albumsData.items.map((a) => this.prepareAlbum(a)),
+                    },
+                    playlists: playlistsData
+                        ? {
+                              ...playlistsData,
+                              items: playlistsData.items.map((p) => this.preparePlaylist(p)),
+                          }
+                        : { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 },
+                    videos: {
+                        ...videosData,
+                        items: videosData.items.map((v) => this.prepareTrack(v)),
+                    },
+                };
 
-            await this.cache.set('search_all', query, results);
+                await this.cache.set('search_all', query, results);
 
-            return results;
-        } catch (error) {
-            if (import.meta.env.DEV) {
-                console.warn('[search] combined search failed, using HiFi scoped fallback', error);
+                return results;
+            } catch (error) {
+                if (error.name === 'AbortError') throw error;
+
+                this._combinedSearchUnavailable = true;
+
+                if (import.meta.env.DEV) {
+                    console.warn('[search] combined search failed, using HiFi scoped fallback', error);
+                }
             }
-
-            // Final fallback: hifi-api-compatible scoped searches (?s, ?a, ?al, ?v, ?p)
-            const [tracks, videos, artists, albums, playlists] = await Promise.all([
-                this.searchTracks(query, options).catch(() => ({ items: [] })),
-                this.searchVideos(query, options).catch(() => ({ items: [] })),
-                this.searchArtists(query, options).catch(() => ({ items: [] })),
-                this.searchAlbums(query, options).catch(() => ({ items: [] })),
-                this.searchPlaylists(query, options).catch(() => ({ items: [] })),
-            ]);
-
-            return {
-                tracks,
-                videos,
-                artists,
-                albums,
-                playlists,
-            };
         }
+
+        const [tracks, videos, artists, albums, playlists] = await Promise.all([
+            this.searchTracks(query, options).catch(() => ({ items: [] })),
+            this.searchVideos(query, options).catch(() => ({ items: [] })),
+            this.searchArtists(query, options).catch(() => ({ items: [] })),
+            this.searchAlbums(query, options).catch(() => ({ items: [] })),
+            this.searchPlaylists(query, options).catch(() => ({ items: [] })),
+        ]);
+
+        return {
+            tracks,
+            videos,
+            artists,
+            albums,
+            playlists,
+        };
     }
 
     async searchTracks(query, options = {}) {
@@ -718,8 +724,7 @@ export class LosslessAPI {
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'tracks');
             const preparedTracks = normalized.items.map((t) => this.prepareTrack(t));
-            const dateEnriched = await this.enrichTracksWithAlbumDates(preparedTracks);
-            const enrichedTracks = await this.enrichTracksWithAlbumCover(dateEnriched);
+            const enrichedTracks = await this.enrichTracksWithAlbumCover(preparedTracks);
             const result = {
                 ...normalized,
                 items: enrichedTracks,
@@ -749,8 +754,7 @@ export class LosslessAPI {
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'tracks');
             const preparedTracks = normalized.items.map((t) => this.prepareTrack(t));
-            const dateEnriched = await this.enrichTracksWithAlbumDates(preparedTracks);
-            const enrichedTracks = await this.enrichTracksWithAlbumCover(dateEnriched);
+            const enrichedTracks = await this.enrichTracksWithAlbumCover(preparedTracks);
             const result = {
                 ...normalized,
                 items: enrichedTracks,
