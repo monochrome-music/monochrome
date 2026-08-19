@@ -11990,11 +11990,6 @@ img.cd {
     border-radius: 99px;
 }
 
-.sidebar-donate-heart svg,
-svg.sidebar-donate-heart {
-    fill: currentcolor;
-}
-
 body.sidebar-collapsed .sidebar-donate-goal {
     display: none;
 }
