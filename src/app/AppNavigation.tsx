@@ -80,8 +80,6 @@ function NavigationList({ items, pathname }: { items: NavigationItem[]; pathname
                                     <div className="sidebar-donate-goal-fill" id="sidebar-donate-goal-progress" />
                                 </div>
                                 <span id="sidebar-donate-goal-text">0%</span>
-                                */}
-                                <Icon className="sidebar-donate-heart" svg={icons.heart} size={13} />
                             </div>
                         ) : null}
                     </li>
