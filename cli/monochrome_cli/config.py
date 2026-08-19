@@ -8,10 +8,16 @@ from typing import Any, Dict, Optional
 from monochrome_cli.types import AudioFormat
 from monochrome_cli.utils.platform import get_config_dir, get_default_music_dir
 
-# Credenciales públicas de la API de Tidal. Viven aquí y no en DEFAULT_CONFIG para
-# no acabar copiadas en el config.json de cada usuario; se pueden sobreescribir
-# con las variables de entorno MONOCHROME_TIDAL_CLIENT_ID / _SECRET o añadiendo
-# las claves a mano en el archivo de configuración.
+# Credenciales de la API interna de Tidal (api.tidal.com/v1). Son un client id
+# filtrado de las aplicaciones oficiales, no algo que se pueda solicitar: el
+# portal developer.tidal.com emite credenciales para otra API distinta
+# (openapi.tidal.com/v2), que estos endpoints rechazan con un 400. Ver el
+# apartado "Credenciales de Tidal" del README.
+#
+# Viven aquí y no en DEFAULT_CONFIG para no acabar copiadas en el config.json de
+# cada usuario; se pueden sobreescribir con las variables de entorno
+# MONOCHROME_TIDAL_CLIENT_ID / _SECRET o añadiendo las claves a mano al archivo
+# de configuración.
 DEFAULT_TIDAL_CLIENT_ID = "txNoH4kkV41MfH25"
 DEFAULT_TIDAL_CLIENT_SECRET = "dQjy0MinCEvxi1O4UmxvxWnDjt4cgHBPw8ll6nYBk98="
 

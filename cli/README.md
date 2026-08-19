@@ -142,13 +142,35 @@ está en el tamaño y la compatibilidad, no en la fidelidad.
 El archivo de configuración vive en `~/.config/monochrome-cli/config.json` y solo
 se escribe cuando cambias algo (arrancar `mono` no lo toca).
 
-Las credenciales de la API de Tidal no se guardan ahí. Si necesitas usar las
-tuyas, defínelas por entorno:
+### Credenciales de Tidal
+
+Las credenciales **no se guardan** en tu configuración. Se pueden sobreescribir
+por entorno:
 
 ```bash
 export MONOCHROME_TIDAL_CLIENT_ID="tu_id"
 export MONOCHROME_TIDAL_CLIENT_SECRET="tu_secreto"
 ```
+
+**Importante antes de intentar conseguir las tuyas:** existen dos APIs de Tidal
+distintas y no son intercambiables.
+
+| | API interna (la que usa este proyecto) | API oficial |
+| :--- | :--- | :--- |
+| Base | `api.tidal.com/v1` | `openapi.tidal.com/v2` |
+| Credenciales | Client ID interno de las apps de Tidal | [developer.tidal.com](https://developer.tidal.com) → crear una App |
+| ¿Se pueden pedir? | No; no hay proceso público para obtenerlas | Sí, registrándote |
+| Formato de respuesta | JSON propio | JSON:API |
+
+Las credenciales del portal oficial **no funcionan** con los endpoints `v1` que
+usa `core/search.py` (devuelven `400`), así que registrarte en el portal no basta
+para sustituir el valor por defecto: haría falta portar `search.py` a
+`openapi.tidal.com/v2`, que tiene rutas y formato de respuesta diferentes.
+
+Ten en cuenta que Tidal considera que `api.tidal.com` no está destinada a uso
+externo. Si buscas una fuente de metadatos sin credenciales, **Deezer**
+(`api.deezer.com`) ya está integrada como respaldo y su API de búsqueda es
+pública y no requiere ningún token.
 
 ---
 
