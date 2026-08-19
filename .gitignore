@@ -24,3 +24,12 @@ package-lock.json
 Caddyfile
 dev-dist
 load-balancer
+
+# Python (cli/)
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+.pytest_cache/
+venv/
+.venv/
