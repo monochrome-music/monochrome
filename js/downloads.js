@@ -784,7 +784,7 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                     year: year,
                 });
 
-                const fullFolderPath = `${rootFolder}/${albumFolder}`;
+                const fullFolderPath = `${rootFolder}/${albumFolder} [${fullAlbum.id || album.id}]`;
                 if (coverBlob && playlistSettings.shouldIncludeCover())
                     yield { name: `${fullFolderPath}/cover.jpg`, lastModified: new Date(), input: coverBlob };
 
