@@ -280,6 +280,7 @@ const syncManager = {
                 explicit: item.explicit || false,
                 artist: item.artist || (item.artists && item.artists.length > 0 ? item.artists[0] : null) || null,
                 artists: item.artists?.map((a) => ({ id: a.id, name: a.name || null })) || [],
+                cover: item.artwork || item.cover || null,
                 album: item.album
                     ? {
                           id: item.album.id,
