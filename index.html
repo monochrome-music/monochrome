@@ -5086,6 +5086,14 @@
 
                                         <div class="autoeq-actions-row">
                                             <button
+                                                id="autoeq-import-preset-btn"
+                                                class="autoeq-download-btn"
+                                                title="Import EQ settings"
+                                                aria-label="Import EQ settings"
+                                            >
+                                                <use svg="!lucide/upload.svg" size="20" />
+                                            </button>
+                                            <button
                                                 id="autoeq-download-btn"
                                                 class="autoeq-download-btn"
                                                 title="Export EQ settings"
@@ -5093,6 +5101,12 @@
                                             >
                                                 <use svg="!lucide/download.svg" size="20" />
                                             </button>
+                                            <input
+                                                type="file"
+                                                id="autoeq-import-preset-file"
+                                                accept=".txt,.csv"
+                                                style="display: none"
+                                            />
                                         </div>
                                         <span
                                             id="autoeq-status"
