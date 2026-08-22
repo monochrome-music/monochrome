@@ -11,7 +11,7 @@ function isValidIDBKey(value) {
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
-        this.version = 11;
+        this.version = 12;
         this.db = null;
     }
 
