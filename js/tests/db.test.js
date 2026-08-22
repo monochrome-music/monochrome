@@ -34,6 +34,19 @@ describe('MusicDatabase', () => {
         expect(openedDb.objectStoreNames.contains('user_playlists')).toBe(true);
     });
 
+    test('adds pinned items to existing databases', async () => {
+        const request = indexedDB.open(TEST_DB_NAME, 11);
+        const legacyDb = await new Promise((resolve, reject) => {
+            request.onupgradeneeded = () => request.result.createObjectStore('settings');
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+        legacyDb.close();
+
+        const openedDb = await db.open();
+        expect(openedDb.objectStoreNames.contains('pinned_items')).toBe(true);
+    });
+
     test('toggleFavorite adds and removes items', async () => {
         const track = { id: 'track1', title: 'Test Track', artist: { name: 'Artist' } };
 
