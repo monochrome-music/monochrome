@@ -1,5 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="14.75 14.75 70.5 70.5" >
-  <g fill="white" >
-    <path d="M38.25 14.75H85.25V61.75H61.75V38.25H38.25ZM14.75 38.25H38.25V61.75H61.75V85.25H14.75Z"  />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 3" width="100%" height="100%"
+  shape-rendering="crispEdges" role="img">
+  <title>Monochrome icon</title>
+  <g fill="white">
+    <rect x="1" y="0" width="2" height="1" />
+    <rect x="2" y="1" width="1" height="1" />
+    <rect x="0" y="2" width="2" height="1" />
+    <rect x="0" y="1" width="1" height="1" />
   </g>
 </svg>
