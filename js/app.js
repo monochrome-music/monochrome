@@ -324,7 +324,7 @@ function initializeKeyboardShortcuts(player, _audioPlayer) {
 
         for (const [action, shortcut] of Object.entries(shortcuts)) {
             if (!shortcut?.key) continue;
-            const shortcutKey = shortcut.key.toLowerCase();
+            const shortcutKey = String(shortcut.key).toLowerCase();
             const matches =
                 pressedKey === shortcutKey &&
                 shortcut.shift === hasShift &&
