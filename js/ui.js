@@ -4991,7 +4991,7 @@ export class UIRenderer {
                                 const quote = decodeHtml(review.text || 'No review text available.');
                                 reviewdiv.innerHTML = `
                                 <img crossorigin="anonymous" src="${review.image || ''}" width="50" height="50" style="border-radius:8px;object-fit:cover;background:var(--highlight);flex-shrink:0;"
-                                     onerror="this.src='images/monochrome-logo.svg';this.onerror=null;" loading="lazy" referrerpolicy="no-referrer">
+                                     onerror="this.src='images/monochrome_logo.svg';this.onerror=null;" loading="lazy" referrerpolicy="no-referrer">
                                 <div style="flex:1;">
                                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.25rem;">
                                         <div class="pub-name" style="font-weight:600;color:var(--foreground);"></div>
