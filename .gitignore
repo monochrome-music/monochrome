@@ -24,3 +24,5 @@ package-lock.json
 Caddyfile
 dev-dist
 load-balancer
+# We already have bun.lock, bun.lockb is redundant
+bun.lockb
