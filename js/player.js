@@ -389,7 +389,11 @@ export class Player {
     applyReplayGain() {
         const effectiveVolume = this.getEffectiveVolume(this.currentRgValues);
         const el = this.activeElement;
+        if (audioContextManager.isReady()) {
+            audioContextManager.setVolume(effectiveVolume);
+        } else {
         el.volume = effectiveVolume;
+        }
     }
 
     getEffectiveVolume(rgValues = null) {
