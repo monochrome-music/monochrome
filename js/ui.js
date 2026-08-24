@@ -384,7 +384,7 @@ export class UIRenderer {
                             ? this.api.getArtistPictureUrl(item.cover)
                             : this.api.getCoverUrl(item.cover);
                     const coverClass = item.type === 'artist' ? 'artist' : '';
-                    iconHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${coverUrl}" class="pinned-item-cover ${coverClass}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='assets/logo.svg'">`;
+                    iconHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${coverUrl}" class="pinned-item-cover ${coverClass}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='images/monochrome_logo.svg'">`;
                 }
 
                 return `
@@ -3341,14 +3341,14 @@ export class UIRenderer {
                 const img = document.createElement('img');
                 img.crossOrigin = 'anonymous';
                 img.referrerPolicy = 'no-referrer';
-                img.src = aotyCoverUrl(item.image) || 'assets/logo.svg';
+                img.src = aotyCoverUrl(item.image) || 'images/monochrome_logo.svg';
                 img.width = 88;
                 img.height = 56;
                 img.style.cssText =
                     'width:88px;height:56px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);';
                 img.loading = 'lazy';
                 img.onerror = () => {
-                    img.src = 'assets/logo.svg';
+                    img.src = 'images/monochrome_logo.svg';
                     img.onerror = null;
                 };
                 el.appendChild(img);
@@ -3420,12 +3420,12 @@ export class UIRenderer {
                     const thumb = document.createElement('img');
                     thumb.crossOrigin = 'anonymous';
                     thumb.referrerPolicy = 'no-referrer';
-                    thumb.src = entry.cover || 'assets/logo.svg';
+                    thumb.src = entry.cover || 'images/monochrome_logo.svg';
                     thumb.width = 44;
                     thumb.height = 44;
                     thumb.loading = 'lazy';
                     thumb.onerror = () => {
-                        thumb.src = 'assets/logo.svg';
+                        thumb.src = 'images/monochrome_logo.svg';
                         thumb.onerror = null;
                     };
                     thumb.style.cssText =
@@ -3506,9 +3506,9 @@ export class UIRenderer {
 
                 row.innerHTML = `
                     <span style="font-size:0.8rem;font-weight:700;color:var(--primary);min-width:2rem;text-align:right;flex-shrink:0;">#${escapeHtml(item.rank || '')}</span>
-                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${aotyCoverUrl(item.cover) || 'assets/logo.svg'}" width="48" height="48"
+                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${aotyCoverUrl(item.cover) || 'images/monochrome_logo.svg'}" width="48" height="48"
                         style="border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);"
-                        loading="lazy" onerror="this.src='assets/logo.svg';this.onerror=null;">
+                        loading="lazy" onerror="this.src='images/monochrome_logo.svg';this.onerror=null;">
                     <div style="flex:1;min-width:0;">
                         <div style="font-weight:500;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" class="row-title"></div>
                         <div style="font-size:0.75rem;color:var(--muted-foreground);margin-top:2px;" class="row-meta"></div>
@@ -3636,7 +3636,7 @@ export class UIRenderer {
     createAOTYAlbumCardHTML(album, isUpcoming = false) {
         const title = escapeHtml(album.title || 'Unknown Album');
         const artist = escapeHtml(album.artist || '');
-        const cover = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${aotyCoverUrl(album.cover) || 'assets/logo.svg'}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='assets/logo.svg'">`;
+        const cover = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${aotyCoverUrl(album.cover) || 'images/monochrome_logo.svg'}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='images/monochrome_logo.svg'">`;
 
         const scoreParts = [];
         if (album.criticScore) scoreParts.push(`${album.criticScore} critic`);
