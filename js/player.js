@@ -390,6 +390,7 @@ export class Player {
         const effectiveVolume = this.getEffectiveVolume(this.currentRgValues);
         const el = this.activeElement;
         if (audioContextManager.isReady()) {
+            el.volume = 1.0; // Reset native volume to 1.0 when using Web Audio
             audioContextManager.setVolume(effectiveVolume);
         } else {
         el.volume = effectiveVolume;
