@@ -28,6 +28,7 @@ import { audioContextManager } from './audio-context.js';
 import { isIos, isSafari, isEdge, canUseNativeAmazonCenc, getAmazonDecrypterCodec } from './platform-detection.js';
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
+import { getReplayGainScale } from './replay-gain.js';
 import { waveformGenerator } from './waveform.js';
 
 import { SVG_CLOCK, SVG_ATMOS, SVG_TRIANGLE_ALERT, SVG_PLAY, SVG_PAUSE } from './icons.js';
@@ -399,38 +400,10 @@ export class Player {
 
     getEffectiveVolume(rgValues = null) {
         const mode = replayGainSettings.getMode(); // 'off', 'track', 'album'
-        let gainDb = 0;
-        let peak = 1.0;
-
-        if (mode !== 'off' && rgValues) {
-            const { trackReplayGain, trackPeakAmplitude, albumReplayGain, albumPeakAmplitude, programLoudnessLufs } =
-                rgValues;
-
-            if (mode === 'album' && typeof albumReplayGain === 'number' && albumReplayGain !== 0) {
-                gainDb = albumReplayGain;
-                peak = albumPeakAmplitude || 1.0;
-            } else if (typeof trackReplayGain === 'number' && trackReplayGain !== 0) {
-                gainDb = trackReplayGain;
-                peak = trackPeakAmplitude || 1.0;
-            } else if (typeof programLoudnessLufs === 'number') {
-                gainDb = -18 - programLoudnessLufs;
-                peak = trackPeakAmplitude || 1.0;
-            } else {
-                gainDb = trackReplayGain || 0;
-                peak = trackPeakAmplitude || 1.0;
-            }
-
-            // Apply Pre-Amp
-            gainDb += replayGainSettings.getPreamp();
-        }
-
-        // Convert dB to linear scale: 10^(dB/20)
-        let scale = Math.pow(10, gainDb / 20);
-
-        // Peak protection (prevent clipping)
-        if (scale * peak > 1.0) {
-            scale = 1.0 / peak;
-        }
+        const scale = getReplayGainScale(rgValues, {
+            mode,
+            preampDb: replayGainSettings.getPreamp(),
+        });
 
         // Apply exponential volume curve if enabled
         const curvedVolume = exponentialVolumeSettings.applyCurve(this.userVolume);
@@ -777,9 +750,14 @@ export class Player {
                     continue;
                 }
 
-                // Warm connection and pre-fetch
+                // Warm connection and pre-fetch. The service-worker HLS URL has
+                // no .m3u8 suffix, but it is still an adaptive manifest and must
+                // never be assigned directly to Firefox's <audio> element.
                 if (!streamUrl.startsWith('blob:')) {
-                    if (streamUrl.includes('.mpd') || streamUrl.includes('.m3u8')) {
+                    const shakaPreloadMimeType = this.isNativeAmazonHlsDecryptionUrl(streamUrl)
+                        ? 'application/vnd.apple.mpegurl'
+                        : null;
+                    if (streamUrl.includes('.mpd') || streamUrl.includes('.m3u8') || shakaPreloadMimeType) {
                         if (
                             this.shakaInitialized &&
                             this.shakaPlayer &&
@@ -814,10 +792,10 @@ export class Player {
                                 const preloadManager = await this.shakaPlayer.preload(
                                     streamUrl,
                                     null,
-                                    null,
+                                    shakaPreloadMimeType,
                                     preloadConfig
                                 );
-                                streamInfo.preloadManager = preloadManager;
+                                crossfadeStreamInfo.preloadManager = preloadManager;
                             } catch (_e) {
                                 // Ignore preload errors, will just load fresh
                             }
@@ -947,6 +925,35 @@ export class Player {
         element.load();
     }
 
+    async discardCachedPreload(trackId, expectedStreamInfo = null) {
+        const cachedStreamInfo = this.preloadCache.get(trackId);
+        if (!cachedStreamInfo || (expectedStreamInfo && cachedStreamInfo !== expectedStreamInfo)) return;
+
+        this.preloadCache.delete(trackId);
+
+        const preloadManager = cachedStreamInfo.preloadManager;
+        cachedStreamInfo.preloadManager = null;
+        if (preloadManager && typeof preloadManager.destroy === 'function') {
+            await preloadManager.destroy().catch(() => {});
+        }
+
+        const crossfadePlayer = cachedStreamInfo.crossfadeShakaPlayer;
+        cachedStreamInfo.crossfadeShakaPlayer = null;
+        if (crossfadePlayer && crossfadePlayer !== this.shakaPlayer) {
+            await crossfadePlayer.destroy().catch(() => {});
+            if (this.crossfadePreloadPlayer === crossfadePlayer) this.crossfadePreloadPlayer = null;
+        }
+
+        const preloader = cachedStreamInfo.preloader;
+        cachedStreamInfo.preloader = null;
+        cachedStreamInfo.preloadedUrl = null;
+        if (preloader && preloader !== this.activeElement) {
+            preloader.pause();
+            preloader.removeAttribute('src');
+            preloader.load();
+        }
+    }
+
     tryStartPreloadedTrackImmediately({
         track,
         activeElement,
@@ -1025,6 +1032,9 @@ export class Player {
             }
 
             console.error('Immediate preloaded handoff failed:', error);
+            // Do not retry the same failed preload/short-lived signed URL. The
+            // normal path will request a fresh stream descriptor from the API.
+            await this.discardCachedPreload(track.id, cachedStreamInfo);
             await this.playTrackFromQueue(startTime, recursiveCount, false);
         };
 
@@ -1661,10 +1671,11 @@ export class Player {
                 }
 
                 // Tidal: Try to get ReplayGain from manifest first, supplement with track info if needed
+                const cachedStreamInfo = preparedPlayback ? null : this.preloadCache.get(track.id);
                 const streamInfoPromise = preparedPlayback?.streamInfo
                     ? Promise.resolve(preparedPlayback.streamInfo)
-                    : this.preloadCache.has(track.id)
-                      ? Promise.resolve(this.preloadCache.get(track.id))
+                    : cachedStreamInfo
+                      ? Promise.resolve(cachedStreamInfo)
                       : this.api.getStreamUrl(track.id, this.quality);
 
                 // We only need the legacy track info if we missed getting ReplayGain from the manifest endpoint
@@ -1807,9 +1818,22 @@ export class Player {
                         }
                     } catch (e) {
                         console.error('PreloadManager load Error:', e);
-                        if (loadTarget !== streamUrl)
-                            await this.shakaPlayer.load(getProxyUrl(streamUrl), null, shakaMimeType);
-                        else throw e;
+                        try {
+                            if (loadTarget !== streamUrl) {
+                                await this.shakaPlayer.load(getProxyUrl(streamUrl), null, shakaMimeType);
+                            } else {
+                                throw e;
+                            }
+                        } catch (fallbackError) {
+                            if (!cachedStreamInfo) throw fallbackError;
+
+                            // Cached Amazon URLs can expire or be invalidated by
+                            // preload. Evict the whole handoff state before the
+                            // retry so getStreamUrl obtains a new signed URL.
+                            await this.discardCachedPreload(track.id, cachedStreamInfo);
+                            await this.playTrackFromQueue(startTime, recursiveCount, false);
+                            return;
+                        }
                     }
 
                     this.shakaInitialized = true;
