@@ -26,9 +26,15 @@ export const isFirefox = lowerCaseOriginalUserAgent.includes('firefox') && !isCh
 /** If the browser is Microsoft Edge. */
 export const isEdge = lowerCaseOriginalUserAgent.includes('edg/') || lowerCaseOriginalUserAgent.includes('edge/');
 
+/** If the browser is WebKitGTK. */
+export const isWebKitGtk = lowerCaseOriginalUserAgent.includes('webkit') &&
+    lowerCaseOriginalUserAgent.includes('mozilla') &&
+    lowerCaseOriginalUserAgent.includes('linux');
+
 type AmazonDecrypterBrowser = {
     isFirefox: boolean;
     isSafari: boolean;
+    isWebKitGtk: boolean;
 };
 
 type NavigatorWithUserAgentData = Navigator & {
@@ -47,7 +53,7 @@ type NavigatorWithUserAgentData = Navigator & {
  */
 export function getAmazonDecrypterCodec(
     quality: string,
-    browser: AmazonDecrypterBrowser = { isFirefox, isSafari }
+    browser: AmazonDecrypterBrowser = { isFirefox, isSafari, isWebKitGtk }
 ): 'opus' | 'mp4a' | 'eac3' | 'ac4' | 'flac-hls' | 'flac-raw' | 'flac' {
     const normalizedQuality = quality.toUpperCase();
     if (normalizedQuality.startsWith('DOLBY_ATMOS_AC4_')) return 'ac4';
@@ -58,8 +64,8 @@ export function getAmazonDecrypterCodec(
         normalizedQuality === 'LOW' ||
         normalizedQuality.startsWith('SD_');
     if (isOpusQuality) return 'opus';
-    if (browser.isSafari) return 'flac-hls';
-    if (browser.isFirefox) return 'flac-hls';
+    if (browser.isSafari || browser.isFirefox || browser.isWebKitGtk) return 'flac-hls';
+
     return 'flac';
 }
 
