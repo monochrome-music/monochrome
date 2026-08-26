@@ -2,6 +2,7 @@ import { expect, test, describe, beforeEach, vi, afterEach } from 'vitest';
 import { Player } from '../player.js';
 import { REPEAT_MODE } from '../utils.js';
 import { audioEffectsSettings, crossfadeSettings, replayGainSettings } from '../storage.js';
+import { audioContextManager } from '../audio-context.js';
 
 vi.mock('../audio-context.js', () => ({
     audioContextManager: {
@@ -129,6 +130,7 @@ describe('Player', () => {
         crossfadeSettings.isEnabled.mockReturnValue(true);
         replayGainSettings.getMode.mockReturnValue('off');
         replayGainSettings.getPreamp.mockReturnValue(0);
+        audioContextManager.isReady.mockReturnValue(false);
 
         Player._instance = null;
     });
@@ -150,6 +152,30 @@ describe('Player', () => {
         player.setVolume(0.5);
         expect(player.userVolume).toBe(0.5);
         expect(localStorage.getItem('volume')).toBe('0.5');
+    });
+
+    test('uses native media volume for Safari while keeping Web Audio at unity', () => {
+        player = new Player(audioElement, api);
+        player.userVolume = 0.35;
+        player.shouldUseNativeVolumeControl = vi.fn(() => true);
+        audioContextManager.isReady.mockReturnValue(true);
+
+        player.applyReplayGain();
+
+        expect(audioElement.volume).toBeCloseTo(0.35, 6);
+        expect(audioContextManager.setVolume.mock.calls.at(-1)?.[0]).toBe(1);
+    });
+
+    test('uses Web Audio volume outside Safari when the graph is ready', () => {
+        player = new Player(audioElement, api);
+        player.userVolume = 0.35;
+        player.shouldUseNativeVolumeControl = vi.fn(() => false);
+        audioContextManager.isReady.mockReturnValue(true);
+
+        player.applyReplayGain();
+
+        expect(audioElement.volume).toBe(1);
+        expect(audioContextManager.setVolume.mock.calls.at(-1)?.[0]).toBe(0.35);
     });
 
     test('adds the ReplayGain preamp numerically when metadata contains strings', () => {
@@ -234,13 +260,13 @@ describe('Player', () => {
         player = new Player(audioElement, api);
 
         player.setPlaybackSpeed(2.0);
-        expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(2.0);
+        expect(audioEffectsSettings.setSpeed.mock.calls.at(-1)?.[0]).toBe(2.0);
 
         player.setPlaybackSpeed(0);
-        expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(0.0625);
+        expect(audioEffectsSettings.setSpeed.mock.calls.at(-1)?.[0]).toBe(0.0625);
 
         player.setPlaybackSpeed(100);
-        expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(16);
+        expect(audioEffectsSettings.setSpeed.mock.calls.at(-1)?.[0]).toBe(16);
     });
 
     test('compensates when Safari lands a direct FLAC seek before the requested time', async () => {

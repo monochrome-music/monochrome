@@ -387,14 +387,25 @@ export class Player {
         this.applyReplayGain();
     }
 
+    shouldUseNativeVolumeControl() {
+        return isSafari;
+    }
+
     applyReplayGain() {
         const effectiveVolume = this.getEffectiveVolume(this.currentRgValues);
         const el = this.activeElement;
-        if (audioContextManager.isReady()) {
+        if (this.shouldUseNativeVolumeControl()) {
+            // Safari's native HLS pipeline can bypass MediaElementAudioSourceNode,
+            // so its audible volume must be controlled on the media element.
+            // Keep the Web Audio gain at unity to avoid applying the gain twice
+            // for progressive sources that do pass through the graph.
+            el.volume = effectiveVolume;
+            audioContextManager.setVolume(1);
+        } else if (audioContextManager.isReady()) {
             el.volume = 1.0; // Reset native volume to 1.0 when using Web Audio
             audioContextManager.setVolume(effectiveVolume);
         } else {
-        el.volume = effectiveVolume;
+            el.volume = effectiveVolume;
         }
     }
 
