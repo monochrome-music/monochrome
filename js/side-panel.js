@@ -28,9 +28,13 @@ export class SidePanelManager {
         this.resizerElement.addEventListener('mousedown', this.startResize.bind(this));
 
         // Restore saved width if available
-        const savedWidth = localStorage.getItem('side-panel-width');
-        if (savedWidth) {
-            this.panel.style.setProperty('--side-panel-width', savedWidth + 'px');
+        try {
+            const savedWidth = parseInt(localStorage.getItem('side-panel-width'), 10);
+            if (Number.isFinite(savedWidth) && savedWidth > 0) {
+                this.panel.style.setProperty('--side-panel-width', savedWidth + 'px');
+            }
+        } catch {
+            /* ignore storage/css errors */
         }
     }
 
@@ -69,9 +73,13 @@ export class SidePanelManager {
         document.removeEventListener('mouseup', this.stopResizeBind);
 
         // Save the width
-        const currentWidth = this.panel.style.getPropertyValue('--side-panel-width').replace('px', '');
-        if (currentWidth) {
-            localStorage.setItem('side-panel-width', currentWidth);
+        try {
+            const currentWidth = this.panel.style.getPropertyValue('--side-panel-width').replace('px', '');
+            if (currentWidth && Number.isFinite(parseInt(currentWidth, 10))) {
+                localStorage.setItem('side-panel-width', currentWidth);
+            }
+        } catch {
+            /* ignore storage errors */
         }
     }
 

@@ -3,16 +3,14 @@
 const ARTISTS_CSV_URL = 'https://artists.artistgrid.cx/artists.csv';
 const ASSETS_BASE_URL = 'https://assets.artistgrid.cx';
 
-// Some trackers are hosted at their own domain instead of a Google Sheets URL;
-// the domain itself doubles as the sheetId on the tracker API.
-const SPECIAL_TRACKER_DOMAINS = ['yetracker.net'];
-
+// The artists CSV provides the tracker id directly: either a bare Google Sheets
+// id or a tracker domain (yetracker.net, franktracker.net, deftonestracker, ...).
+// Whatever it is, it's used as-is on the tracker API.
 function getSheetId(url) {
     if (!url) return null;
-    const special = SPECIAL_TRACKER_DOMAINS.find((domain) => url.includes(domain));
-    if (special) return special;
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : null;
+    if (match) return match[1];
+    return url.trim() || null;
 }
 
 function normalizeArtistName(name) {
@@ -101,7 +99,8 @@ export async function onRequest(context) {
 
             if (artist && artist.name) {
                 const normalizedName = normalizeArtistName(artist.name);
-                const imageUrl = `${ASSETS_BASE_URL}/${normalizedName}.webp`;
+                // Images live at assets.artistgrid.cx/{format}/{normalizedname}.{format}
+                const imageUrl = `${ASSETS_BASE_URL}/jpg/${normalizedName}.jpg`;
                 const pageUrl = new URL(request.url).href;
                 const title = `${artist.name} | Unreleased`;
                 const description = `Stream unreleased music by ${artist.name} on Monochrome`;
@@ -130,7 +129,11 @@ export async function onRequest(context) {
                     <body>
                         <h1>${artist.name}</h1>
                         <p>${description}</p>
-                        <img src="${imageUrl}" alt="${artist.name}">
+                        <picture>
+                            <source srcset="${ASSETS_BASE_URL}/jxl/${normalizedName}.jxl" type="image/jxl">
+                            <source srcset="${ASSETS_BASE_URL}/webp/${normalizedName}.webp" type="image/webp">
+                            <img src="${imageUrl}" alt="${artist.name}">
+                        </picture>
                     </body>
                     </html>
                 `;

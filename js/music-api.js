@@ -4,6 +4,7 @@ import { LosslessAPI } from './api.js';
 import { PodcastsAPI } from './podcasts-api.js';
 import { musicProviderSettings } from './storage.js';
 import { AppleMusicSearchAPI, normalizeAppleSearchResults } from './apple-music-api.js';
+import { getCommunityPlaylist } from './community-playlists.js';
 
 /**
  * MusicAPI - Singleton class that provides a unified interface for accessing music streaming services.
@@ -260,6 +261,10 @@ export class MusicAPI {
     }
 
     async getPlaylist(id, provider = null) {
+        if (id?.startsWith('VL')) {
+            return getCommunityPlaylist(id);
+        }
+
         if (this.isAppleId(id, 'playlist', provider) || this.applePlaylistIds.has(String(id))) {
             const appleId = this.getAppleId(id, 'playlist');
             const result = await this.appleMusicSearchAPI.playlist(appleId);
@@ -267,6 +272,7 @@ export class MusicAPI {
             this.cacheAppleTracks(result.tracks);
             return result;
         }
+
         return this.tidalAPI.getPlaylist(id);
     }
 
@@ -292,6 +298,14 @@ export class MusicAPI {
         if (appleTrack) return api.getStreamUrl(id, quality, { track: appleTrack });
         const cleanId = this.stripProviderPrefix(id);
         return api.getStreamUrl(cleanId, quality);
+    }
+
+    usesSingleUsePlaybackUrls() {
+        return this.getAPI().usesSingleUsePlaybackUrls?.() === true;
+    }
+
+    clearMonochromePlaybackSession() {
+        this.getAPI().clearMonochromePlaybackSession?.();
     }
 
     // Cover/artwork methods

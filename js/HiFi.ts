@@ -7,7 +7,7 @@ type Params = Record<string, string | number | undefined | null>;
 class ResponseError extends Error {
     status: number;
     constructor(status: number, message: string) {
-        super(message);
+        super(message || `Request failed with status ${status}`);
         this.status = status;
     }
 }
@@ -1553,13 +1553,44 @@ class HiFiClient {
      * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link RecommendationsResponse}.
      */
     async getRecommendations(id: number, signal?: AbortSignal): Promise<TidalResponse<RecommendationsResponse>> {
-        const url = `https://api.tidal.com/v1/tracks/${id}/recommendations`;
-        const data = await this.#fetchJson<{ items: TidalTrack[]; totalNumberOfItems: number }>(
-            url,
-            { limit: '20', countryCode: this.#countryCode },
-            signal
+        const countryCode = this.#countryCode || 'US';
+        const mixUrl = wrapTidalUrl(
+            `https://tidal.com/v1/tracks/${id}/mix?countryCode=${countryCode}&locale=en_US&deviceType=BROWSER`
         );
-        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
+        try {
+            const mixData = await this.#fetchJson<{ id?: string }>(mixUrl, undefined, signal);
+            const mixId = mixData?.id;
+            if (!mixId) {
+                return HiFiClient.#jsonResponse({
+                    version: HiFiClient.API_VERSION,
+                    data: { items: [], totalNumberOfItems: 0 },
+                });
+            }
+
+            const itemsUrl = wrapTidalUrl(
+                `https://tidal.com/v1/mixes/${mixId}/items?countryCode=${countryCode}&locale=en_US&deviceType=BROWSER`
+            );
+            const data = await this.#fetchJson<{ items: any[]; totalNumberOfItems: number }>(
+                itemsUrl,
+                undefined,
+                signal
+            );
+            if (data?.items?.length > 0) {
+                const firstTrack = data.items[0]?.item || data.items[0]?.track || data.items[0];
+                if (firstTrack && String(firstTrack.id) === String(id)) {
+                    data.items = data.items.slice(1);
+                    if (typeof data.totalNumberOfItems === 'number') {
+                        data.totalNumberOfItems = Math.max(0, data.totalNumberOfItems - 1);
+                    }
+                }
+            }
+            return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
+        } catch {
+            return HiFiClient.#jsonResponse({
+                version: HiFiClient.API_VERSION,
+                data: { items: [], totalNumberOfItems: 0 },
+            });
+        }
     }
 
     /**
@@ -1740,7 +1771,8 @@ class HiFiClient {
                     artist_url,
                     {
                         countryCode: this.#countryCode,
-                        include: 'albums,albums.coverArt,tracks,tracks.albums,biography,profileArt',
+                        include:
+                            'albums,albums.coverArt,tracks,tracks.albums,tracks.albums.coverArt,biography,profileArt',
                         collapseBy: 'FINGERPRINT',
                     },
                     signal
@@ -1762,10 +1794,21 @@ class HiFiClient {
                 }
             }
 
+            // Resolve a JSON:API resource identifier against `included`. Prefer the ref's own
+            // `type` so a server-side rename (e.g. `biographies` -> `artistBiographies`) can't
+            // silently drop the resource; keep the legacy type as a fallback.
+            const resolveRef = (ref: unknown, fallbackType: string): any => {
+                const r = ref as { type?: string; id?: string | number } | null | undefined;
+                if (r?.id == null) return undefined;
+                return (
+                    includedMap.get(`${r.type ?? fallbackType}:${r.id}`) ?? includedMap.get(`${fallbackType}:${r.id}`)
+                );
+            };
+
             const getPic = (item: any, relName: string) => {
-                if (item?.relationships?.[relName]?.data?.[0]) {
-                    const picRef = item.relationships[relName].data[0];
-                    const pic = includedMap.get(`artworks:${picRef.id}`);
+                const picRef = item?.relationships?.[relName]?.data?.[0];
+                if (picRef) {
+                    const pic = resolveRef(picRef, 'artworks');
                     return pic?.attributes?.files?.[0]?.href
                         ? HiFiClient.#extractUuidFromTidalUrl(pic.attributes.files[0].href)
                         : null;
@@ -1776,9 +1819,8 @@ class HiFiClient {
             const data = payload?.data;
             let biography: any = null;
             if (data?.relationships?.biography?.data) {
-                const bioRef = data.relationships.biography.data;
-                const bioItem =
-                    includedMap.get(`biographies:${bioRef.id}`) || includedMap.get(`biography:${bioRef.id}`);
+                // Tidal returns this as type `artistBiographies`, not `biographies`.
+                const bioItem = resolveRef(data.relationships.biography.data, 'artistBiographies');
                 if (bioItem) {
                     biography = { text: bioItem.attributes?.text, source: bioItem.attributes?.source };
                 }
@@ -1816,7 +1858,7 @@ class HiFiClient {
 
             if (data?.relationships?.albums?.data) {
                 for (const ref of data.relationships.albums.data) {
-                    const al = includedMap.get(`albums:${ref.id}`);
+                    const al = resolveRef(ref, 'albums');
                     if (al) {
                         const albumId = Number(al.id);
                         albums.push({
@@ -1846,12 +1888,11 @@ class HiFiClient {
 
             if (data?.relationships?.tracks?.data) {
                 for (const ref of data.relationships.tracks.data) {
-                    const tr = includedMap.get(`tracks:${ref.id}`);
+                    const tr = resolveRef(ref, 'tracks');
                     if (tr) {
                         let albumInfo = undefined;
                         if (tr.relationships?.albums?.data?.[0]) {
-                            const aRef = tr.relationships.albums.data[0];
-                            const aItem = includedMap.get(`albums:${aRef.id}`);
+                            const aItem = resolveRef(tr.relationships.albums.data[0], 'albums');
                             if (aItem) {
                                 albumInfo = {
                                     id: Number(aItem.id),
@@ -1864,6 +1905,10 @@ class HiFiClient {
                             id: Number(tr.id),
                             title: tr.attributes?.title,
                             duration: parseIsoDuration(tr.attributes?.duration),
+                            // Consumers sort top tracks by popularity; without it the
+                            // ordering silently fell back to arbitrary payload order.
+                            popularity: tr.attributes?.popularity,
+                            explicit: tr.attributes?.explicit,
                             album: albumInfo,
                             artist: { id: artist_data.id, name: artist_data.name },
                         });

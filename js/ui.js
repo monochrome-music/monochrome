@@ -41,6 +41,7 @@ import { Visualizer } from './visualizer.js';
 import { audioContextManager } from './audio-context.js';
 import { navigate } from './router.js';
 import { sidePanelManager } from './side-panel.js';
+import { searchCommunityPlaylists } from './community-playlists.js';
 import {
     renderUnreleasedPage as renderUnreleasedTrackerPage,
     renderTrackerArtistPage as renderTrackerArtistContent,
@@ -107,6 +108,11 @@ import {
 
 const AOTY_BASE = 'https://aoty.prigoana.pw';
 const AOTY_CACHE_TTL = 86_400_000; // 24 hours
+
+function aotyCoverUrl(url) {
+    if (!url) return url;
+    return String(url).replace(/(https?:\/\/cdn2\.albumoftheyear\.org\/)\d+x0\//, '$15000x0/');
+}
 
 async function fetchAOTY(path) {
     const key = `aoty_cache_${path}`;
@@ -379,7 +385,7 @@ export class UIRenderer {
                             ? this.api.getArtistPictureUrl(item.cover)
                             : this.api.getCoverUrl(item.cover);
                     const coverClass = item.type === 'artist' ? 'artist' : '';
-                    iconHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${coverUrl}" class="pinned-item-cover ${coverClass}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='assets/logo.svg'">`;
+                    iconHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${coverUrl}" class="pinned-item-cover ${coverClass}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='images/monochrome_logo.svg'">`;
                 }
 
                 return `
@@ -1058,7 +1064,7 @@ export class UIRenderer {
 
         // Create new listener
         const listener = () => {
-            const query = searchInput.value.toLowerCase().trim();
+            const query = (searchInput.value || '').toLowerCase().trim();
             const trackItems = tracklistContainer.querySelectorAll('.track-item');
 
             trackItems.forEach((item) => {
@@ -1093,7 +1099,7 @@ export class UIRenderer {
         }
 
         const listener = () => {
-            const query = searchInput.value.toLowerCase().trim();
+            const query = (searchInput.value || '').toLowerCase().trim();
             const selector = container.classList.contains('card-grid') ? '.card[data-track-id]' : '.track-item';
             container.querySelectorAll(selector).forEach((item) => {
                 const track = trackDataStore.get(item);
@@ -1301,12 +1307,13 @@ export class UIRenderer {
         const image = document.getElementById('fullscreen-cover-image');
         const videoContainer = document.getElementById('fullscreen-video-container');
         const title = document.getElementById('fullscreen-track-title');
+        const album = document.getElementById('fullscreen-track-album');
         const artist = document.getElementById('fullscreen-track-artist');
         const nextTrackEl = document.getElementById('fullscreen-next-track');
 
         const isRealVideo = track.type === 'video';
         const visualizerContainer = document.getElementById('visualizer-container');
-        overlay.classList.toggle('is-video-mode', isRealVideo);
+        if (overlay) overlay.classList.toggle('is-video-mode', isRealVideo);
 
         const toggleUiBtn = document.getElementById('toggle-ui-btn');
         if (toggleUiBtn) {
@@ -1411,13 +1418,17 @@ export class UIRenderer {
         }
 
         this.updateFullscreenQualityBadgePlacement(track, overlay);
-        artist.textContent = getTrackArtists(track);
+        if (artist) artist.textContent = getTrackArtists(track);
+        if (album) album.textContent = track.album?.title;
 
-        if (nextTrack) {
-            nextTrackEl.style.display = 'flex';
-            nextTrackEl.querySelector('.value').textContent = `${nextTrack.title} • ${getTrackArtists(nextTrack)}`;
-        } else {
-            nextTrackEl.style.display = 'none';
+        if (nextTrackEl) {
+            if (nextTrack) {
+                nextTrackEl.style.display = 'flex';
+                const valueEl = nextTrackEl.querySelector('.value');
+                if (valueEl) valueEl.textContent = `${nextTrack.title} • ${getTrackArtists(nextTrack)}`;
+            } else {
+                nextTrackEl.style.display = 'none';
+            }
         }
     }
 
@@ -2087,6 +2098,7 @@ export class UIRenderer {
         const repeatBtn = document.getElementById('fs-repeat-btn');
         const visualizerBtn = document.getElementById('fs-visualizer-btn');
         const progressBar = document.getElementById('fs-progress-bar');
+        const seekTooltip = document.getElementById('fs-seek-tooltip');
         const progressFill = document.getElementById('fs-progress-fill');
         const currentTimeEl = document.getElementById('fs-current-time');
         const totalDurationEl = document.getElementById('fs-total-duration');
@@ -2096,6 +2108,7 @@ export class UIRenderer {
         const fsCastBtn = document.getElementById('fs-cast-btn');
         const fsQueueBtn = document.getElementById('fs-queue-btn');
         const artistEl = document.getElementById('fullscreen-track-artist');
+        const albumEl = document.getElementById('fullscreen-track-album');
 
         if (artistEl) {
             artistEl.style.cursor = 'pointer';
@@ -2107,10 +2120,31 @@ export class UIRenderer {
             };
         }
 
+        if (albumEl) {
+            albumEl.style.cursor = 'pointer';
+            albumEl.onclick = () => {
+                if (this.player.currentTrack && this.player.currentTrack.album) {
+                    this.closeFullscreenCover();
+                    navigate(`/album/${this.player.currentTrack.album.id}`);
+                }
+            };
+        }
+
         let lastPausedState = null;
+        const SPINNER_32 =
+            '<svg class="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
         const updatePlayBtn = () => {
             const activeEl = this.player.activeElement;
             const isPaused = activeEl.paused;
+            document.getElementById('fullscreen-cover-overlay')?.classList.toggle('fullscreen-paused', isPaused);
+
+            if (this.player.isLoadingTrack) {
+                if (lastPausedState !== 'loading') {
+                    playBtn.innerHTML = SPINNER_32;
+                    lastPausedState = 'loading';
+                }
+                return;
+            }
             if (isPaused === lastPausedState) return;
             lastPausedState = isPaused;
 
@@ -2198,6 +2232,24 @@ export class UIRenderer {
             { passive: false }
         );
 
+        progressBar.addEventListener('mousemove', (e) => {
+            if (isFsSeeking) return; // drag already shows seek time, no need for tooltip
+
+            const activeEl = this.player.activeElement;
+            const duration = activeEl.duration;
+
+            const rect = progressBar.getBoundingClientRect();
+            const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+
+            seekTooltip.textContent = formatTime(pos * duration);
+            seekTooltip.style.left = `${e.clientX - rect.left}px`;
+            seekTooltip.style.opacity = `1`;
+        });
+
+        progressBar.addEventListener('mouseleave', () => {
+            seekTooltip.style.opacity = `0`;
+        });
+
         document.addEventListener('mousemove', (e) => {
             if (isFsSeeking) {
                 const rect = progressBar.getBoundingClientRect();
@@ -2225,8 +2277,7 @@ export class UIRenderer {
             if (isFsSeeking) {
                 const activeEl = this.player.activeElement;
                 if (!isNaN(activeEl.duration)) {
-                    activeEl.currentTime = lastFsSeekPosition * activeEl.duration;
-                    if (wasFsPlaying) activeEl.play();
+                    void this.player.seekTo(lastFsSeekPosition * activeEl.duration, { resume: wasFsPlaying });
                 }
                 isFsSeeking = false;
             }
@@ -2236,8 +2287,7 @@ export class UIRenderer {
             if (isFsSeeking) {
                 const activeEl = this.player.activeElement;
                 if (!isNaN(activeEl.duration)) {
-                    activeEl.currentTime = lastFsSeekPosition * activeEl.duration;
-                    if (wasFsPlaying) activeEl.play();
+                    void this.player.seekTo(lastFsSeekPosition * activeEl.duration, { resume: wasFsPlaying });
                 }
                 isFsSeeking = false;
             }
@@ -2385,7 +2435,7 @@ export class UIRenderer {
             const duration = activeEl.duration || 0;
             const current = activeEl.currentTime || 0;
 
-            if (duration > 0) {
+            if (duration > 0 && !this.player.isLoadingTrack) {
                 // Only update progress if not currently seeking (user is dragging)
                 if (!isFsSeeking) {
                     const percent = (current / duration) * 100;
@@ -3293,14 +3343,14 @@ export class UIRenderer {
                 const img = document.createElement('img');
                 img.crossOrigin = 'anonymous';
                 img.referrerPolicy = 'no-referrer';
-                img.src = item.image || 'assets/logo.svg';
+                img.src = aotyCoverUrl(item.image) || 'images/monochrome_logo.svg';
                 img.width = 88;
                 img.height = 56;
                 img.style.cssText =
                     'width:88px;height:56px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);';
                 img.loading = 'lazy';
                 img.onerror = () => {
-                    img.src = 'assets/logo.svg';
+                    img.src = 'images/monochrome_logo.svg';
                     img.onerror = null;
                 };
                 el.appendChild(img);
@@ -3372,12 +3422,12 @@ export class UIRenderer {
                     const thumb = document.createElement('img');
                     thumb.crossOrigin = 'anonymous';
                     thumb.referrerPolicy = 'no-referrer';
-                    thumb.src = entry.cover || 'assets/logo.svg';
+                    thumb.src = entry.cover || 'images/monochrome_logo.svg';
                     thumb.width = 44;
                     thumb.height = 44;
                     thumb.loading = 'lazy';
                     thumb.onerror = () => {
-                        thumb.src = 'assets/logo.svg';
+                        thumb.src = 'images/monochrome_logo.svg';
                         thumb.onerror = null;
                     };
                     thumb.style.cssText =
@@ -3458,9 +3508,9 @@ export class UIRenderer {
 
                 row.innerHTML = `
                     <span style="font-size:0.8rem;font-weight:700;color:var(--primary);min-width:2rem;text-align:right;flex-shrink:0;">#${escapeHtml(item.rank || '')}</span>
-                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${item.cover || 'assets/logo.svg'}" width="48" height="48"
+                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${aotyCoverUrl(item.cover) || 'images/monochrome_logo.svg'}" width="48" height="48"
                         style="border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);"
-                        loading="lazy" onerror="this.src='assets/logo.svg';this.onerror=null;">
+                        loading="lazy" onerror="this.src='images/monochrome_logo.svg';this.onerror=null;">
                     <div style="flex:1;min-width:0;">
                         <div style="font-weight:500;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" class="row-title"></div>
                         <div style="font-size:0.75rem;color:var(--muted-foreground);margin-top:2px;" class="row-meta"></div>
@@ -3588,7 +3638,7 @@ export class UIRenderer {
     createAOTYAlbumCardHTML(album, isUpcoming = false) {
         const title = escapeHtml(album.title || 'Unknown Album');
         const artist = escapeHtml(album.artist || '');
-        const cover = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${album.cover || 'assets/logo.svg'}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='assets/logo.svg'">`;
+        const cover = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${aotyCoverUrl(album.cover) || 'images/monochrome_logo.svg'}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='images/monochrome_logo.svg'">`;
 
         const scoreParts = [];
         if (album.criticScore) scoreParts.push(`${album.criticScore} critic`);
@@ -4312,13 +4362,22 @@ export class UIRenderer {
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 // safari supports HLS natively
-                video.src = url;
+                try {
+                    video.src = url;
+                } catch {
+                    video.replaceWith(fallbackImg);
+                }
             } else {
                 video.replaceWith(fallbackImg);
             }
         } else {
             // MP4
-            video.src = url;
+            try {
+                video.src = url;
+            } catch {
+                video.replaceWith(fallbackImg);
+                return;
+            }
             video.play().catch((e) => {
                 console.warn('MP4 autoplay failed:', e);
                 video.muted = true;
@@ -4390,12 +4449,14 @@ export class UIRenderer {
         const artistsContainer = document.getElementById('search-artists-container');
         const albumsContainer = document.getElementById('search-albums-container');
         const playlistsContainer = document.getElementById('search-playlists-container');
+        const communityPlaylistsContainer = document.getElementById('search-community-playlists-container');
         const podcastsContainer = document.getElementById('search-podcasts-container');
 
         tracksContainer.innerHTML = this.createSkeletonTracks(8, true);
         artistsContainer.innerHTML = this.createSkeletonCards(6, true);
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
         playlistsContainer.innerHTML = this.createSkeletonCards(6, false);
+        communityPlaylistsContainer.innerHTML = this.createSkeletonCards(6, false);
         podcastsContainer.innerHTML = this.createSkeletonCards(6, true);
 
         if (this.searchAbortController) {
@@ -4496,22 +4557,106 @@ export class UIRenderer {
         if (!state || state.rendered[tabName]) return;
         state.rendered[tabName] = true;
 
-        switch (tabName) {
-            case 'tracks':
-                await this._renderSearchTracks(state);
-                break;
-            case 'albums':
-                await this._renderSearchAlbums(state);
-                break;
-            case 'artists':
-                await this._renderSearchArtists(state);
-                break;
-            case 'playlists':
-                await this._renderSearchPlaylists(state);
-                break;
-            case 'podcasts':
-                await this.renderPodcastSearchResults(state.query);
-                break;
+        const fetchOptions = { signal: state.signal, provider: state.provider };
+
+        try {
+            switch (tabName) {
+                case 'tracks': {
+                    if (!state.tracks) {
+                        document.getElementById('search-tracks-container').innerHTML = this.createSkeletonTracks(
+                            8,
+                            true
+                        );
+                        const result = await this.api.searchTracks(state.query, fetchOptions);
+                        state.tracks = (result.items || []).filter((t) => !_isBlockedCopyright(t.copyright));
+                    }
+                    await this._renderSearchTracks(state);
+                    break;
+                }
+                case 'albums': {
+                    if (!state.albums) {
+                        document.getElementById('search-albums-container').innerHTML = this.createSkeletonCards(
+                            6,
+                            false
+                        );
+                        const result = await this.api.searchAlbums(state.query, fetchOptions);
+                        let albums = (result.items || []).filter((a) => !_isBlockedCopyright(a.copyright));
+                        if (albums.length === 0 && state.tracks?.length > 0) {
+                            const albumMap = new Map();
+                            state.tracks.forEach((track) => {
+                                if (track.album && !albumMap.has(track.album.id)) {
+                                    albumMap.set(track.album.id, track.album);
+                                }
+                            });
+                            albums = Array.from(albumMap.values());
+                        }
+                        state.albums = albums;
+                    }
+                    await this._renderSearchAlbums(state);
+                    break;
+                }
+                case 'artists': {
+                    if (!state.artists) {
+                        document.getElementById('search-artists-container').innerHTML = this.createSkeletonCards(
+                            6,
+                            true
+                        );
+                        const result = await this.api.searchArtists(state.query, fetchOptions);
+                        let artists = result.items || [];
+                        if (artists.length === 0 && state.tracks?.length > 0) {
+                            const artistMap = new Map();
+                            state.tracks.forEach((track) => {
+                                if (track.artist && !artistMap.has(track.artist.id)) {
+                                    artistMap.set(track.artist.id, track.artist);
+                                }
+                                if (track.artists) {
+                                    track.artists.forEach((artist) => {
+                                        if (!artistMap.has(artist.id)) {
+                                            artistMap.set(artist.id, artist);
+                                        }
+                                    });
+                                }
+                            });
+                            artists = Array.from(artistMap.values());
+                        }
+                        state.artists = artists;
+                    }
+                    await this._renderSearchArtists(state);
+                    break;
+                }
+                case 'playlists': {
+                    if (!state.playlists) {
+                        document.getElementById('search-playlists-container').innerHTML = this.createSkeletonCards(
+                            6,
+                            false
+                        );
+                        const result = await this.api.searchPlaylists(state.query, fetchOptions);
+                        state.playlists = result.items || [];
+                    }
+                    await this._renderSearchPlaylists(state);
+                    break;
+                }
+                case 'community-playlists':
+                    await this._renderSearchCommunityPlaylists(state);
+                    break;
+                case 'podcasts':
+                    await this.renderPodcastSearchResults(state.query);
+                    break;
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error(`Search tab "${tabName}" failed:`, error);
+            const containerIds = {
+                tracks: 'search-tracks-container',
+                albums: 'search-albums-container',
+                artists: 'search-artists-container',
+                playlists: 'search-playlists-container',
+                'community-playlists': 'search-community-playlists-container',
+            };
+            const container = document.getElementById(containerIds[tabName]);
+            if (container) {
+                container.innerHTML = createPlaceholder(`Error during search. ${error.message}`);
+            }
         }
     }
 
@@ -4571,6 +4716,25 @@ export class UIRenderer {
             : createPlaceholder('No playlists found.');
         for (const playlist of state.playlists) {
             const el = playlistsContainer.querySelector(`[data-playlist-id="${playlist.uuid}"]`);
+            if (el) {
+                trackDataStore.set(el, playlist);
+                await this.updateLikeState(el, 'playlist', playlist.uuid);
+            }
+        }
+    }
+
+    async _renderSearchCommunityPlaylists(state) {
+        const container = document.getElementById('search-community-playlists-container');
+
+        if (!state.communityPlaylists) {
+            container.innerHTML = this.createSkeletonCards(6, false);
+            state.communityPlaylists = await searchCommunityPlaylists(state.query, state.signal);
+        }
+        container.innerHTML = state.communityPlaylists.length
+            ? state.communityPlaylists.map((playlist) => this.createPlaylistCardHTML(playlist)).join('')
+            : createPlaceholder('No community playlists found.');
+        for (const playlist of state.communityPlaylists) {
+            const el = container.querySelector(`[data-playlist-id="${playlist.uuid}"]`);
             if (el) {
                 trackDataStore.set(el, playlist);
                 await this.updateLikeState(el, 'playlist', playlist.uuid);
@@ -4663,19 +4827,37 @@ export class UIRenderer {
     }
 
     removeFromSearchHistory(query) {
-        let history = JSON.parse(localStorage.getItem('search-history') || '[]');
+        let history = [];
+        try {
+            history = JSON.parse(localStorage.getItem('search-history') || '[]');
+        } catch {
+            history = [];
+        }
         history = history.filter((q) => q !== query);
-        localStorage.setItem('search-history', JSON.stringify(history));
+        try {
+            localStorage.setItem('search-history', JSON.stringify(history));
+        } catch {
+            /* ignore quota/parse failures */
+        }
         this.renderSearchHistory();
     }
 
     addToSearchHistory(query) {
         if (!query || query.trim().length === 0) return;
-        let history = JSON.parse(localStorage.getItem('search-history') || '[]');
+        let history = [];
+        try {
+            history = JSON.parse(localStorage.getItem('search-history') || '[]');
+        } catch {
+            history = [];
+        }
         history = history.filter((q) => q !== query);
         history.unshift(query);
         history = history.slice(0, 10);
-        localStorage.setItem('search-history', JSON.stringify(history));
+        try {
+            localStorage.setItem('search-history', JSON.stringify(history));
+        } catch {
+            /* ignore quota failures */
+        }
     }
 
     async renderAlbumPage(albumId, provider = null) {
@@ -4695,9 +4877,13 @@ export class UIRenderer {
         const mixBtn = document.getElementById('album-mix-btn');
         if (mixBtn) mixBtn.style.display = 'none';
 
+        if (!imageEl || !tracklistContainer) {
+            console.warn('Album page elements missing; skipping render.');
+            return;
+        }
+
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';
-        titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
         metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
         prodEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
         rateCriticsEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
@@ -4895,7 +5081,7 @@ export class UIRenderer {
                                 const quote = decodeHtml(review.text || 'No review text available.');
                                 reviewdiv.innerHTML = `
                                 <img crossorigin="anonymous" src="${review.image || ''}" width="50" height="50" style="border-radius:8px;object-fit:cover;background:var(--highlight);flex-shrink:0;"
-                                     onerror="this.src='images/monochrome-logo.svg';this.onerror=null;" loading="lazy" referrerpolicy="no-referrer">
+                                     onerror="this.src='images/monochrome_logo.svg';this.onerror=null;" loading="lazy" referrerpolicy="no-referrer">
                                 <div style="flex:1;">
                                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.25rem;">
                                         <div class="pub-name" style="font-weight:600;color:var(--foreground);"></div>
@@ -5822,9 +6008,18 @@ export class UIRenderer {
         const toggleBtn = document.getElementById('in-library-toggle');
         if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
 
+        let artist;
         try {
-            const artist = await this.api.getArtist(artistId, provider);
+            artist = await this.api.getArtist(artistId, provider);
+        } catch (error) {
+            console.error('Failed to load artist:', error);
+            tracksContainer.innerHTML = albumsContainer.innerHTML = createPlaceholder(
+                `Could not load artist details. ${error.message}`
+            );
+            return;
+        }
 
+        try {
             const currentId = this.currentArtistId;
             this.api
                 .getArtistBanner(artist.name)
@@ -6041,13 +6236,14 @@ export class UIRenderer {
                                 .join('');
                             similarSection.style.display = 'block';
 
-                            for (const a of filteredSimilar) {
-                                const el = similarContainer.querySelector(`[data-artist-id="${a.id}"]`);
-                                if (el) {
+                            await Promise.allSettled(
+                                filteredSimilar.map((a) => {
+                                    const el = similarContainer.querySelector(`[data-artist-id="${a.id}"]`);
+                                    if (!el) return null;
                                     trackDataStore.set(el, a);
-                                    await this.updateLikeState(el, 'artist', a.id);
-                                }
-                            }
+                                    return this.updateLikeState(el, 'artist', a.id);
+                                })
+                            );
                         } else {
                             similarSection.style.display = 'none';
                         }
@@ -6065,8 +6261,9 @@ export class UIRenderer {
             this.setPageBackground(imageEl.src);
 
             // Extract vibrant color using robust image extraction (160x160 for speed/accuracy balance)
+            // Purely cosmetic: run in the background so it never blocks content rendering.
             const artistPic160 = this.api.getArtistPictureUrl(artist.picture, '160');
-            await this.extractAndApplyColor(artistPic160);
+            this.extractAndApplyColor(artistPic160).catch(() => {});
 
             this.adjustTitleFontSize(nameEl, artist.name);
 
@@ -6094,7 +6291,7 @@ export class UIRenderer {
 
             // "In your library" section: find liked tracks and playlist tracks for this artist
             if (inLibraryContainer && inLibrarySection) {
-                const artistNameLower = artist.name.toLowerCase();
+                const artistNameLower = (artist.name || '').toLowerCase();
 
                 const isTrackByArtist = (track) => {
                     if (track.artists && Array.isArray(track.artists)) {
@@ -6282,10 +6479,13 @@ export class UIRenderer {
                     }
                 };
 
-                // Initial load
-                await refreshInLibrary().then(() => {
-                    inLibraryContainer.hidden = true;
-                });
+                // Initial load: scans the whole library, and the section starts collapsed,
+                // so run it in the background instead of blocking the rest of the page.
+                refreshInLibrary()
+                    .then(() => {
+                        inLibraryContainer.hidden = true;
+                    })
+                    .catch(() => {});
 
                 // Setup chevron toggle (once)
                 const toggle = document.getElementById('in-library-toggle');
@@ -6321,13 +6521,15 @@ export class UIRenderer {
                 window.addEventListener('popstate', cleanupOnNav, { once: true });
             }
 
-            // Update header like button
+            // Update header like button (background: must not block album rendering)
             const artistLikeBtn = document.getElementById('like-artist-btn');
             if (artistLikeBtn) {
-                const isLiked = await db.isFavorite('artist', artist.id);
-                artistLikeBtn.innerHTML = this.createHeartIcon(isLiked);
-                artistLikeBtn.classList.toggle('active', isLiked);
-                trackDataStore.set(artistLikeBtn, artist);
+                db.isFavorite('artist', artist.id)
+                    .then((isLiked) => {
+                        artistLikeBtn.innerHTML = this.createHeartIcon(isLiked);
+                        artistLikeBtn.classList.toggle('active', isLiked);
+                    })
+                    .catch(() => {});
             }
 
             // Render Albums
@@ -6341,25 +6543,27 @@ export class UIRenderer {
                     epsContainer.innerHTML = artist.eps.map((album) => this.createAlbumCardHTML(album)).join('');
                     epsSection.style.display = 'block';
 
-                    for (const album of artist.eps) {
-                        const el = epsContainer.querySelector(`[data-album-id="${album.id}"]`);
-                        if (el) {
+                    await Promise.allSettled(
+                        artist.eps.map((album) => {
+                            const el = epsContainer.querySelector(`[data-album-id="${album.id}"]`);
+                            if (!el) return null;
                             trackDataStore.set(el, album);
-                            await this.updateLikeState(el, 'album', album.id);
-                        }
-                    }
+                            return this.updateLikeState(el, 'album', album.id);
+                        })
+                    );
                 } else {
                     epsSection.style.display = 'none';
                 }
             }
 
-            for (const album of artist.albums) {
-                const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
-                if (el) {
+            await Promise.allSettled(
+                artist.albums.map((album) => {
+                    const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
+                    if (!el) return null;
                     trackDataStore.set(el, album);
-                    await this.updateLikeState(el, 'album', album.id);
-                }
-            }
+                    return this.updateLikeState(el, 'album', album.id);
+                })
+            );
 
             const videosSection = document.getElementById('artist-section-videos');
             const videosContainer = document.getElementById('artist-detail-videos');
@@ -6368,13 +6572,14 @@ export class UIRenderer {
                     videosContainer.innerHTML = artist.videos.map((video) => this.createVideoCardHTML(video)).join('');
                     videosSection.style.display = 'block';
 
-                    for (const video of artist.videos) {
-                        const el = videosContainer.querySelector(`[data-video-id="${video.id}"]`);
-                        if (el) {
+                    await Promise.allSettled(
+                        artist.videos.map((video) => {
+                            const el = videosContainer.querySelector(`[data-video-id="${video.id}"]`);
+                            if (!el) return null;
                             trackDataStore.set(el, video);
-                            await this.updateLikeState(el, 'track', video.id);
-                        }
-                    }
+                            return this.updateLikeState(el, 'track', video.id);
+                        })
+                    );
                 } else {
                     videosSection.style.display = 'none';
                 }
@@ -6471,10 +6676,8 @@ export class UIRenderer {
 
             document.title = artist.name;
         } catch (error) {
-            console.error('Failed to load artist:', error);
-            tracksContainer.innerHTML = albumsContainer.innerHTML = createPlaceholder(
-                `Could not load artist details. ${error.message}`
-            );
+            // Secondary sections failing must not wipe out content that already rendered.
+            console.error('Failed to render artist page sections:', error);
         }
     }
 
@@ -6951,20 +7154,14 @@ export class UIRenderer {
 
     renderApiSettings() {
         const container = document.getElementById('api-instance-list');
-        Promise.allSettled([
-            this.api.settings.getInstances('api'),
-            this.api.settings.getInstances('streaming'),
-            this.api.settings.getInstances('qobuz'),
-        ])
+        Promise.allSettled([this.api.settings.getInstances('api'), this.api.settings.getInstances('streaming')])
             .then((results) => {
                 const apiInstances = results[0].status === 'fulfilled' ? results[0].value : [];
                 const streamingInstances = results[1].status === 'fulfilled' ? results[1].value : [];
-                const qobuzInstances = results[2].status === 'fulfilled' ? results[2].value : [];
                 const renderGroup = (instances, type) => {
                     const groupLabels = {
                         api: 'API Instances',
                         streaming: 'Streaming Instances',
-                        qobuz: 'Qobuz Instances',
                     };
 
                     const listHtml = (instances || [])
@@ -7017,8 +7214,7 @@ export class UIRenderer {
                     renderGroup(apiInstances, 'api') +
                     (streamingInstances && streamingInstances.length > 0
                         ? renderGroup(streamingInstances, 'streaming')
-                        : '') +
-                    renderGroup(qobuzInstances, 'qobuz');
+                        : '');
 
                 const stats = this.api.getCacheStats();
                 const cacheInfo = document.getElementById('cache-info');
@@ -7049,6 +7245,11 @@ export class UIRenderer {
 
         const playBtn = document.getElementById('play-track-btn');
         const likeBtn = document.getElementById('like-track-btn');
+
+        if (!imageEl || !titleEl || !artistEl || !albumEl || !yearEl || !albumTracksContainer) {
+            console.warn('Track page elements missing; aborting renderTrackPage');
+            return;
+        }
 
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';

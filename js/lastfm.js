@@ -85,13 +85,6 @@ export class LastFMScrobbler {
         }
 
         if (typeof artistName !== 'string') return 'Unknown Artist';
-
-        // Strip featured artists: split on &, feat., ft., featuring, with, etc.
-        // Only keep the part BEFORE these indicators
-        artistName = artistName
-            .split(/\s*[&]\s*|\s+feat\.?\s+|\s+ft\.?\s+|\s+featuring\s+|\s+with\s+|\s+x\s+/i)[0]
-            .trim();
-
         return artistName || 'Unknown Artist';
     }
 

@@ -26,25 +26,18 @@ PLEASE do not use any rehost of monochrome and complain to us about features not
 
 ## API Instances
 
-Monochrome uses the Hi-Fi API under the hood. Live, up-to-date status trackers (which return JSON) can be found below:
-
-- [https://tidal-uptime.geeked.wtf](https://tidal-uptime.geeked.wtf)
-
-These are available API endpoints that can be used with Monochrome or other Hi-Fi based applications:
-
 ### Official & Community APIs
 
-| Provider          | URL                                 | Notes                                                                                                  |
-| ----------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Monochrome**    | `https://monochrome-api.samidy.com` | Official API                                                                                           |
-|                   | `https://api.monochrome.tf`         | Official API                                                                                           |
-| **geeked.wtf**    | `https://hifi.geeked.wtf`           | Community hosted - uses the [TypeScript Rewrite](https://github.com/monochrome-music/hifi-api-workers) |
-| **Lucida (QQDL)** | `https://wolf.qqdl.site`            | Community hosted                                                                                       |
-|                   | `https://maus.qqdl.site`            | Community hosted                                                                                       |
-|                   | `https://vogel.qqdl.site`           | Community hosted                                                                                       |
-|                   | `https://katze.qqdl.site`           | Community hosted                                                                                       |
-|                   | `https://hund.qqdl.site`            | Community hosted                                                                                       |
-| **Kinoplus**      | `https://tidal.kinoplus.online`     | Community hosted - [Limited/No-Sub](https://rentry.co/limitedtidalaccs)                                |
+| Provider          | URL                                 | Notes                                                                   |
+| ----------------- | ----------------------------------- | ----------------------------------------------------------------------- |
+| **Monochrome**    | `https://monochrome-api.samidy.com` | Official API                                                            |
+|                   | `https://api.monochrome.tf`         | Official API                                                            |
+| **Lucida (QQDL)** | `https://wolf.qqdl.site`            | Community hosted                                                        |
+|                   | `https://maus.qqdl.site`            | Community hosted                                                        |
+|                   | `https://vogel.qqdl.site`           | Community hosted                                                        |
+|                   | `https://katze.qqdl.site`           | Community hosted                                                        |
+|                   | `https://hund.qqdl.site`            | Community hosted                                                        |
+| **Kinoplus**      | `https://tidal.kinoplus.online`     | Community hosted - [Limited/No-Sub](https://rentry.co/limitedtidalaccs) |
 
 ---
 

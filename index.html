@@ -62,7 +62,7 @@
                 "url": "https://monochrome.tf/",
                 "applicationCategory": "MusicApplication",
                 "operatingSystem": "Web Browser",
-                "image": "https://monochrome.tf/assets/logo.svg",
+                "image": "https://monochrome.tf/images/monochrome_logo.svg",
                 "description": "Stream and download millions of Hi-Res FLACs, unreleased songs and music videos, all for free on Monochrome."
             }
         </script>
@@ -78,9 +78,9 @@
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-        <link rel="apple-touch-icon" href="/assets/logo.svg" />
+        <link rel="apple-touch-icon" href="/images/monochrome_logo.svg" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
+        <link rel="icon" href="/images/monochrome_logo.svg" type="image/svg+xml" />
         <link
             rel="preload"
             as="style"
@@ -142,6 +142,7 @@
                 }
             })();
         </script>
+        <script type="module" src="/js/app.js"></script>
         <link rel="stylesheet" href="/styles.css" />
     </head>
 
@@ -181,7 +182,10 @@
                 <li data-action="track-info" data-type-filter="track,video">Track info</li>
                 <li data-action="open-original-url" data-type-filter="track,video">Open original URL</li>
                 <li data-action="download">Download</li>
-                <li class="separator"></li>
+                <li class="separator" data-type-filter="track,album,artist,user-playlist" data-action="horizantal-rule">
+                    <!-- IDK why adding a `data-action` is necessary, but without it
+                      the `data-type-filter` gets ignored; So I've added it -->
+                </li>
                 <li
                     data-action="block-track"
                     data-type-filter="track"
@@ -205,6 +209,9 @@
                     data-label-unblock="Unblock artist"
                 >
                     Block artist
+                </li>
+                <li data-action="delete-user-playlist" data-type-filter="user-playlist" class="danger">
+                    Delete Playlist
                 </li>
             </ul>
         </div>
@@ -302,7 +309,6 @@
                         <div class="fullscreen-media-column">
                             <div class="fullscreen-artwork-card" id="fullscreen-artwork-card">
                                 <img
-                                    crossorigin="anonymous"
                                     referrerpolicy="no-referrer"
                                     id="fullscreen-cover-image"
                                     src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
@@ -328,7 +334,15 @@
                             <div class="fullscreen-track-info">
                                 <div class="fullscreen-track-text">
                                     <h2 id="fullscreen-track-title"></h2>
-                                    <h3 id="fullscreen-track-artist"></h3>
+                                    <div style="display: flex; align-items: center">
+                                        <h3 id="fullscreen-track-album"></h3>
+                                        <h3 style="
+                                        font-size: 0.9rem;
+                                        position: relative;
+                                        top: -0.15rem;">
+                                        &nbsp;&#9886;&nbsp;</h3>
+                                        <h3 id="fullscreen-track-artist"></h3>
+                                    </div>
                                 </div>
                                 <div class="fullscreen-actions">
                                     <button id="fs-like-btn" class="btn-icon like-btn" title="Like">
@@ -363,6 +377,7 @@
                                     <span id="fs-current-time">0:00</span>
                                     <div id="fs-progress-bar" class="progress-bar">
                                         <div id="fs-progress-fill" class="progress-fill"></div>
+                                        <div id="fs-seek-tooltip" class="seek-tooltip"></div>
                                     </div>
                                     <span id="fs-total-duration">0:00</span>
                                 </div>
@@ -399,6 +414,7 @@
                                     </button>
                                     <div id="fs-volume-bar" class="fs-volume-bar">
                                         <div id="fs-volume-fill" class="fs-volume-fill"></div>
+                                        <span id="fs-volume-tooltip" class="volume-tooltip"></span>
                                     </div>
                                 </div>
                             </div>
@@ -1727,7 +1743,7 @@
                 <div class="sidebar-content">
                     <div class="sidebar-logo">
                         <a href="./" class="sidebar-logo-link">
-                            <use svg="./images/monochrome-logo.svg" size="200" class="app-logo" />
+                            <use svg="./images/monochrome_logo.svg" size="200" class="app-logo" />
                             <span>Monochrome</span>
                         </a>
                         <button
@@ -1805,8 +1821,8 @@
                                     </li>
                                     <li class="nav-item" id="sidebar-nav-mobile">
                                         <a href="/mobile">
-                                            <use svg="!lucide/smartphone.svg" size="24" />
-                                            <span>Mobile</span>
+                                            <use svg="!lucide/download.svg" size="24" />
+                                            <span>Download</span>
                                         </a>
                                     </li>
                                     <li class="nav-item" id="sidebar-nav-discordbtn">
@@ -2194,6 +2210,7 @@
                         <button class="search-tab" data-tab="albums">Albums</button>
                         <button class="search-tab" data-tab="artists">Artists</button>
                         <button class="search-tab" data-tab="playlists">Playlists</button>
+                        <button class="search-tab" data-tab="community-playlists">YT Music Playlists (BETA)</button>
                         <button class="search-tab" data-tab="podcasts">Podcasts</button>
                     </div>
                     <div class="search-tab-content active" id="search-tab-tracks">
@@ -2207,6 +2224,9 @@
                     </div>
                     <div class="search-tab-content" id="search-tab-playlists">
                         <div class="card-grid" id="search-playlists-container"></div>
+                    </div>
+                    <div class="search-tab-content" id="search-tab-community-playlists">
+                        <div class="card-grid" id="search-community-playlists-container"></div>
                     </div>
                     <div class="search-tab-content" id="search-tab-podcasts">
                         <div class="card-grid" id="search-podcasts-container"></div>
@@ -2248,7 +2268,7 @@
                     </section>
 
                     <section class="content-section">
-                        <h2 class="section-title">Favorites</h2>
+                        <h2 class="section-title">Liked Items & Local Files</h2>
                         <div class="search-tabs">
                             <button class="search-tab active" data-tab="tracks">Liked Tracks</button>
                             <button class="search-tab" data-tab="albums">Albums</button>
@@ -2354,7 +2374,15 @@
                                         id="local-browser-warning"
                                         style="display: none; color: #ef4444; margin-top: 10px; font-size: 0.9rem"
                                     >
-                                        Please use Google Chrome or Microsoft Edge to play local files.
+                                        Your browser doesn't support the File System Access API, which is required for
+                                        Local Files. We recommend
+                                        <a
+                                            href="https://helium.computer/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style="color: inherit; text-decoration: underline"
+                                            >Helium</a
+                                        >.
                                     </p>
                                     <p style="margin-top: 10px; font-size: 0.9rem; color: var(--muted-foreground)">
                                         Select a folder on your device to play local files. <br />
@@ -3626,6 +3654,19 @@
                                     </div>
                                     <div class="setting-item">
                                         <div class="info">
+                                            <span class="label">Donation Reminders</span>
+                                            <span class="description"
+                                                >Occasionally show a notification inviting you to support
+                                                Monochrome</span
+                                            >
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="donation-prompts-toggle" checked />
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="setting-item">
+                                        <div class="info">
                                             <span class="label">Show Settings in Sidebar</span>
                                             <span class="description"
                                                 >Display the Settings link in the sidebar navigation</span
@@ -4188,15 +4229,70 @@
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Streaming Quality</span>
-                                        <span class="description">Default playback quality for streams</span>
+                                        <span class="description" id="streaming-quality-sources"
+                                            >Default playback quality for streams</span
+                                        >
                                     </div>
                                     <select id="streaming-quality-setting">
-                                        <option value="auto">Auto (Adaptive)</option>
-                                        <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
-                                        <option value="LOSSLESS">Lossless (16-bit)</option>
-                                        <option value="HIGH">AAC 320kbps</option>
-                                        <option value="LOW">AAC 96kbps</option>
+                                        <option value="auto" data-sources="Amazon and Mono">Auto (Adaptive)</option>
+                                        <option value="DOLBY_ATMOS_EAC3_HIGH" data-sources="Amazon and Tidal">
+                                            Dolby Atmos — E-AC-3 High
+                                        </option>
+                                        <option value="DOLBY_ATMOS_EAC3_LOW" data-sources="Amazon">
+                                            Dolby Atmos — E-AC-3 Low
+                                        </option>
+                                        <option value="DOLBY_ATMOS_AC4_HIGH" data-sources="Amazon">
+                                            Dolby Atmos — AC-4 High
+                                        </option>
+                                        <option value="DOLBY_ATMOS_AC4_LOW" data-sources="Amazon">
+                                            Dolby Atmos — AC-4 Low
+                                        </option>
+                                        <option value="HI_RES_LOSSLESS" data-sources="Amazon and Mono">
+                                            Hi-Res Lossless (24-bit)
+                                        </option>
+                                        <option value="LOSSLESS" data-sources="Amazon and Mono">
+                                            Lossless (16-bit)
+                                        </option>
+                                        <option value="HIGH" data-sources="Amazon">High</option>
+                                        <option value="LOW" data-sources="Amazon">Low</option>
                                     </select>
+                                </div>
+                                <div
+                                    class="setting-item codec-warning"
+                                    id="atmos-streaming-warning"
+                                    role="status"
+                                    aria-live="polite"
+                                    style="display: none"
+                                >
+                                    <div class="info setting-details">
+                                        <span class="description" id="atmos-streaming-warning-text"></span>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Prefer Dolby Atmos</span>
+                                        <span class="description"
+                                            >Automatically request Dolby Atmos spatial audio on Tidal when
+                                            available</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="prefer-dolby-atmos-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Native OS Dolby Atmos Rendering</span>
+                                        <span class="description"
+                                            >Render Atmos directly on Safari (Apple Spatial Audio) or Edge (Windows
+                                            Dolby Audio) for full volume</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="native-os-atmos-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
@@ -4229,6 +4325,49 @@
                                         <input type="checkbox" id="gapless-playback-toggle" checked />
                                         <span class="slider"></span>
                                     </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Remove Silence</span>
+                                        <span class="description"
+                                            >Skip leading silence and move to the next track when trailing silence
+                                            begins</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="silence-removal-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Crossfade</span>
+                                        <span class="description"
+                                            >Overlap tracks with an equal-power fade; when silence removal is enabled,
+                                            the fade starts before trailing silence</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="crossfade-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Crossfade Duration</span>
+                                        <span class="description">Choose how long both tracks overlap</span>
+                                    </div>
+                                    <select id="crossfade-duration">
+                                        <option value="1">1 second</option>
+                                        <option value="2">2 seconds</option>
+                                        <option value="3">3 seconds</option>
+                                        <option value="4">4 seconds</option>
+                                        <option value="5">5 seconds</option>
+                                        <option value="6">6 seconds</option>
+                                        <option value="8">8 seconds</option>
+                                        <option value="10">10 seconds</option>
+                                        <option value="12">12 seconds</option>
+                                    </select>
                                 </div>
                             </div>
 
@@ -5400,13 +5539,31 @@
                                     <div class="setting-item">
                                         <div class="info">
                                             <span class="label">Download Quality</span>
-                                            <span class="description">Quality for track downloads</span>
+                                            <span class="description" id="download-quality-sources"
+                                                >Quality for track downloads</span
+                                            >
                                         </div>
                                         <select id="download-quality-setting">
-                                            <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
-                                            <option value="LOSSLESS">Lossless (16-bit)</option>
-                                            <option value="HIGH">AAC 320kbps</option>
-                                            <option value="LOW">AAC 96kbps</option>
+                                            <option value="DOLBY_ATMOS_EAC3_HIGH" data-sources="Amazon and Tidal">
+                                                Dolby Atmos — E-AC-3 High
+                                            </option>
+                                            <option value="DOLBY_ATMOS_EAC3_LOW" data-sources="Amazon">
+                                                Dolby Atmos — E-AC-3 Low
+                                            </option>
+                                            <option value="DOLBY_ATMOS_AC4_HIGH" data-sources="Amazon">
+                                                Dolby Atmos — AC-4 High
+                                            </option>
+                                            <option value="DOLBY_ATMOS_AC4_LOW" data-sources="Amazon">
+                                                Dolby Atmos — AC-4 Low
+                                            </option>
+                                            <option value="HI_RES_LOSSLESS" data-sources="Amazon and Mono">
+                                                Hi-Res Lossless (24-bit)
+                                            </option>
+                                            <option value="LOSSLESS" data-sources="Amazon and Mono">
+                                                Lossless (16-bit)
+                                            </option>
+                                            <option value="HIGH" data-sources="Amazon">High</option>
+                                            <option value="LOW" data-sources="Amazon">Low</option>
                                         </select>
                                     </div>
                                     <div class="setting-item" id="hi-res-download-warning" style="display: none">
@@ -5722,26 +5879,26 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Amazon Music</span>
+                                        <span class="label">Unified Playback</span>
                                         <span class="description"
-                                            >Use Amazon Music streams first, then fall back to Qobuz, then Deezer as a
-                                            last resort.</span
+                                            >Amazon is tried first, with the in-house lossless source handled by the
+                                            same API when Amazon is unavailable.</span
                                         >
                                     </div>
                                     <label class="toggle-switch">
-                                        <input type="checkbox" id="amazon-music-toggle" checked />
+                                        <input type="checkbox" id="unified-playback-toggle" checked />
                                         <span class="slider"></span>
                                     </label>
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Amazon Music API URL</span>
-                                        <span class="description">The Amazon Music API endpoint</span>
+                                        <span class="label">Unified Playback API URL</span>
+                                        <span class="description">The API endpoint that resolves Amazon and Mono</span>
                                     </div>
                                     <input
                                         type="text"
-                                        id="amazon-music-api-base-url"
-                                        placeholder="https://amz.geeked.wtf"
+                                        id="unified-playback-api-base-url"
+                                        placeholder="https://music-api.geeked.wtf"
                                         style="
                                             width: 220px;
                                             padding: 0.35rem 0.5rem;
@@ -5755,37 +5912,15 @@
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Turnstile Site Key</span>
+                                        <span class="label">App API Key</span>
                                         <span class="description"
-                                            >Required for Amazon Music requests protected by Turnstile</span
-                                        >
-                                    </div>
-                                    <input
-                                        type="text"
-                                        id="amazon-music-turnstile-site-key"
-                                        placeholder="0x..."
-                                        style="
-                                            width: 220px;
-                                            padding: 0.35rem 0.5rem;
-                                            border: 1px solid var(--border);
-                                            border-radius: var(--radius-md);
-                                            background: var(--card);
-                                            color: var(--foreground);
-                                            font-size: 0.8rem;
-                                        "
-                                    />
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Turnstile Bypass Token</span>
-                                        <span class="description"
-                                            >Optional server-side bypass token for trusted deployments</span
+                                            >Bearer key used with a browser Turnstile session for playback</span
                                         >
                                     </div>
                                     <input
                                         type="password"
-                                        id="amazon-music-turnstile-bypass-token"
-                                        placeholder="Optional"
+                                        id="unified-playback-api-token"
+                                        placeholder="amp_…"
                                         autocomplete="off"
                                         style="
                                             width: 220px;
@@ -5805,7 +5940,7 @@
                                     <div class="info">
                                         <span class="label">Deezer Fallback</span>
                                         <span class="description"
-                                            >Last-resort source, used only when both Amazon Music and Qobuz fail. Tops
+                                            >Last-resort source when the primary and other fallback providers fail. Tops
                                             out at 16-bit lossless (FLAC).</span
                                         >
                                     </div>
@@ -6492,6 +6627,11 @@
                         </div>
                         <div class="donate-alt-section">
                             <p class="donate-alt-text">
+                                While donating isn't required and the service can still live on without hitting our
+                                goals, we're deeply grateful if you do! It helps the project have "just-in-case" money
+                                and helps us (the developers) out personally!
+                            </p>
+                            <p class="donate-alt-text">
                                 If you cannot financially support us, please consider starring the project on GitHub and
                                 sharing with friends!
                             </p>
@@ -6507,61 +6647,142 @@
                     </div>
                 </div>
                 <div id="page-mobile" class="page">
-                    <div
-                        class="mobile-download-container"
+                    <table
                         style="
-                            text-align: center;
-                            max-width: 600px;
-                            margin: 0 auto;
-                            padding: var(--space-8) var(--space-4);
+                            left: 50%;
+                            margin: 0 0 0 50%;
+                            transform: translate(-50%, 0);
+                            width: 100%;
+                            max-width: 1500px;
                         "
                     >
-                        <h2 class="section-title" style="margin-bottom: var(--space-4)">Monochrome Mobile</h2>
-                        <p style="color: var(--muted-foreground); margin-bottom: var(--space-8)">
-                            Download the app for your device.
-                        </p>
-
-                        <div
-                            style="
-                                display: flex;
-                                flex-wrap: wrap;
-                                gap: var(--space-4);
-                                justify-content: center;
-                                margin-bottom: var(--space-8);
-                            "
-                        >
-                            <a
-                                href="https://downloads.samidy.com/android.apk"
-                                class="btn-primary"
-                                style="display: inline-flex; align-items: center; gap: 8px"
-                            >
-                                <use svg="!lucide/download.svg" size="18" />
-                                Download for Android
-                            </a>
-                            <a
-                                href="https://downloads.samidy.com/iOS.ipa"
-                                class="btn-primary"
-                                style="display: inline-flex; align-items: center; gap: 8px"
-                            >
-                                <use svg="!lucide/download.svg" size="18" />
-                                Download for iOS
-                            </a>
-                        </div>
-
-                        <p style="color: var(--muted-foreground); margin-bottom: var(--space-3)">
-                            The iOS app must be sideloaded. If you need help getting started, check out this
-                            <a
-                                href="https://fmhy.net/mobile#ios-sideloading"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style="color: var(--primary); text-decoration: underline"
-                                >iOS sideloading guide</a
-                            >.
-                        </p>
-                        <p style="color: var(--color-warning); margin: 0">
-                            We don't offer support for sideloading. Please do your own research if you run into issues.
-                        </p>
-                    </div>
+                        <tr>
+                            <td valign="top">
+                                <div
+                                    class="mobile-download-container"
+                                    style="
+                                        text-align: center;
+                                        max-width: 600px;
+                                        margin: 0 auto;
+                                        padding: var(--space-8) var(--space-4);
+                                    "
+                                >
+                                    <h2 class="section-title" style="margin-bottom: var(--space-4)">
+                                        Monochrome Mobile
+                                    </h2>
+                                    <p style="color: var(--muted-foreground); margin-bottom: var(--space-8)">
+                                        Download the app for your device.
+                                    </p>
+                                    <div
+                                        style="
+                                            display: flex;
+                                            flex-wrap: wrap;
+                                            gap: var(--space-4);
+                                            justify-content: center;
+                                            margin-bottom: var(--space-8);
+                                        "
+                                    >
+                                        <a
+                                            href="https://downloads.samidy.com/android.apk"
+                                            class="btn-primary"
+                                            style="display: inline-flex; align-items: center; gap: 8px"
+                                        >
+                                            <use svg="!lucide/download.svg" size="18" />
+                                            Download for Android
+                                        </a>
+                                        <a
+                                            href="https://downloads.samidy.com/iOS.ipa"
+                                            class="btn-primary"
+                                            style="display: inline-flex; align-items: center; gap: 8px"
+                                        >
+                                            <use svg="!lucide/download.svg" size="18" />
+                                            Download for iOS
+                                        </a>
+                                    </div>
+                                    <p style="color: var(--muted-foreground); margin-bottom: var(--space-3)">
+                                        The iOS app must be sideloaded. If you need help getting started, check out this
+                                        <a
+                                            href="https://fmhy.net/mobile#ios-sideloading"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style="color: var(--primary); text-decoration: underline"
+                                            >iOS sideloading guide</a
+                                        >.
+                                    </p>
+                                    <p style="color: var(--color-warning); margin: 0">
+                                        We don't offer support for sideloading. Please do your own research if you run
+                                        into issues.
+                                    </p>
+                                    <p
+                                        style="
+                                            color: var(--muted-foreground);
+                                            margin-top: var(--space-6);
+                                            margin-bottom: 0;
+                                        "
+                                    >
+                                        Downloaded songs are saved to <b>Downloads/Monochrome</b> on your device.
+                                    </p>
+                                </div>
+                            </td>
+                            <td valign="top">
+                                <div
+                                    class="desktop-download-container"
+                                    style="
+                                        text-align: center;
+                                        max-width: 600px;
+                                        margin: 0 auto;
+                                        padding: var(--space-8) var(--space-4);
+                                    "
+                                >
+                                    <h2 class="section-title" style="margin-bottom: var(--space-4)">
+                                        Monochrome Desktop
+                                    </h2>
+                                    <p style="color: var(--muted-foreground); margin-bottom: var(--space-8)">
+                                        Download the app for your desktop device.
+                                    </p>
+                                    <div
+                                        style="
+                                            display: flex;
+                                            flex-wrap: wrap;
+                                            gap: var(--space-4);
+                                            justify-content: center;
+                                            margin-bottom: var(--space-8);
+                                        "
+                                    >
+                                        <a
+                                            href="https://github.com/monochrome-music/desktop-app/releases"
+                                            class="btn-primary"
+                                            style="display: inline-flex; align-items: center; gap: 8px"
+                                        >
+                                            <use svg="!lucide/download.svg" size="18" />
+                                            Download from Github
+                                        </a>
+                                    </div>
+                                    <p style="color: var(--muted-foreground)">
+                                        If you need any help with the desktop app, please reach out to the developer of
+                                        the application. You can find their contact information on the GitHub page
+                                        linked above or contact them directly on discord in our server's
+                                        <a
+                                            href="https://discord.com/channels/1457628745589456910/1457633716049543208"
+                                            style="color: var(--primary); text-decoration: underline"
+                                            ><i>Help Channel</i></a
+                                        >.
+                                    </p>
+                                    <p
+                                        style="
+                                            color: var(--color-warning);
+                                            margin: 0;
+                                            margin-top: var(--space-6);
+                                            margin-bottom: 0;
+                                        "
+                                    >
+                                        This application is currently in beta and may have bugs or issues. Please report
+                                        any problems you encounter to the developer so they can be addressed.
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
                 <div id="page-reset-password" class="page">
                     <div
@@ -6710,6 +6931,7 @@
                         <span id="current-time">0:00</span>
                         <div id="progress-bar" class="progress-bar">
                             <div id="progress-fill" class="progress-fill"></div>
+                            <div id="seek-tooltip" class="seek-tooltip"></div>
                         </div>
                         <span id="total-duration">0:00</span>
                     </div>
@@ -6779,6 +7001,7 @@
                         <button id="volume-btn" title="Mute"></button>
                         <div id="volume-bar" class="volume-bar">
                             <div id="volume-fill" class="volume-fill"></div>
+                            <span id="volume-tooltip" class="volume-tooltip"></span>
                         </div>
                         <button id="sleep-timer-btn-desktop" title="Sleep Timer">
                             <use svg="!lucide/clock.svg" size="20" />
@@ -6787,6 +7010,5 @@
                 </div>
             </footer>
         </div>
-        <script type="module" src="/js/app.js"></script>
     </body>
 </html>

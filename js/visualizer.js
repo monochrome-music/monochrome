@@ -74,7 +74,7 @@ export class Visualizer {
     }
 
     get activePreset() {
-        return this.presets[this.activePresetKey] || this.presets['lcd'];
+        return this.presets?.[this.activePresetKey] || this.presets?.['lcd'] || null;
     }
 
     async init() {
@@ -107,7 +107,7 @@ export class Visualizer {
     }
 
     initContext() {
-        const preset = this.activePreset;
+        const preset = this.activePreset || {};
         const type = preset.contextType || '2d';
         const currentType = this._currentContextType;
 
@@ -313,7 +313,7 @@ export class Visualizer {
     };
 
     setPreset(key) {
-        if (!this.presets[key]) return;
+        if (!this.presets || !this.presets[key]) return;
 
         const webglPresets = ['butterchurn', 'kawarp'];
         const fromPreset = this.activePresetKey;

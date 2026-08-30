@@ -1206,7 +1206,7 @@ class CommandPalette {
 
         if (Player.instance) {
             // Set fallback API quality (Auto maps back to Hi-Res)
-            const apiQuality = quality === 'auto' ? 'LOSSLESS' : quality;
+            const apiQuality = quality === 'auto' ? 'HI_RES_LOSSLESS' : quality;
             Player.instance.setQuality(apiQuality);
             localStorage.setItem('playback-quality', apiQuality);
 
@@ -1220,7 +1220,7 @@ class CommandPalette {
 
         const { downloadQualitySettings } = await import('./storage.js');
         // Do not pass auto to download quality, resolve it to original fallback
-        const dlQuality = quality === 'auto' ? 'LOSSLESS' : quality;
+        const dlQuality = quality === 'auto' ? 'HI_RES_LOSSLESS' : quality;
         downloadQualitySettings.setQuality(dlQuality);
         const downloadSelect = document.getElementById('download-quality-setting');
         if (downloadSelect) downloadSelect.value = dlQuality;

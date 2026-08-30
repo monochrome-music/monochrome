@@ -1,32 +1,106 @@
-function isFuzzyMatch(str1, str2) {
-    if (!str1 || !str2) return false;
-    const s1 = str1.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
-    const s2 = str2.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
-    return s1.includes(s2) || s2.includes(s1);
+function normalizeIsrc(isrc) {
+    return String(isrc || '')
+        .replace(/[^A-Za-z0-9]/g, '')
+        .toUpperCase();
 }
 
-function findBestMatch(items, targetArtist, targetAlbum, importOptions) {
+function isIsrcMatch(trackIsrc, targetIsrc) {
+    const a = normalizeIsrc(trackIsrc);
+    const b = normalizeIsrc(targetIsrc);
+    return a.length > 0 && a === b;
+}
+
+function normalizeForMatch(str) {
+    return String(str || '')
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, '');
+}
+
+function tokenize(str) {
+    return String(str || '')
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]/gu, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+}
+
+function stringSimilarity(a, b) {
+    const na = normalizeForMatch(a);
+    const nb = normalizeForMatch(b);
+    if (!na || !nb) return 0;
+    if (na === nb) return 1;
+    if (na.includes(nb) || nb.includes(na)) return 0.85;
+    const ta = tokenize(a);
+    const tb = tokenize(b);
+    if (ta.length === 0 || tb.length === 0) return 0;
+    const sa = new Set(ta);
+    const sb = new Set(tb);
+    let common = 0;
+    for (const t of sa) if (sb.has(t)) common++;
+    return common / Math.max(sa.size, sb.size);
+}
+
+function splitArtists(str) {
+    return String(str || '')
+        .split(/[,&]| and | feat\.? | featuring /i)
+        .map((s) => s.trim())
+        .filter(Boolean);
+}
+
+function getTrackArtistNames(track) {
+    if (Array.isArray(track.artists) && track.artists.length > 0) {
+        const names = track.artists.map((a) => a?.name).filter(Boolean);
+        if (names.length > 0) return names;
+    }
+    return track.artist?.name ? [track.artist.name] : [];
+}
+
+function scoreTrack(item, targetTitle, targetArtist, targetAlbum) {
+    const titleScore = stringSimilarity(item.title, targetTitle);
+
+    const itemArtists = getTrackArtistNames(item);
+    const targetArtists = splitArtists(targetArtist);
+    let artistScore = 0;
+    for (const ta of targetArtists) {
+        for (const ia of itemArtists) {
+            artistScore = Math.max(artistScore, stringSimilarity(ia, ta));
+        }
+    }
+    if (itemArtists.length > 0) {
+        artistScore = Math.max(artistScore, stringSimilarity(itemArtists.join(' '), targetArtist));
+    }
+
+    const albumScore = targetAlbum ? stringSimilarity(item.album?.title, targetAlbum) : 0;
+
+    const score = titleScore * 0.5 + artistScore * 0.4 + albumScore * 0.1;
+    return { score, titleScore, artistScore, albumScore };
+}
+
+function findBestMatch(items, targetArtist, targetAlbum, importOptions, targetTitle, targetIsrc) {
     if (!items || items.length === 0) return null;
-    if (!importOptions?.strictArtistMatch && !importOptions?.strictAlbumMatch) return items[0];
 
-    return (
-        items.find((item) => {
-            let artistOk = true;
-            let albumOk = true;
+    if (targetIsrc) {
+        const isrcMatch = items.find((item) => isIsrcMatch(item.isrc, targetIsrc));
+        if (isrcMatch) return isrcMatch;
+    }
 
-            if (importOptions.strictArtistMatch && targetArtist) {
-                const itemArtist = item.artist?.name || item.artists?.[0]?.name;
-                if (!isFuzzyMatch(itemArtist, targetArtist)) artistOk = false;
-            }
+    if (!targetTitle) return null;
 
-            if (importOptions.strictAlbumMatch && targetAlbum) {
-                const itemAlbum = item.album?.title;
-                if (itemAlbum && !isFuzzyMatch(itemAlbum, targetAlbum)) albumOk = false;
-            }
+    let best = null;
+    let bestScore = -1;
+    for (const item of items) {
+        const { score, titleScore, artistScore } = scoreTrack(item, targetTitle, targetArtist, targetAlbum);
+        if (titleScore < 0.5) continue;
+        if (importOptions?.strictArtistMatch && targetArtist && artistScore < 0.5) continue;
+        if (score > bestScore) {
+            bestScore = score;
+            best = item;
+        }
+    }
 
-            return artistOk && albumOk;
-        }) || null
-    );
+    if (!best || bestScore < 0.55) return null;
+    return best;
 }
 
 /**
@@ -321,9 +395,13 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
                 let foundTrack = null;
 
                 if (isrc) {
-                    const searchResult = await api.searchTracks(`isrc:${isrc}`);
-                    if (searchResult.items && searchResult.items.length > 0) {
-                        foundTrack = searchResult.items.find((t) => t.isrc === isrc) || searchResult.items[0];
+                    try {
+                        const searchResult = await api.searchTracksByIsrc(isrc);
+                        if (searchResult.items && searchResult.items.length > 0) {
+                            foundTrack = searchResult.items.find((t) => isIsrcMatch(t.isrc, isrc)) || null;
+                        }
+                    } catch {
+                        // fallback ahhh blud ☠️👌
                     }
                 }
 
@@ -331,7 +409,10 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
                     const searchQuery = `"${trackName}" ${artistName}`.trim();
                     const searchResult = await api.searchTracks(searchQuery);
                     if (searchResult.items && searchResult.items.length > 0) {
-                        foundTrack = findBestMatch(searchResult.items, artistName, albumName, options);
+                        const isrcHit = isrc ? searchResult.items.find((t) => isIsrcMatch(t.isrc, isrc)) : null;
+                        foundTrack =
+                            isrcHit ||
+                            findBestMatch(searchResult.items, artistName, albumName, options, trackName, isrc);
                     }
                 }
 
@@ -595,7 +676,13 @@ export async function parseCSV(csvText, api, onProgress, importOptions = {}) {
                     const searchResult = await api.searchTracks(searchQuery);
 
                     if (searchResult.items && searchResult.items.length > 0) {
-                        const match = findBestMatch(searchResult.items, artistNames, albumName, importOptions);
+                        const match = findBestMatch(
+                            searchResult.items,
+                            artistNames,
+                            albumName,
+                            importOptions,
+                            trackTitle
+                        );
                         if (match) tracks.push(match);
                         else missingTracks.push({ title: trackTitle, artist: artistNames, album: albumName });
                     } else {

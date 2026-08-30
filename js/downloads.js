@@ -146,6 +146,15 @@ function createDownloadNotification() {
     return downloadNotificationContainer;
 }
 
+function friendlyEnrichError(error) {
+    const msg = String(error?.message || error || '');
+    if (msg.includes('Could not resolve audio stream')) return 'no audio stream is available for this track';
+    if (msg.includes('DOLBY ATMOS') || msg.includes('Dolby Atmos')) return msg;
+    if (msg.includes('status 404')) return 'this track was not found on the provider';
+    if (msg.includes('status 422')) return 'this track cannot be downloaded';
+    return msg || 'the track could not be prepared for download';
+}
+
 export function showNotification(message) {
     const container = createDownloadNotification();
 
@@ -1094,11 +1103,22 @@ export async function downloadTrackWithMetadata(
         return;
     }
 
-    const { enrichedTrack } = await tidalAPI.enrichTrack(track, { downloadQuality: quality });
-    const filename = buildTrackFilename(enrichedTrack, quality);
-
     const controller = abortController || new AbortController();
+    // Claim the operation before its first async lookup so rapid repeated clicks
+    // cannot start multiple enrichments for the same track.
     ongoingDownloads.add(downloadKey);
+
+    let enriched;
+    try {
+        enriched = await tidalAPI.enrichTrack(track, { downloadQuality: quality });
+    } catch (error) {
+        ongoingDownloads.delete(downloadKey);
+        const title = track?.title || track?.name || 'this track';
+        showNotification(`Couldn't download "${title}": ${friendlyEnrichError(error)}`);
+        return;
+    }
+    const { enrichedTrack } = enriched;
+    const filename = buildTrackFilename(enrichedTrack, quality);
 
     try {
         // Resolve the folder writer before registering the download task so that
@@ -1111,6 +1131,7 @@ export async function downloadTrackWithMetadata(
         const blob = await api.downloadTrack(track.id, quality, filename, {
             signal: controller.signal,
             track: enrichedTrack,
+            enriched,
             onProgress: (progress) => {
                 updateDownloadProgress(track.id, progress);
             },
