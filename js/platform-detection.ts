@@ -27,7 +27,8 @@ export const isFirefox = lowerCaseOriginalUserAgent.includes('firefox') && !isCh
 export const isEdge = lowerCaseOriginalUserAgent.includes('edg/') || lowerCaseOriginalUserAgent.includes('edge/');
 
 /** If the browser is WebKitGTK. */
-export const isWebKitGtk = lowerCaseOriginalUserAgent.includes('webkit') &&
+export const isWebKitGtk =
+    lowerCaseOriginalUserAgent.includes('webkit') &&
     lowerCaseOriginalUserAgent.includes('mozilla') &&
     lowerCaseOriginalUserAgent.includes('linux');
 
