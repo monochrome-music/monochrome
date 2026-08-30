@@ -2675,7 +2675,7 @@ export class LosslessAPI {
         }
     }
 
-    async getStreamUrl(id, quality = 'LOSSLESS') {
+    async getStreamUrl(id, quality = 'LOSSLESS', options = {}) {
         const cacheKey = `stream_info_${id}_${quality}`;
 
         if (this.streamCache.has(cacheKey)) {
@@ -2717,7 +2717,7 @@ export class LosslessAPI {
             this.getTurnstileJwt().catch(() => null);
         }
 
-        const track = await this.getTrackMetadata(id);
+        const track = options.track || (await this.getTrackMetadata(id));
 
         const canPlayAmazonCenc = canUseNativeAmazonCenc;
         const needsProxyDecryption = !canPlayAmazonCenc;
@@ -2922,7 +2922,7 @@ export class LosslessAPI {
 
         const id = input?.id || input;
         const inputTrack = typeof input === 'object' ? input : null;
-        const metadataTrack = id ? await this.getTrackMetadata(id).catch(() => null) : null;
+        const metadataTrack = id && inputTrack?.provider !== 'apple' ? await this.getTrackMetadata(id).catch(() => null) : null;
         const track = metadataTrack
             ? this.prepareTrack({ ...(inputTrack || {}), ...metadataTrack })
             : inputTrack?.isrc

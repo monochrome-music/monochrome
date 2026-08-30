@@ -1514,6 +1514,10 @@ body.has-page-background .track-item:hover {
     background: var(--secondary);
 }
 
+.search-history-item.active {
+    background: var(--secondary);
+}
+
 .search-history-item .history-icon {
     color: var(--muted-foreground);
     opacity: 0.5;
