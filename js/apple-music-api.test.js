@@ -1,0 +1,170 @@
+import { describe, expect, test } from 'vitest';
+import {
+    decodeJwtExpiration,
+    extractSearchSuggestions,
+    extractVideoCovers,
+    normalizeAppleSearchResults,
+    rankSearchResults,
+    rankSearchSection,
+    resolveStorefront,
+    selectVideoCover,
+} from './apple-music-api.js';
+
+describe('Apple Music search ranking', () => {
+    test('uses Apple Music song order while preserving playable result objects', () => {
+        const first = { id: 1, title: 'First', isrc: 'AAA', artist: { name: 'Artist' } };
+        const second = { id: 2, title: 'Second', isrc: 'BBB', artist: { name: 'Artist' } };
+        const section = { items: [first, second], totalNumberOfItems: 2 };
+        const appleSongs = [
+            { attributes: { name: 'Second', artistName: 'Artist', isrc: 'BBB' } },
+            { attributes: { name: 'First', artistName: 'Artist', isrc: 'AAA' } },
+        ];
+
+        const result = rankSearchSection('tracks', section, appleSongs);
+
+        expect(result.items).toEqual([second, first]);
+        expect(result.items[0]).toBe(second);
+        expect(result.totalNumberOfItems).toBe(2);
+    });
+
+    test('ranks each unified result section and leaves unmatched items in current order', () => {
+        const current = {
+            tracks: { items: [] },
+            albums: {
+                items: [
+                    { id: 10, title: 'Other', artist: { name: 'Someone' } },
+                    { id: 11, title: 'Wanted', artist: { name: 'Singer' }, upc: '123' },
+                ],
+            },
+            artists: {
+                items: [
+                    { id: 20, name: 'Beta' },
+                    { id: 21, name: 'Alpha' },
+                ],
+            },
+        };
+        const apple = {
+            results: {
+                albums: { data: [{ attributes: { name: 'Wanted', artistName: 'Singer', upc: '123' } }] },
+                artists: { data: [{ attributes: { name: 'Alpha' } }] },
+            },
+        };
+
+        const result = rankSearchResults(current, apple);
+
+        expect(result.albums.items.map((item) => item.id)).toEqual([11, 10]);
+        expect(result.artists.items.map((item) => item.id)).toEqual([21, 20]);
+    });
+
+    test('extracts unique term suggestions for autocomplete', () => {
+        const result = extractSearchSuggestions({
+            results: {
+                suggestions: [
+                    { kind: 'terms', searchTerm: 'beach bunny', displayTerm: 'Beach Bunny' },
+                    { kind: 'terms', searchTerm: 'beach bunny', displayTerm: 'Beach Bunny' },
+                    { kind: 'topResults', searchTerm: 'ignored' },
+                    { kind: 'terms', searchTerm: 'cloud 9 beach bunny' },
+                ],
+            },
+        });
+
+        expect(result).toEqual([
+            { searchTerm: 'beach bunny', displayTerm: 'Beach Bunny' },
+            { searchTerm: 'cloud 9 beach bunny', displayTerm: 'cloud 9 beach bunny' },
+        ]);
+    });
+
+    test('prefers a square editorial video cover', () => {
+        const tall = { kind: 'motionDetailTall', aspectRatio: '3:4', hlsUrl: 'tall.m3u8' };
+        const square = { kind: 'motionDetailSquare', aspectRatio: '1:1', hlsUrl: 'square.m3u8' };
+
+        expect(selectVideoCover([tall, square])).toBe(square);
+        expect(selectVideoCover([])).toBeNull();
+    });
+
+    test('extracts and deduplicates editorial video covers', () => {
+        const covers = extractVideoCovers({
+            attributes: {
+                editorialVideo: {
+                    motionDetailSquare: {
+                        video: 'https://example.com/square.m3u8',
+                        previewFrame: { width: 1000, height: 1000 },
+                    },
+                    duplicate: { video: 'https://example.com/square.m3u8' },
+                    motionDetailTall: {
+                        video: { url: 'https://example.com/tall.m3u8' },
+                        previewFrame: { width: 900, height: 1200 },
+                    },
+                },
+            },
+        });
+
+        expect(covers.map((cover) => [cover.kind, cover.aspectRatio])).toEqual([
+            ['motionDetailSquare', '1:1'],
+            ['motionDetailTall', '3:4'],
+        ]);
+    });
+
+    test('reads the expiry from a JWT', () => {
+        const payload = btoa(JSON.stringify({ exp: 1_900_000_000 }))
+            .replace(/=/g, '')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_');
+
+        expect(decodeJwtExpiration(`header.${payload}.signature`)).toBe(1_900_000_000_000);
+    });
+
+    test('ignores numeric iTunes storefront identifiers in catalog URLs', () => {
+        expect(resolveStorefront('gb', '143478-2,31')).toBe('gb');
+        expect(resolveStorefront(null, '143478-2,31')).toMatch(/^[a-z]{2}$/);
+    });
+
+    test('normalizes successful Apple catalog results without replacing their order', () => {
+        const result = normalizeAppleSearchResults({
+            results: {
+                songs: {
+                    data: [
+                        {
+                            id: '1874125269',
+                            attributes: {
+                                name: 'Dracula (with JENNIE)',
+                                artistName: 'Tame Impala',
+                                albumName: 'Dracula (with JENNIE) - Single',
+                                durationInMillis: 200500,
+                                isrc: 'USQX92600464',
+                                artwork: { url: 'https://example.com/{w}x{h}.jpg' },
+                            },
+                        },
+                        {
+                            id: '1836226730',
+                            attributes: { name: 'Dracula', artistName: 'Tame Impala' },
+                        },
+                    ],
+                },
+                albums: {
+                    data: [
+                        {
+                            id: '1842444456',
+                            attributes: { name: 'Dracula - Single', artistName: 'Tame Impala', trackCount: 1 },
+                        },
+                    ],
+                },
+            },
+        });
+
+        expect(result.tracks.items.map((track) => track.title)).toEqual(['Dracula (with JENNIE)', 'Dracula']);
+        expect(result.tracks.items[0]).toMatchObject({
+            id: 'apple:track:1874125269',
+            provider: 'apple',
+            isrc: 'USQX92600464',
+            duration: 201,
+        });
+        expect(result.tracks.items[0].cover).toBe('https://example.com/640x640.jpg');
+        expect(result.albums.items[0]).toMatchObject({
+            id: 'apple:album:1842444456',
+            title: 'Dracula - Single',
+            provider: 'apple',
+        });
+        expect(result.playlists.items).toEqual([]);
+    });
+});
