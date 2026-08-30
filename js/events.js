@@ -2276,7 +2276,11 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 if (e.target.closest('a')) return;
 
                 e.preventDefault();
-                navigate(href);
+                if (/^https?:\/\//.test(href)) {
+                    window.open(href, '_blank', 'noopener');
+                } else {
+                    navigate(href);
+                }
             }
         }
     });

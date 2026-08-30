@@ -36,6 +36,9 @@ export function createRouter(ui) {
             if (p.startsWith('t/')) {
                 return { provider: 'tidal', id: p.slice(2) };
             }
+            if (p.startsWith('apple/')) {
+                return { provider: 'apple', id: p.slice(6) };
+            }
             return { provider: null, id: p };
         };
 

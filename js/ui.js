@@ -101,6 +101,7 @@ import {
     SVG_LEFT_ARROW,
     SVG_RIGHT_ARROW,
     SVG_CLOCK,
+    SVG_SEARCH,
     SVG_CHECKBOX,
 } from './icons.js';
 
@@ -557,9 +558,10 @@ export class UIRenderer {
 
         const yearDisplay = getTrackYearDisplay(track);
 
-        const actionsHTML = isUnavailable
-            ? ''
-            : `
+        const actionsHTML =
+            isUnavailable
+                ? ''
+                : `
             <button class="track-menu-btn" type="button" title="More options" ${track.isLocal ? 'style="display:none"' : ''}>
                 ${SVG_MENU(20)}
             </button>
@@ -715,7 +717,7 @@ export class UIRenderer {
         return this.createBaseCardHTML({
             type: 'playlist',
             id: playlist.uuid,
-            href: `/playlist/${playlist.uuid}`,
+            href: playlist._href || `/playlist/${playlist.uuid}`,
             title: playlist.title,
             subtitle: `${playlist.numberOfTracks || 0} tracks`,
             imageHTML: `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${this.api.getCoverUrl(imageId)}" alt="${playlist.title}" class="card-image" loading="lazy">`,
@@ -943,7 +945,7 @@ export class UIRenderer {
         return this.createBaseCardHTML({
             type: 'artist',
             id: artist.id,
-            href: `/artist/${artist.id}`,
+            href: artist._href || `/artist/${artist.id}`,
             title: escapeHtml(artist.name),
             subtitle: '',
             imageHTML: this.getCoverHTML(
@@ -4414,7 +4416,11 @@ export class UIRenderer {
             let finalAlbums = (results.albums && results.albums.items) || [];
             let finalPlaylists = (results.playlists && results.playlists.items) || [];
 
-            if (finalArtists.length === 0 && finalTracks.length > 0) {
+            if (
+                finalArtists.length === 0 &&
+                finalTracks.length > 0 &&
+                !finalTracks.some((track) => track.provider === 'apple')
+            ) {
                 const artistMap = new Map();
                 finalTracks.forEach((track) => {
                     if (track.artist && !artistMap.has(track.artist.id)) {
@@ -4431,7 +4437,11 @@ export class UIRenderer {
                 finalArtists = Array.from(artistMap.values());
             }
 
-            if (finalAlbums.length === 0 && finalTracks.length > 0) {
+            if (
+                finalAlbums.length === 0 &&
+                finalTracks.length > 0 &&
+                !finalTracks.some((track) => track.provider === 'apple')
+            ) {
                 const albumMap = new Map();
                 finalTracks.forEach((track) => {
                     if (track.album && !albumMap.has(track.album.id)) {
@@ -4530,7 +4540,11 @@ export class UIRenderer {
 
     async _renderSearchArtists(state) {
         const artistsContainer = document.getElementById('search-artists-container');
-        if (!state.artistsEnriched && state.artists.length) {
+        if (
+            !state.artistsEnriched &&
+            state.artists.length &&
+            !state.artists.some((artist) => artist.provider === 'apple')
+        ) {
             try {
                 state.artists = await this.api.tidalAPI.enrichArtistsWithPicture(state.artists);
             } catch (e) {
@@ -4619,6 +4633,33 @@ export class UIRenderer {
                 this.renderSearchHistory();
             });
         }
+    }
+
+    renderSearchSuggestions(suggestions, onSelect) {
+        const historyEl = document.getElementById('search-history');
+        if (!historyEl) return;
+        if (suggestions.length === 0) {
+            historyEl.style.display = 'none';
+            return;
+        }
+
+        historyEl.innerHTML = suggestions
+            .map(
+                (suggestion) => `
+                <div class="search-history-item search-suggestion-item" role="option"
+                     data-query="${escapeHtml(suggestion.searchTerm)}">
+                    ${SVG_SEARCH(16)}
+                    <span class="query-text">${escapeHtml(suggestion.displayTerm)}</span>
+                </div>
+            `
+            )
+            .join('');
+        historyEl.style.display = 'block';
+
+        historyEl.querySelectorAll('.search-suggestion-item').forEach((item) => {
+            item.addEventListener('mousedown', (event) => event.preventDefault());
+            item.addEventListener('click', () => onSelect(item.dataset.query));
+        });
     }
 
     removeFromSearchHistory(query) {
@@ -4917,6 +4958,7 @@ export class UIRenderer {
                 const isLiked = await db.isFavorite('album', album.id);
                 albumLikeBtn.innerHTML = this.createHeartIcon(isLiked);
                 albumLikeBtn.classList.toggle('active', isLiked);
+                trackDataStore.set(albumLikeBtn, album);
             }
 
             // Store album data for menu button
@@ -5444,6 +5486,7 @@ export class UIRenderer {
                     playlistLikeBtn.innerHTML = this.createHeartIcon(isLiked);
                     playlistLikeBtn.classList.toggle('active', isLiked);
                     playlistLikeBtn.style.display = 'flex';
+                    trackDataStore.set(playlistLikeBtn, playlist);
                 }
 
                 // Show/hide Delete button
@@ -6284,6 +6327,7 @@ export class UIRenderer {
                 const isLiked = await db.isFavorite('artist', artist.id);
                 artistLikeBtn.innerHTML = this.createHeartIcon(isLiked);
                 artistLikeBtn.classList.toggle('active', isLiked);
+                trackDataStore.set(artistLikeBtn, artist);
             }
 
             // Render Albums
