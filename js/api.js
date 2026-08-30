@@ -3045,7 +3045,8 @@ export class LosslessAPI {
 
         const id = input?.id || input;
         const inputTrack = typeof input === 'object' ? input : null;
-        const metadataTrack = id && inputTrack?.provider !== 'apple' ? await this.getTrackMetadata(id).catch(() => null) : null;
+        const metadataTrack =
+            id && inputTrack?.provider !== 'apple' ? await this.getTrackMetadata(id).catch(() => null) : null;
         const track = metadataTrack
             ? this.prepareTrack({ ...(inputTrack || {}), ...metadataTrack })
             : inputTrack?.isrc

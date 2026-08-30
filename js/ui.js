@@ -564,10 +564,9 @@ export class UIRenderer {
 
         const yearDisplay = getTrackYearDisplay(track);
 
-        const actionsHTML =
-            isUnavailable
-                ? ''
-                : `
+        const actionsHTML = isUnavailable
+            ? ''
+            : `
             <button class="track-menu-btn" type="button" title="More options" ${track.isLocal ? 'style="display:none"' : ''}>
                 ${SVG_MENU(20)}
             </button>

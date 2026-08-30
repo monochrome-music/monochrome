@@ -457,8 +457,7 @@ export class MusicAPI {
         this.cacheAppleTracks([...(results.tracks?.items || []), ...(results.videos?.items || [])]);
         for (const album of results.albums?.items || []) this.appleAlbumIds.add(String(album.appleMusicId));
         for (const artist of results.artists?.items || []) this.appleArtistIds.add(String(artist.appleMusicId));
-        for (const playlist of results.playlists?.items || [])
-            this.applePlaylistIds.add(String(playlist.appleMusicId));
+        for (const playlist of results.playlists?.items || []) this.applePlaylistIds.add(String(playlist.appleMusicId));
         return results;
     }
 
