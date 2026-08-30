@@ -3132,6 +3132,15 @@ body.multi-select-mode .track-item:hover {
     font-size: 0.8rem;
 }
 
+.setting-item.codec-warning {
+    color: var(--color-warning);
+}
+
+.setting-item.codec-warning .description {
+    color: inherit;
+    text-wrap: pretty;
+}
+
 .setting-item select,
 .setting-item input[type='number'] {
     background-color: var(--input);
@@ -3794,6 +3803,21 @@ input:checked + .slider::before {
     border-radius: var(--radius-xs);
 }
 
+.seek-tooltip {
+    position: absolute;
+    bottom: 100%;
+    transform: translateX(-50%);
+    margin-bottom: 8px;
+    padding: 2px 6px;
+    background: var(--secondary);
+    color: var(--foreground);
+    font-size: 0.8rem;
+    border-radius: 4px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+}
+
 .progress-bar:hover {
     height: 8px;
 }
@@ -3828,10 +3852,43 @@ input:checked + .slider::before {
 
 .progress-bar.has-waveform.waveform-loaded {
     height: 28px;
+    background: transparent;
+    overflow: hidden;
+}
+
+.progress-bar.has-waveform.waveform-loaded::before {
+    display: none;
 }
 
 .progress-bar.has-waveform.waveform-loaded .progress-fill {
-    background-color: var(--primary);
+    top: 0;
+    height: 100%;
+    transform: none;
+    overflow: hidden;
+    background: transparent;
+    z-index: 1;
+}
+
+.progress-bar.has-waveform.waveform-loaded .waveform-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--waveform-geometry-width);
+    min-width: var(--waveform-geometry-width);
+    max-width: none;
+    height: 100%;
+    object-fit: fill;
+    pointer-events: none;
+    filter: invert(1);
+    user-select: none;
+}
+
+.progress-bar.has-waveform.waveform-loaded > .waveform-unplayed {
+    opacity: 0.16;
+}
+
+.progress-bar.has-waveform.waveform-loaded .waveform-played {
+    opacity: 0.9;
 }
 
 .progress-bar.has-waveform.waveform-loaded .progress-fill::after {
@@ -4008,6 +4065,10 @@ input:checked + .slider::before {
 
     /* Slide interaction */
     color: var(--foreground);
+}
+
+#context-menu li.danger:hover {
+    background-color: var(--color-danger-hover);
 }
 
 #context-menu li.separator,
@@ -4520,7 +4581,8 @@ input:checked + .slider::before {
     overflow-wrap: break-word;
 }
 
-#fullscreen-track-artist {
+#fullscreen-track-artist,
+#fullscreen-track-album {
     font-size: 1.25rem;
     color: color-mix(in srgb, var(--foreground), transparent 40%);
     font-weight: 500;
@@ -4529,7 +4591,8 @@ input:checked + .slider::before {
         text-decoration 0.2s;
 }
 
-#fullscreen-track-artist:hover {
+#fullscreen-track-artist:hover,
+#fullscreen-track-album:hover {
     color: var(--primary);
     text-decoration: underline;
     cursor: pointer;
@@ -4750,6 +4813,36 @@ input:checked + .slider::before {
     background-color: var(--highlight);
     border-radius: var(--radius-full);
     box-shadow: 0 2px 4px rgb(0, 0, 0, 0.3);
+}
+
+.volume-bar,
+.fs-volume-bar {
+    position: relative;
+}
+
+.volume-tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    background: rgb(20, 20, 20, 0.9);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 10;
+}
+
+.volume-bar:hover #volume-tooltip,
+.fs-volume-bar:hover #fs-volume-tooltip {
+    opacity: 1;
+    visibility: visible;
 }
 
 @media (max-width: 768px) {
@@ -5338,7 +5431,8 @@ input:checked + .slider::before {
     border-left: 3px solid var(--muted-foreground);
 }
 
-#download-notifications {
+#download-notifications,
+#support-notifications {
     position: fixed;
     bottom: calc(max(env(safe-area-inset-bottom), 0px) + 12px);
     right: 20px;
@@ -5349,7 +5443,8 @@ input:checked + .slider::before {
     gap: 0.5rem;
 }
 
-.download-task {
+.download-task,
+.support-banner {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -10753,9 +10848,9 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     letter-spacing: -0.03em;
 }
 
-#fullscreen-cover-overlay #fullscreen-track-artist {
-    margin: 0.12rem 0 0;
-    font-size: 0.94rem;
+#fullscreen-cover-overlay #fullscreen-track-artist,
+#fullscreen-cover-overlay #fullscreen-track-album {
+    font-size: 1rem;
     color: rgb(255 255 255 / 0.74);
 }
 
@@ -11080,12 +11175,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
     height: 100%;
     width: 100%;
-    font-family:
-        'SF Pro Display', Inter, 'Noto Sans', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans HK', 'Noto Sans JP',
-        'Noto Sans KR', 'Noto Sans Hebrew', 'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali',
-        'Noto Sans Thai', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada',
-        'Noto Sans Malayalam', 'Noto Sans Sinhala', 'Noto Sans Khmer', 'Noto Sans Lao', 'Noto Sans Myanmar',
-        'Noto Sans Georgian', 'Noto Sans Armenian', 'Noto Sans Ethiopic', system-ui, sans-serif;
+    font-family: var(--font-family);
 
     --lyplus-font-size-base: clamp(34px, 3vw, 52px);
     --lyplus-padding-line: 8px;
@@ -11094,7 +11184,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
     line-height: 1.32;
     letter-spacing: -0.04em;
-    font-weight: 600;
     isolation: isolate;
 }
 
@@ -11503,6 +11592,21 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     #fullscreen-cover-overlay .fs-volume-bar {
         width: 100%;
     }
+
+    #fullscreen-cover-overlay .fullscreen-top-actions {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    #fullscreen-cover-overlay #close-fullscreen-cover-btn {
+        position: static !important;
+        display: flex !important;
+        margin-left: 0;
+        height: 38px;
+        width: 38px;
+    }
 }
 
 /* ==========================================
@@ -11597,6 +11701,10 @@ img.cd {
     border-radius: 50% !important;
     border: 0.125vw solid #ccc;
     animation: spin 200s linear infinite;
+}
+
+#fullscreen-cover-overlay.fullscreen-paused .fullscreen-artwork-card.cd {
+    animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {

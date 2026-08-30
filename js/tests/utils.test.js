@@ -1,5 +1,6 @@
 import { expect, test, describe, vi } from 'vitest';
 import * as utils from '../utils.js';
+import { waveformGenerator } from '../waveform.js';
 
 vi.mock('../ModernSettings.js', () => ({
     modernSettings: {
@@ -117,7 +118,8 @@ describe('utils.js', () => {
             expect(utils.normalizeQualityToken('HI_RES_LOSSLESS')).toBe('HI_RES_LOSSLESS');
             expect(utils.normalizeQualityToken('MASTER')).toBe('HI_RES_LOSSLESS');
             expect(utils.normalizeQualityToken('HIFI')).toBe('LOSSLESS');
-            expect(utils.normalizeQualityToken('ATMOS')).toBe('DOLBY_ATMOS');
+            expect(utils.normalizeQualityToken('ATMOS')).toBe('DOLBY_ATMOS_EAC3_HIGH');
+            expect(utils.normalizeQualityToken('DOLBY_ATMOS_AC4_LOW')).toBe('DOLBY_ATMOS_AC4_LOW');
         });
 
         test('returns null for unknown quality', () => {
@@ -129,7 +131,7 @@ describe('utils.js', () => {
         test('picks the highest quality from list', () => {
             expect(utils.pickBestQuality(['LOSSLESS', 'HI_RES_LOSSLESS', 'HIGH'])).toBe('HI_RES_LOSSLESS');
             expect(utils.pickBestQuality(['LOW', 'HIGH'])).toBe('HIGH');
-            expect(utils.pickBestQuality(['DOLBY_ATMOS', 'HI_RES_LOSSLESS'])).toBe('DOLBY_ATMOS');
+            expect(utils.pickBestQuality(['DOLBY_ATMOS_EAC3_HIGH', 'HI_RES_LOSSLESS'])).toBe('DOLBY_ATMOS_EAC3_HIGH');
         });
     });
 
@@ -206,6 +208,161 @@ describe('utils.js', () => {
             const result = await utils.tryCatch(fn, onError);
             expect(result).toBe('fail');
             expect(onError).toHaveBeenCalledWith(error);
+        });
+    });
+
+    describe('formatQualityBadgeText', () => {
+        test('formats FLAC 16/44.1 and FLAC 24/192 with exact bit depth and sample rate', () => {
+            expect(
+                utils.formatQualityBadgeText({ bitDepth: 16, sampleRateHz: 44100, codec: 'flac', quality: 'LOSSLESS' })
+            ).toBe('FLAC 16/44.1');
+            expect(
+                utils.formatQualityBadgeText({
+                    bitDepth: 24,
+                    sampleRateHz: 192000,
+                    codec: 'flac',
+                    quality: 'HI_RES_LOSSLESS',
+                })
+            ).toBe('HD 24/192');
+            expect(
+                utils.formatQualityBadgeText({
+                    bitDepth: 24,
+                    sampleRateHz: 96000,
+                    codec: 'flac',
+                    quality: 'HI_RES_LOSSLESS',
+                })
+            ).toBe('HD 24/96');
+            expect(
+                utils.formatQualityBadgeText({
+                    bitDepth: 24,
+                    sampleRateHz: 48000,
+                    codec: 'flac',
+                    quality: 'HI_RES_LOSSLESS',
+                })
+            ).toBe('HD 24/48');
+            expect(
+                utils.formatQualityBadgeText({
+                    bit_depth: 24,
+                    sample_rate_hz: 96000,
+                    codec: 'flac',
+                    quality: 'HI_RES_LOSSLESS',
+                })
+            ).toBe('HD 24/96');
+            expect(
+                utils.formatQualityBadgeText({
+                    bitDepth: 16,
+                    sampleRateHz: 44100,
+                    codec: 'flac',
+                    quality: 'HI_RES_LOSSLESS',
+                })
+            ).toBe('FLAC 16/44.1');
+        });
+
+        test('falls back to HD FLAC for Hi-Res and FLAC for Lossless when bit depth/sample rate are missing', () => {
+            expect(utils.formatQualityBadgeText({ quality: 'HI_RES_LOSSLESS', codec: 'flac' })).toBe('HD FLAC');
+            expect(utils.formatQualityBadgeText({ quality: 'LOSSLESS', codec: 'flac' })).toBe('FLAC');
+            expect(utils.formatQualityBadgeText(null, null, 'HI_RES_LOSSLESS')).toBe('HD FLAC');
+            expect(utils.formatQualityBadgeText(null, null, 'LOSSLESS')).toBe('FLAC');
+        });
+
+        test('formats lossy formats with bitrate', () => {
+            expect(utils.formatQualityBadgeText({ codec: 'mp3', bitrateKbps: 320 })).toBe('MP3 320k');
+            expect(utils.formatQualityBadgeText({ codec: 'aac', bitrateKbps: 96 })).toBe('AAC 96k');
+            expect(utils.formatQualityBadgeText({ codec: 'opus', bitrateKbps: 132 })).toBe('Opus 132k');
+            expect(utils.formatQualityBadgeText({ codec: 'opus', bitrateKbps: 138 })).toBe('Opus 138k');
+        });
+    });
+
+    describe('createQualityBadgeHTML', () => {
+        test('uses detailed live playback quality when it is available on the track', () => {
+            const badge = utils.createQualityBadgeHTML({
+                audioQuality: 'HI_RES_LOSSLESS',
+                playbackQualityInfo: {
+                    codec: 'flac',
+                    quality: 'HI_RES_LOSSLESS',
+                    lossless: true,
+                    bitDepth: 24,
+                    sampleRateHz: 96000,
+                },
+            });
+
+            expect(badge).toContain('HD 24/96');
+            expect(badge).not.toContain('HD FLAC');
+        });
+
+        test('shows Atmos separately from lossless and includes delivered technical details', () => {
+            const badge = utils.createQualityBadgeHTML({
+                playbackQualityInfo: {
+                    codec: 'ac4',
+                    quality: 'DOLBY_ATMOS_AC4_HIGH',
+                    lossless: false,
+                    sampleRateHz: 48000,
+                    bitrateKbps: 261,
+                    channels: 6,
+                    channelLayout: '5.1',
+                },
+            });
+
+            expect(badge).toContain('quality-atmos');
+            expect(badge).toContain('Dolby Atmos · AC-4 · 261 kbps · 48 kHz · 5.1');
+            expect(badge).not.toContain('HD FLAC');
+        });
+    });
+
+    describe('WaveformGenerator.getSilenceBoundaries', () => {
+        test('correctly identifies trailing and leading silence when samples drop below threshold 5', () => {
+            const samples = [0, 0, 25, 34, 74, 90, 80, 4, 2, 0, 0];
+            const duration = 110;
+            const bounds = waveformGenerator.getSilenceBoundaries(samples, duration, 5);
+            expect(bounds.leadingSilenceSeconds).toBe(20);
+            expect(bounds.trailingSilenceStartTime).toBe(70);
+            expect(bounds.crossfadeStartTime).toBe(67);
+            expect(bounds.crossfadeDurationSeconds).toBe(3);
+            expect(bounds.hasTrailingSilence).toBe(true);
+        });
+
+        test('retains SoundCloud duration metadata for preloading the next track', async () => {
+            const waveData = await waveformGenerator.loadWaveformData(
+                {
+                    duration_ms: 235520,
+                    samples: [0, 0, 25, 34],
+                },
+                'next-waveform-duration-test'
+            );
+
+            expect(waveData.durationSeconds).toBe(235.52);
+        });
+
+        test('schedules a normal end-of-track crossfade even without trailing silence', () => {
+            const bounds = waveformGenerator.getSilenceBoundaries([20, 30, 40, 30, 20], 100, 5);
+
+            expect(bounds.hasTrailingSilence).toBe(false);
+            expect(bounds.crossfadeStartTime).toBe(97);
+            expect(bounds.crossfadeDurationSeconds).toBe(3);
+        });
+    });
+
+    describe('WaveformGenerator.createMaskImageUrl', () => {
+        test('keeps a non-empty PNG data URL for Safari CSS masks', () => {
+            const dataUrl = `data:image/png;base64,${'a'.repeat(128)}`;
+            const canvas = { toDataURL: vi.fn(() => dataUrl) };
+
+            expect(waveformGenerator.createMaskImageUrl(canvas)).toBe(dataUrl);
+            expect(canvas.toDataURL).toHaveBeenCalledWith('image/png');
+        });
+
+        test('rejects an empty canvas export', () => {
+            const canvas = { toDataURL: vi.fn(() => 'data:,') };
+
+            expect(waveformGenerator.createMaskImageUrl(canvas)).toBeNull();
+        });
+    });
+
+    describe('WaveformGenerator.invertWaveformMaskAlpha', () => {
+        test('turns SoundCloud transparent waveform pixels opaque and its background transparent', () => {
+            const pixels = new Uint8ClampedArray([0, 0, 0, 0, 239, 239, 239, 255]);
+
+            expect(Array.from(waveformGenerator.invertWaveformMaskAlpha(pixels))).toEqual([0, 0, 0, 255, 0, 0, 0, 0]);
         });
     });
 });

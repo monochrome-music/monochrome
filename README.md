@@ -35,7 +35,7 @@
 
 ## What is Monochrome?
 
-**Monochrome** is an open-source, privacy-respecting, ad-free [TIDAL](https://tidal.com) web UI, built on top of tidal API + Q-DL. It provides a beautiful, minimalist interface for streaming high-quality music without the clutter of traditional streaming platforms.
+**Monochrome** is an open-source, privacy-respecting, ad-free web music player. It provides a beautiful, minimalist interface for streaming high-quality music without the clutter of traditional streaming platforms.
 
 [![Monochrome UI: NASIR by Nas](https://i.samidy.xyz/NASIR.png)](https://monochrome.tf/album/90502209)
 
@@ -111,6 +111,9 @@ For alternative instances, check [INSTANCES.md](INSTANCES.md).
 NOTE: Accounts will not work on self-hosted instances. Our Appwrite authentication system only allows authorized domains.
 
 We had to heavily customize the authentication system and write several custom scripts to support features like SMTP and Google OAuth (which are currently bugged in Appwrite). Because of this, we can no longer provide a self-hostable accounts system.
+
+> [!WARNING]
+> You will not be able to stream music after self-hosting and placing the website on a domain. Our API is configured to only accept official instances of Monochrome so you can only stream music on localhost after self-hosting. However, if you have a working and paid HiFi API endpoint then Settings > Instances > Turn on Dev Mode > Place your endpoint there.
 
 ### Option 1: Docker (Recommended)
 
@@ -280,10 +283,10 @@ We welcome contributions from the community! Please see our [Contributing Guide]
 
 ## Star History
 
-<a href="https://www.star-history.com/#monochrome-music/monochrome&type=date&logscale&legend=top-left">
+<a href="https://star-history.dera.page/#monochrome-music/monochrome&type=date&logscale&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=monochrome-music/monochrome&type=date&theme=dark&logscale&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=monochrome-music/monochrome&type=date&logscale&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=monochrome-music/monochrome&type=date&logscale&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=monochrome-music/monochrome&type=date&theme=dark&logscale&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=monochrome-music/monochrome&type=date&logscale&legend=top-left" />
+   <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=monochrome-music/monochrome&type=date&logscale&legend=top-left" />
  </picture>
 </a>

@@ -419,6 +419,7 @@ export class UnknownPleasuresWebGL {
     }
 
     _generateLineQuads(points, thickness, width, height, outBuffer, offset) {
+        if (!outBuffer || (!Array.isArray(points) && !points.length)) return 0;
         if (points.length < 2) return 0;
 
         const n = points.length;

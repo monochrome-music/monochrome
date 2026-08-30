@@ -11,10 +11,32 @@ import {
 } from './ffmpegFormats';
 import { ffmpegInfo, ffmpegNewContainer, ffmpeg } from './ffmpeg';
 
-/**
- * Triggers a browser file download for the given blob.
- */
 export function triggerDownload(blob: Blob, filename: string): void {
+    const dl = (
+        window as unknown as { AndroidDownload?: { saveDownload: (b64: string, n: string, m: string) => void } }
+    ).AndroidDownload;
+    if (dl && typeof dl.saveDownload === 'function') {
+        const r = new FileReader();
+        r.onloadend = () => {
+            try {
+                const s = (r.result as string) || '';
+                const c = s.indexOf(',');
+                const b64 = c >= 0 ? s.substring(c + 1) : s;
+                dl.saveDownload(b64, filename, blob.type || 'application/octet-stream');
+            } catch {
+                // Java bridge unavailable/failed; fall back to the standard browser download.
+                downloadBlobViaAnchor(blob, filename);
+            }
+        };
+        r.onerror = () => downloadBlobViaAnchor(blob, filename);
+        r.readAsDataURL(blob);
+        return;
+    }
+
+    downloadBlobViaAnchor(blob, filename);
+}
+
+function downloadBlobViaAnchor(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -114,7 +136,7 @@ export async function applyAudioPostProcessing(
     }
 
     // Source is lossless but user requested lossy quality (HIGH/LOW).
-    // This can happen when Qobuz returns FLAC regardless of the quality param.
+    // Some fallback sources may return FLAC regardless of the quality parameter.
     // Transcode to AAC to match expected lossy output.
     if (sourceIsLossless && !statedLossless && !isCustomFormat(quality)) {
         try {

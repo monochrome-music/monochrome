@@ -1,3 +1,13 @@
+// A value IndexedDB can use as a record key for a keyPath store.
+function isValidIDBKey(value) {
+    if (value === null || value === undefined) return false;
+    const type = typeof value;
+    if (type === 'number') return Number.isFinite(value);
+    if (type === 'string' || value instanceof Date) return true;
+    if (Array.isArray(value)) return value.every((v) => isValidIDBKey(v));
+    return ArrayBuffer.isView(value) || value instanceof ArrayBuffer;
+}
+
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
@@ -18,6 +28,18 @@ export class MusicDatabase {
 
             request.onsuccess = (event) => {
                 this.db = event.target.result;
+                // If another tab upgrades the schema (versionchange) or the
+                // connection closes, drop our reference so the next open()
+                // re-opens instead of using a closing connection.
+                this.db.onversionchange = () => {
+                    try {
+                        this.db?.close();
+                    } catch {}
+                    this.db = null;
+                };
+                this.db.onclose = () => {
+                    this.db = null;
+                };
                 resolve(this.db);
             };
 
@@ -80,6 +102,22 @@ export class MusicDatabase {
     // Generic Helper
     async performTransaction(storeName, mode, callback) {
         const db = await this.open();
+        try {
+            return await this._runTransaction(db, storeName, mode, callback);
+        } catch (error) {
+            // The connection may have closed (another tab upgraded/deleted the DB)
+            // between open() and starting the transaction. Drop our cached handle
+            // and retry once against a freshly opened connection.
+            if (error?.name === 'InvalidStateError') {
+                this.db = null;
+                const freshDb = await this.open();
+                return this._runTransaction(freshDb, storeName, mode, callback);
+            }
+            throw error;
+        }
+    }
+
+    _runTransaction(db, storeName, mode, callback) {
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(storeName, mode);
             const store = transaction.objectStore(storeName);
@@ -105,85 +143,92 @@ export class MusicDatabase {
         return this.performTransaction(storeName, 'readonly', (store) => store.getAll());
     }
 
+    /**
+     * Run a raw IndexedDB transaction, retrying once with a freshly opened
+     * connection if the cached one closed mid-operation. The connection can be
+     * closed by another tab upgrading/deleting the DB (versionchange) between
+     * open() and the transaction start, which throws InvalidStateError.
+     */
+    async _retryTransaction(callback) {
+        try {
+            const db = await this.open();
+            return await callback(db);
+        } catch (error) {
+            if (error?.name === 'InvalidStateError') {
+                this.db = null;
+                const freshDb = await this.open();
+                return await callback(freshDb);
+            }
+            throw error;
+        }
+    }
+
     // History API
     async addToHistory(track) {
         const storeName = 'history_tracks';
         const minified = this._minifyItem(track.type || 'track', track);
 
-        const db = await this.open();
+        return this._retryTransaction((db) => {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(storeName, 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const index = store.index('timestamp');
 
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(storeName, 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const index = store.index('timestamp');
+                const lastReq = index.openCursor(null, 'prev');
+                let lastTimestamp = 0;
 
-            const lastReq = index.openCursor(null, 'prev');
-            let lastTimestamp = 0;
-
-            lastReq.onsuccess = (e) => {
-                const cursor = e.target.result;
-                if (cursor && lastTimestamp === 0) {
-                    lastTimestamp = cursor.value.timestamp;
-                }
-
-                const timestamp = Math.max(Date.now(), lastTimestamp + 1);
-                const entry = { ...minified, timestamp };
-
-                const dedupeReq = index.openCursor(null, 'prev');
-                dedupeReq.onsuccess = (e2) => {
-                    const dedupeCursor = e2.target.result;
-                    if (dedupeCursor) {
-                        const trackInHistory = dedupeCursor.value;
-                        if (trackInHistory.id === track.id) {
-                            store.delete(dedupeCursor.primaryKey);
-                        }
-                        dedupeCursor.continue();
-                    } else {
-                        store.put(entry);
-                        resolve(entry);
+                lastReq.onsuccess = (e) => {
+                    const cursor = e.target.result;
+                    if (cursor && lastTimestamp === 0) {
+                        const ts = Number(cursor.value.timestamp);
+                        lastTimestamp = Number.isFinite(ts) ? ts : 0;
                     }
-                };
-            };
 
-            transaction.onerror = (e) => reject(e.target.error);
+                    const timestamp = Math.max(Date.now(), lastTimestamp + 1);
+                    const entry = this._toCloneable({ ...minified, timestamp }, { id: track.id, timestamp });
+
+                    const dedupeReq = index.openCursor(null, 'prev');
+                    dedupeReq.onsuccess = (e2) => {
+                        const dedupeCursor = e2.target.result;
+                        if (dedupeCursor) {
+                            const trackInHistory = dedupeCursor.value;
+                            if (trackInHistory.id === track.id) {
+                                store.delete(dedupeCursor.primaryKey);
+                            }
+                            dedupeCursor.continue();
+                        } else {
+                            store.put(entry);
+                            resolve(entry);
+                        }
+                    };
+                };
+
+                transaction.onerror = (e) => reject(e.target.error);
+            });
         });
     }
 
     async getHistory() {
         const storeName = 'history_tracks';
-        const db = await this.open();
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(storeName, 'readonly');
-            const store = transaction.objectStore(storeName);
-            const index = store.index('timestamp');
-            const request = index.getAll();
-
-            request.onsuccess = () => {
-                // Return reversed (newest first)
-                resolve(request.result.reverse());
-            };
-            request.onerror = () => reject(request.error);
-        });
+        const results = await this.performTransaction(storeName, 'readonly', (store) =>
+            store.index('timestamp').getAll()
+        );
+        // Return reversed (newest first)
+        return results.reverse();
     }
 
     async clearHistory() {
-        const storeName = 'history_tracks';
-        const db = await this.open();
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(storeName, 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.clear();
-
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
-        });
+        await this.performTransaction('history_tracks', 'readwrite', (store) => store.clear());
     }
 
     // Favorites API
     async toggleFavorite(type, item) {
         const plural = type === 'mix' ? 'mixes' : `${type}s`;
         const storeName = `favorites_${plural}`;
-        const key = type === 'playlist' ? item.uuid : item.id;
+        let key = type === 'playlist' ? item.uuid : item.id;
+        if (!isValidIDBKey(key)) {
+            key = `${Date.now()}-${Math.random()}`;
+        }
         const exists = await this.isFavorite(type, key);
 
         if (exists) {
@@ -192,7 +237,10 @@ export class MusicDatabase {
             return false; // Removed
         } else {
             const minified = this._minifyItem(type, item);
-            const entry = { ...minified, addedAt: Date.now() };
+            const entry = this._toCloneable(
+                { ...minified, [type === 'playlist' ? 'uuid' : 'id']: key, addedAt: Date.now() },
+                { [type === 'playlist' ? 'uuid' : 'id']: key, addedAt: Date.now() }
+            );
             await this.performTransaction(storeName, 'readwrite', (store) => store.put(entry));
             window.dispatchEvent(new CustomEvent('favorites-changed'));
             return true; // Added
@@ -213,24 +261,22 @@ export class MusicDatabase {
     async getFavorites(type) {
         const plural = type === 'mix' ? 'mixes' : `${type}s`;
         const storeName = `favorites_${plural}`;
-        const db = await this.open();
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(storeName, 'readonly');
-            const store = transaction.objectStore(storeName);
-
-            const request = store.getAll();
-
-            request.onsuccess = () => {
-                const results = request.result;
-                results.sort((a, b) => {
-                    const aTime = a.addedAt || 0;
-                    const bTime = b.addedAt || 0;
-                    return bTime - aTime; // Newest first
-                });
-                resolve(results);
-            };
-            request.onerror = () => reject(request.error);
+        const results = await this.performTransaction(storeName, 'readonly', (store) => store.getAll());
+        results.sort((a, b) => {
+            const aTime = a.addedAt || 0;
+            const bTime = b.addedAt || 0;
+            return bTime - aTime; // Newest first
         });
+        return results;
+    }
+
+    _toCloneable(value, fallback = {}) {
+        try {
+            const json = JSON.stringify(value);
+            return json === undefined ? fallback : JSON.parse(json);
+        } catch {
+            return fallback;
+        }
     }
 
     _minifyItem(type, item) {
@@ -402,7 +448,10 @@ export class MusicDatabase {
         if (!minifiedItem) return;
 
         const key = minifiedItem.id;
-        const exists = await this.isPinned(key);
+        if (!isValidIDBKey(key)) {
+            minifiedItem.id = `${Date.now()}-${Math.random()}`;
+        }
+        const exists = await this.isPinned(minifiedItem.id);
 
         if (exists) {
             await this.performTransaction(storeName, 'readwrite', (store) => store.delete(key));
@@ -529,13 +578,13 @@ export class MusicDatabase {
                         });
                     }
 
-                    // Critical: Ensure key exists for IndexedDB store.put()
+                    // Critical: Ensure key exists and is a valid IndexedDB key for store.put()
                     const keyPath = store.keyPath;
-                    if (keyPath && !item[keyPath]) {
+                    if (keyPath && !isValidIDBKey(item[keyPath])) {
                         console.warn(`Item missing keyPath "${keyPath}" in ${storeName}, generating fallback.`);
                         if (keyPath === 'uuid') item.uuid = crypto.randomUUID();
                         else if (keyPath === 'id')
-                            item.id = item.trackId || item.albumId || item.artistId || Date.now() + Math.random();
+                            item.id = item.trackId || item.albumId || item.artistId || `${Date.now()}-${Math.random()}`;
                         else if (keyPath === 'timestamp') item.timestamp = Date.now() + Math.random();
                     }
 
@@ -745,15 +794,10 @@ export class MusicDatabase {
     }
 
     async getFolders() {
-        const db = await this.open();
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction('user_folders', 'readonly');
-            const store = transaction.objectStore('user_folders');
-            const index = store.index('createdAt');
-            const request = index.getAll();
-            request.onsuccess = () => resolve(request.result.reverse());
-            request.onerror = () => reject(request.error);
-        });
+        const results = await this.performTransaction('user_folders', 'readonly', (store) =>
+            store.index('createdAt').getAll()
+        );
+        return results.reverse();
     }
 
     async getFolder(id) {
@@ -766,65 +810,57 @@ export class MusicDatabase {
 
     async getPinned() {
         const storeName = 'pinned_items';
-        const db = await this.open();
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(storeName, 'readonly');
-            const store = transaction.objectStore(storeName);
-            const request = store.getAll();
+        const results = await this.performTransaction(storeName, 'readonly', (store) => store.getAll());
 
-            request.onsuccess = () => {
-                const results = request.result;
-                results.sort((a, b) => b.pinnedAt - a.pinnedAt);
-                resolve(results);
-            };
-            request.onerror = () => reject(request.error);
-        });
+        results.sort((a, b) => b.pinnedAt - a.pinnedAt);
+        return results;
     }
 
     async getPlaylists(includeTracks = false) {
-        const db = await this.open();
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction('user_playlists', 'readwrite'); // Changed to readwrite for lazy migration
-            const store = transaction.objectStore('user_playlists');
-            const index = store.index('createdAt');
-            const request = index.getAll();
-            request.onsuccess = () => {
-                const playlists = request.result.reverse(); // Newest first
-                const processedPlaylists = playlists.map((playlist) => {
-                    let needsUpdate = false;
+        return this._retryTransaction((db) => {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction('user_playlists', 'readwrite'); // Changed to readwrite for lazy migration
+                const store = transaction.objectStore('user_playlists');
+                const index = store.index('createdAt');
+                const request = index.getAll();
+                request.onsuccess = () => {
+                    const playlists = request.result.reverse(); // Newest first
+                    const processedPlaylists = playlists.map((playlist) => {
+                        let needsUpdate = false;
 
-                    // Lazy migration for numberOfTracks
-                    if (typeof playlist.numberOfTracks === 'undefined') {
-                        playlist.numberOfTracks = playlist.tracks ? playlist.tracks.length : 0;
-                        needsUpdate = true;
-                    }
-
-                    // Lazy migration for images (collage)
-                    if (!playlist.cover && (!playlist.images || playlist.images.length === 0)) {
-                        this._updatePlaylistMetadata(playlist);
-                        needsUpdate = true;
-                    }
-
-                    if (needsUpdate) {
-                        // We are in a readwrite transaction, so we can put back
-                        try {
-                            store.put(playlist);
-                        } catch (e) {
-                            console.warn('Failed to update playlist metadata', e);
+                        // Lazy migration for numberOfTracks
+                        if (typeof playlist.numberOfTracks === 'undefined') {
+                            playlist.numberOfTracks = playlist.tracks ? playlist.tracks.length : 0;
+                            needsUpdate = true;
                         }
-                    }
 
-                    if (includeTracks) {
-                        return playlist;
-                    }
+                        // Lazy migration for images (collage)
+                        if (!playlist.cover && (!playlist.images || playlist.images.length === 0)) {
+                            this._updatePlaylistMetadata(playlist);
+                            needsUpdate = true;
+                        }
 
-                    // Return lightweight copy without tracks
-                    const { tracks, ...minified } = playlist;
-                    return minified;
-                });
-                resolve(processedPlaylists);
-            };
-            request.onerror = () => reject(request.error);
+                        if (needsUpdate) {
+                            // We are in a readwrite transaction, so we can put back
+                            try {
+                                store.put(playlist);
+                            } catch (e) {
+                                console.warn('Failed to update playlist metadata', e);
+                            }
+                        }
+
+                        if (includeTracks) {
+                            return playlist;
+                        }
+
+                        // Return lightweight copy without tracks
+                        const { tracks, ...minified } = playlist;
+                        return minified;
+                    });
+                    resolve(processedPlaylists);
+                };
+                request.onerror = () => reject(request.error);
+            });
         });
     }
 
@@ -850,36 +886,37 @@ export class MusicDatabase {
     }
 
     async updatePlaylistTracks(playlistId, tracks) {
-        const db = await this.open();
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction('user_playlists', 'readwrite');
-            const store = transaction.objectStore('user_playlists');
+        return this._retryTransaction((db) => {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction('user_playlists', 'readwrite');
+                const store = transaction.objectStore('user_playlists');
 
-            const getRequest = store.get(playlistId);
-            getRequest.onsuccess = () => {
-                const playlist = getRequest.result;
-                if (!playlist) {
-                    reject(new Error('Playlist not found'));
-                    return;
-                }
-                playlist.tracks = tracks;
-                playlist.updatedAt = Date.now();
-                this._updatePlaylistMetadata(playlist);
-                const putRequest = store.put(playlist);
-                putRequest.onsuccess = () => {
-                    resolve(playlist);
+                const getRequest = store.get(playlistId);
+                getRequest.onsuccess = () => {
+                    const playlist = getRequest.result;
+                    if (!playlist) {
+                        reject(new Error('Playlist not found'));
+                        return;
+                    }
+                    playlist.tracks = tracks;
+                    playlist.updatedAt = Date.now();
+                    this._updatePlaylistMetadata(playlist);
+                    const putRequest = store.put(playlist);
+                    putRequest.onsuccess = () => {
+                        resolve(playlist);
+                    };
+                    putRequest.onerror = () => {
+                        reject(putRequest.error);
+                    };
                 };
-                putRequest.onerror = () => {
-                    reject(putRequest.error);
+                getRequest.onerror = () => {
+                    reject(getRequest.error);
                 };
-            };
-            getRequest.onerror = () => {
-                reject(getRequest.error);
-            };
 
-            transaction.onerror = (event) => {
-                reject(event.target.error);
-            };
+                transaction.onerror = (event) => {
+                    reject(event.target.error);
+                };
+            });
         });
     }
 

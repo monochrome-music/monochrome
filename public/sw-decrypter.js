@@ -1,5 +1,10 @@
-self.__AMAZON_SW_DECRYPTER_VERSION__ = '2026-06-23-flac-hls-v8';
+self.__AMAZON_SW_DECRYPTER_VERSION__ = '2026-08-09-atmos-v11';
 console.log(`[SW Decrypter] Loaded ${self.__AMAZON_SW_DECRYPTER_VERSION__}`);
+
+// A native HLS media element asks for the playlist more than once while it is
+// preparing. Keep the parsed MP4 index in this worker so preloading the handoff
+// element does not repeat the same signed range request during the crossfade.
+const fragmentedMp4MetadataCache = new Map();
 
 self.addEventListener('install', (event) => {
     event.waitUntil(self.skipWaiting());
@@ -82,6 +87,9 @@ async function handleDecryptStream(request, streamUrl, keyHex, targetCodec = 'fl
 function getDecryptedContentType(targetCodec) {
     if (targetCodec === 'flac-raw') return 'audio/flac';
     if (targetCodec === 'mp4a') return 'audio/mp4; codecs="mp4a.40.2"';
+    if (targetCodec === 'opus') return 'audio/mp4; codecs="Opus"';
+    if (targetCodec === 'eac3') return 'audio/mp4; codecs="ec-3"';
+    if (targetCodec === 'ac4') return 'audio/mp4; codecs="ac-4"';
     return 'audio/mp4';
 }
 
@@ -215,6 +223,25 @@ function buildDecryptStreamUrl(params) {
 }
 
 async function getFragmentedMp4Metadata(streamUrl) {
+    if (fragmentedMp4MetadataCache.has(streamUrl)) {
+        return fragmentedMp4MetadataCache.get(streamUrl);
+    }
+
+    const metadataPromise = readFragmentedMp4Metadata(streamUrl).catch((error) => {
+        fragmentedMp4MetadataCache.delete(streamUrl);
+        throw error;
+    });
+    fragmentedMp4MetadataCache.set(streamUrl, metadataPromise);
+
+    if (fragmentedMp4MetadataCache.size > 8) {
+        const oldestKey = fragmentedMp4MetadataCache.keys().next().value;
+        if (oldestKey !== streamUrl) fragmentedMp4MetadataCache.delete(oldestKey);
+    }
+
+    return metadataPromise;
+}
+
+async function readFragmentedMp4Metadata(streamUrl) {
     const headerBytes = await fetchRangeBytes(streamUrl, 0, 2 * 1024 * 1024 - 1);
     const topLevelBoxes = parseTopLevelBoxes(headerBytes);
     const moovBox = topLevelBoxes.find((box) => box.type === 'moov');
@@ -542,6 +569,21 @@ class Mp4DecryptTransformer {
                         boxData[i + 1] = 0x70; // p
                         boxData[i + 2] = 0x34; // 4
                         boxData[i + 3] = 0x61; // a
+                    } else if (this.targetCodec === 'opus') {
+                        boxData[i] = 0x4f; // O
+                        boxData[i + 1] = 0x70; // p
+                        boxData[i + 2] = 0x75; // u
+                        boxData[i + 3] = 0x73; // s
+                    } else if (this.targetCodec === 'eac3') {
+                        boxData[i] = 0x65; // e
+                        boxData[i + 1] = 0x63; // c
+                        boxData[i + 2] = 0x2d; // -
+                        boxData[i + 3] = 0x33; // 3
+                    } else if (this.targetCodec === 'ac4') {
+                        boxData[i] = 0x61; // a
+                        boxData[i + 1] = 0x63; // c
+                        boxData[i + 2] = 0x2d; // -
+                        boxData[i + 3] = 0x34; // 4
                     }
                 }
 

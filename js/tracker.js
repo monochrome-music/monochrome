@@ -5,7 +5,6 @@ import { SVG_MENU, SVG_PLAY, SVG_HEART } from './icons.js';
 import { Player } from './player.js';
 
 let artistsData = [];
-let artistsPopularity = new Map(); // name -> popularity score
 
 // Map to store artist info keyed by sheetId for quick lookup
 const artistBySheetId = new Map();
@@ -27,23 +26,6 @@ function cleanSongTitle(title) {
         .replace(/\s*[([]\s*produced\s+by\s+[^)\]]+[)\]]/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
-}
-
-async function loadArtistsPopularity() {
-    try {
-        const response = await fetch('https://trends.artistgrid.cx');
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data.results) {
-            data.results.forEach((artist, index) => {
-                // Store popularity score based on visitors and position
-                const score = artist.visitors * (1 - index / data.results.length);
-                artistsPopularity.set(artist.name, score);
-            });
-        }
-    } catch (e) {
-        console.log('Could not load popularity data:', e);
-    }
 }
 
 // Parse RFC4180-style CSV (quoted fields, escaped "" quotes, commas/newlines inside quotes)
@@ -107,13 +89,6 @@ async function loadArtistsData() {
         const text = await response.text();
         artistsData = parseArtistsCSV(text);
 
-        // Sort by popularity if available
-        artistsData.sort((a, b) => {
-            const popA = artistsPopularity.get(a.name) || 0;
-            const popB = artistsPopularity.get(b.name) || 0;
-            return popB - popA;
-        });
-
         // Build sheetId lookup map
         artistBySheetId.clear();
         artistsData.forEach((artist) => {
@@ -127,19 +102,59 @@ async function loadArtistsData() {
     }
 }
 
-// Some trackers are hosted at their own domain instead of a Google Sheets URL;
-// the domain itself doubles as the sheetId on the tracker API.
-const SPECIAL_TRACKER_DOMAINS = ['yetracker.net'];
-
+// The artists CSV provides the tracker id directly: either a bare Google Sheets
+// id or a tracker domain (yetracker.net, franktracker.net, deftonestracker, ...).
+// Whatever it is, it's used as-is on the tracker API.
 function getSheetId(url) {
     if (!url) return null;
-    const special = SPECIAL_TRACKER_DOMAINS.find((domain) => url.includes(domain));
-    if (special) return special;
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : null;
+    if (match) return match[1];
+    return url.trim() || null;
 }
 
 const TRACKER_API_BASE = 'https://trackerapi.artistgrid.cx/sh/';
+const ASSETS_BASE_URL = 'https://assets.artistgrid.cx';
+
+// Artist images live at assets.artistgrid.cx/{format}/{normalizedname}.{format}
+function artistImageUrl(name, format) {
+    return `${ASSETS_BASE_URL}/${format}/${normalizeArtistName(name)}.${format}`;
+}
+
+function artistPictureHTML(name, imgAttrs = '') {
+    return `
+        <picture style="display: contents;">
+            <source srcset="${artistImageUrl(name, 'jxl')}" type="image/jxl">
+            <source srcset="${artistImageUrl(name, 'webp')}" type="image/webp">
+            <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${artistImageUrl(name, 'jpg')}" alt="${escapeHtml(name)}" ${imgAttrs} onerror="this.src='images/monochrome_logo.svg'">
+        </picture>
+    `;
+}
+
+// Wrap an existing <img> element in a <picture> with jxl/webp sources
+function setArtistHeaderImage(imgEl, name) {
+    let picture = imgEl.parentElement;
+    if (!picture || picture.tagName !== 'PICTURE') {
+        picture = document.createElement('picture');
+        picture.style.display = 'contents';
+        imgEl.replaceWith(picture);
+        picture.appendChild(imgEl);
+    }
+    picture.querySelectorAll('source').forEach((s) => s.remove());
+    const jxlSource = document.createElement('source');
+    jxlSource.srcset = artistImageUrl(name, 'jxl');
+    jxlSource.type = 'image/jxl';
+    const webpSource = document.createElement('source');
+    webpSource.srcset = artistImageUrl(name, 'webp');
+    webpSource.type = 'image/webp';
+    picture.insertBefore(webpSource, imgEl);
+    picture.insertBefore(jxlSource, webpSource);
+    imgEl.onerror = function () {
+        picture.querySelectorAll('source').forEach((s) => s.remove());
+        this.onerror = null;
+        this.src = 'images/monochrome_logo.svg';
+    };
+    imgEl.src = artistImageUrl(name, 'jpg');
+}
 
 // Short label for a project card/header (the full `timeline` field is a long historical blurb)
 function eraSubtitle(era) {
@@ -192,9 +207,16 @@ function getDirectUrl(rawUrl) {
 
 // Convert tracker song to standard track format
 export function createTrackFromSong(song, era, artistName, index, sheetId = '') {
-    const isValidUrl = (u) => u && typeof u === 'string' && u.trim().length > 0;
-    const rawUrl = song.links && song.links.length ? song.links.find(isValidUrl) : null;
-    const directUrl = getDirectUrl(rawUrl);
+    const isValidUrl = (u) => u && u.url && typeof u.url === 'string' && u.url.trim().length > 0;
+    const rawUrl = Array.isArray(song?.links) ? song.links.find(isValidUrl) : null;
+    let directUrl = null;
+    if (rawUrl) {
+        try {
+            directUrl = getDirectUrl(rawUrl.url.trim());
+        } catch (e) {
+            directUrl = null;
+        }
+    }
     const duration = parseDuration(song.track_length);
     const title = (song.name && (song.name.title || song.name.raw)) || 'Unknown';
     const cleanTitle = cleanSongTitle(title);
@@ -317,11 +339,11 @@ export function createProjectCardHTML(era, _artist, sheetId, trackCount) {
     return `
         <div class="card" data-tracker-project-id="${encodeURIComponent(era.name)}" data-sheet-id="${sheetId}" style="cursor: pointer;">
             <div class="card-image-wrapper">
-                <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${era.cover_art || 'assets/logo.svg'}"
+                <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${era.cover_art || 'images/monochrome_logo.svg'}"
                      alt="${escapeHtml(era.name)}"
                      class="card-image"
                      loading="lazy"
-                     onerror="this.src='assets/logo.svg'">
+                     onerror="this.src='images/monochrome_logo.svg'">
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="tracker-project" title="Add to Liked">
                     ${SVG_HEART(20)}
                 </button>
@@ -368,11 +390,7 @@ export async function renderTrackerArtistPage(sheetId, container) {
     const playBtn = document.getElementById('play-tracker-artist-btn');
     const downloadBtn = document.getElementById('download-tracker-artist-btn');
 
-    const normalizedName = normalizeArtistName(artist.name);
-    imageEl.src = `https://assets.artistgrid.cx/${normalizedName}.webp`;
-    imageEl.onerror = function () {
-        this.src = 'assets/logo.svg';
-    };
+    setArtistHeaderImage(imageEl, artist.name);
     nameEl.textContent = artist.name;
     metaEl.innerHTML = `<span>${eras.length} unreleased projects</span>`;
 
@@ -473,7 +491,7 @@ export async function renderTrackerArtistPage(sheetId, container) {
     // Add search functionality
     const searchInput = document.getElementById('unreleased-search-input');
     searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
+        const query = (e.target.value || '').toLowerCase().trim();
         if (!query) {
             // Reset view
             projectsContainer.style.display = '';
@@ -587,10 +605,10 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
     const addToPlaylistBtn = document.getElementById('add-album-to-playlist-btn');
 
     // Set album page content
-    imageEl.src = era.cover_art || 'assets/logo.svg';
+    imageEl.src = era.cover_art || 'images/monochrome_logo.svg';
     imageEl.style.backgroundColor = '';
     imageEl.onerror = function () {
-        this.src = 'assets/logo.svg';
+        this.src = 'images/monochrome_logo.svg';
     };
 
     titleEl.textContent = era.name;
@@ -748,7 +766,6 @@ export async function renderUnreleasedPage(container) {
     let allArtistCards = [];
 
     if (artistsData.length === 0) {
-        await loadArtistsPopularity();
         await loadArtistsData();
     }
 
@@ -764,14 +781,11 @@ export async function renderUnreleasedPage(container) {
         const artistCard = document.createElement('div');
         artistCard.className = 'card';
         artistCard.style.cursor = 'pointer';
-        artistCard.dataset.artistName = artist.name.toLowerCase();
-
-        const normalizedName = normalizeArtistName(artist.name);
-        const coverImage = `https://assets.artistgrid.cx/${normalizedName}.webp`;
+        artistCard.dataset.artistName = (artist.name || '').toLowerCase();
 
         artistCard.innerHTML = `
             <div class="card-image-wrapper">
-                <img crossorigin="anonymous" referrerpolicy="no-referrer" class="card-image" src="${coverImage}" alt="${artist.name}" loading="lazy" onerror="this.src='assets/logo.svg'">
+                ${artistPictureHTML(artist.name, 'class="card-image" loading="lazy"')}
             </div>
             <div class="card-info">
                 <h3 class="card-title">${artist.name}</h3>
@@ -795,7 +809,7 @@ export async function renderUnreleasedPage(container) {
     // Setup search functionality
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
+            const query = (e.target.value || '').toLowerCase().trim();
             let visibleCount = 0;
 
             allArtistCards.forEach((card) => {
@@ -877,10 +891,10 @@ export async function renderTrackerTrackPage(trackId, container, _ui) {
     const tracklistContainer = document.getElementById('album-detail-tracklist');
     const playBtn = document.getElementById('play-album-btn');
 
-    imageEl.src = era.cover_art || 'assets/logo.svg';
+    imageEl.src = era.cover_art || 'images/monochrome_logo.svg';
     imageEl.style.backgroundColor = '';
     imageEl.onerror = function () {
-        this.src = 'assets/logo.svg';
+        this.src = 'images/monochrome_logo.svg';
     };
 
     titleEl.textContent = currentTrack.title;
@@ -961,7 +975,7 @@ export async function renderTrackerTrackPage(trackId, container, _ui) {
 }
 
 export async function initTracker() {
-    await Promise.all([loadArtistsPopularity(), loadArtistsData()]);
+    await loadArtistsData();
 }
 
 // Helper function to find a tracker artist by name (for use in normal artist pages)

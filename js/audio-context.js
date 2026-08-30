@@ -2,7 +2,7 @@
 // Shared Audio Context Manager - handles EQ and provides context for visualizer
 // Supports 3-32 parametric EQ bands
 
-import { isIos } from './platform-detection.js';
+import { isIos, isSafari } from './platform-detection.js';
 import { equalizerSettings, monoAudioSettings, binauralDspSettings } from './storage.js';
 import { BinauralDSP } from './binaural-dsp.js';
 
@@ -479,7 +479,12 @@ class AudioContextManager {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
 
             try {
-                this.audioContext = new AudioContext({ latencyHint: 'playback' });
+                // Safari can retain a large Web Audio output buffer across media seeks,
+                // leaving currentTime ahead of what is actually audible. Keep its graph
+                // interactive so lyric timing follows direct-file seeks closely.
+                this.audioContext = new AudioContext({
+                    latencyHint: isIos || isSafari ? 'interactive' : 'playback',
+                });
                 console.log(`[AudioContext] Created: ${this.audioContext.sampleRate}Hz`);
             } catch {
                 this.audioContext = new AudioContext();
@@ -580,6 +585,36 @@ class AudioContextManager {
             }
         } else {
             this.audio = audioElement;
+        }
+    }
+
+    createCrossfadeOutput(audioElement) {
+        if (!this.audioContext || !audioElement) return null;
+
+        try {
+            if (!this.sources.has(audioElement)) {
+                this.sources.set(audioElement, this.audioContext.createMediaElementSource(audioElement));
+            }
+            const source = this.sources.get(audioElement);
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = 0;
+            source.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+
+            return {
+                gainNode,
+                disconnect() {
+                    try {
+                        source.disconnect(gainNode);
+                    } catch {}
+                    try {
+                        gainNode.disconnect();
+                    } catch {}
+                },
+            };
+        } catch (error) {
+            console.warn('Unable to create crossfade output:', error);
+            return null;
         }
     }
 
@@ -804,13 +839,8 @@ class AudioContextManager {
     setVolume(value) {
         this.currentVolume = Math.max(0, Math.min(1, value));
         if (this.volumeNode && this.audioContext) {
-            const maximum = 1000;
-            const minimum = 1 / maximum;
             const now = this.audioContext.currentTime;
-
-            const logVolume = Math.pow(maximum, this.currentVolume - 1);
-            const normalized = (logVolume - minimum) / (1 - minimum);
-            this.volumeNode.gain.setTargetAtTime(normalized, now, 0.01);
+            this.volumeNode.gain.setTargetAtTime(this.currentVolume, now, 0.01);
             window.dispatchEvent(new CustomEvent('volume-change'));
         }
     }

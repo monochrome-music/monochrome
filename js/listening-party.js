@@ -1002,6 +1002,7 @@ export class ListeningPartyManager {
     }
 
     copyInviteLink() {
+        if (!this.currentParty) return;
         navigator.clipboard.writeText(`${window.location.origin}/party/${this.currentParty.id}`).catch(console.error);
         showNotification('Invite link copied!');
     }

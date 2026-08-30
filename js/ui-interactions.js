@@ -5,6 +5,7 @@ import {
     getTrackArtists,
     escapeHtml,
     createQualityBadgeHTML,
+    formatQualityBadgeText,
     positionMenu,
 } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
@@ -22,8 +23,28 @@ import {
     SVG_TRASH,
     SVG_EQUAL,
     SVG_TRIANGLE_ALERT,
+    SVG_ATMOS,
 } from './icons.js';
 import { hapticSuccess } from './haptics.js';
+import { getLocalFilesSupportInfo } from './platform-detection.js';
+
+export function updateLocalFilesSupportUI() {
+    const selectBtn = document.getElementById('select-local-folder-btn');
+    const warning = document.getElementById('local-browser-warning');
+    if (!selectBtn || !warning) return;
+
+    const { supported, message } = getLocalFilesSupportInfo();
+
+    if (supported) {
+        selectBtn.style.display = '';
+        warning.style.display = 'none';
+        return;
+    }
+
+    selectBtn.style.display = 'none';
+    if (message) warning.innerHTML = message;
+    warning.style.display = 'block';
+}
 
 export function initializeUIInteractions(player, api, ui) {
     const sidebar = document.querySelector('.sidebar');
@@ -251,7 +272,26 @@ export function initializeUIInteractions(player, api, ui) {
         const isBlocked = contentBlockingSettings?.shouldHideTrack(track);
         const trackTitle = getTrackTitle(track);
         const trackArtists = getTrackArtists(track, { fallback: 'Unknown' });
-        const qualityBadge = createQualityBadgeHTML(track);
+        let qualityBadge = '';
+        if (isPlaying && player.currentStreamInfo) {
+            const isAtmos =
+                player.currentStreamInfo.codec === 'eac3-joc' ||
+                player.currentStreamInfo.quality?.startsWith('DOLBY_ATMOS') ||
+                track?.audioQuality?.startsWith('DOLBY_ATMOS') ||
+                track?.quality?.startsWith('DOLBY_ATMOS') ||
+                track?.audioModes?.includes('DOLBY_ATMOS');
+
+            if (isAtmos) {
+                qualityBadge = `<span class="quality-badge quality-atmos" title="Dolby Atmos">${SVG_ATMOS(20)}</span>`;
+            } else {
+                const badgeText = formatQualityBadgeText(player.currentStreamInfo, null, player.quality);
+                if (badgeText) {
+                    qualityBadge = `<span class="quality-badge quality-hires" title="${escapeHtml(badgeText)}">${escapeHtml(badgeText)}</span>`;
+                }
+            }
+        } else {
+            qualityBadge = createQualityBadgeHTML(track);
+        }
         const blockedTitle = isBlocked
             ? `title="Blocked: ${contentBlockingSettings.isTrackBlocked(track.id) ? 'Track blocked' : contentBlockingSettings.isArtistBlocked(track.artist?.id) ? 'Artist blocked' : 'Album blocked'}"`
             : '';
@@ -544,6 +584,10 @@ export function initializeUIInteractions(player, api, ui) {
             const prefix = page.id === 'page-library' ? 'library-tab-' : 'search-tab-';
             const contentId = `${prefix}${tab.dataset.tab}`;
             document.getElementById(contentId)?.classList.add('active');
+
+            if (tab.dataset.tab === 'local') {
+                updateLocalFilesSupportUI();
+            }
         });
     });
 
