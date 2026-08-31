@@ -2152,7 +2152,6 @@ export class UIRenderer {
         const fsLikeBtn = document.getElementById('fs-like-btn');
         const fsAddPlaylistBtn = document.getElementById('fs-add-playlist-btn');
         const fsDownloadBtn = document.getElementById('fs-download-btn');
-        const fsCastBtn = document.getElementById('fs-cast-btn');
         const fsQueueBtn = document.getElementById('fs-queue-btn');
         const artistEl = document.getElementById('fullscreen-track-artist');
         const albumEl = document.getElementById('fullscreen-track-album');
@@ -2348,9 +2347,6 @@ export class UIRenderer {
         }
         if (fsDownloadBtn) {
             fsDownloadBtn.onclick = () => document.getElementById('download-current-btn')?.click();
-        }
-        if (fsCastBtn) {
-            fsCastBtn.onclick = () => document.getElementById('cast-btn')?.click();
         }
         if (fsQueueBtn) {
             fsQueueBtn.onclick = () => {
@@ -7234,11 +7230,22 @@ export class UIRenderer {
         const albumSection = document.getElementById('track-album-section');
         const albumTracksContainer = document.getElementById('track-detail-album-tracks');
         const similarSection = document.getElementById('track-similar-section');
+        const similarTracksContainer = document.getElementById('track-detail-similar-tracks');
 
         const playBtn = document.getElementById('play-track-btn');
         const likeBtn = document.getElementById('like-track-btn');
 
-        if (!imageEl || !titleEl || !artistEl || !albumEl || !yearEl || !albumTracksContainer) {
+        if (
+            !imageEl ||
+            !titleEl ||
+            !artistEl ||
+            !albumEl ||
+            !yearEl ||
+            !albumSection ||
+            !albumTracksContainer ||
+            !similarSection ||
+            !similarTracksContainer
+        ) {
             console.warn('Track page elements missing; aborting renderTrackPage');
             return;
         }
@@ -7250,6 +7257,7 @@ export class UIRenderer {
         albumEl.innerHTML = '';
         yearEl.innerHTML = '';
         albumTracksContainer.innerHTML = this.createSkeletonTracks(5, false);
+        similarTracksContainer.innerHTML = this.createSkeletonTracks(5, true);
         albumSection.style.display = 'none';
         similarSection.style.display = 'none';
 
@@ -7383,11 +7391,33 @@ export class UIRenderer {
                 likeBtn.classList.toggle('active', isLiked);
             }
 
-            if (track.album?.id) {
-                const { tracks } = await this.api.getAlbum(track.album.id);
-                if (tracks && tracks.length > 0) {
-                    albumSection.style.display = 'block';
-                    await this.renderListWithTracks(albumTracksContainer, tracks, false);
+            const albumRequest = track.album?.id ? this.api.getAlbum(track.album.id) : Promise.resolve({ tracks: [] });
+            const recommendationRequest = track.isLocal
+                ? Promise.resolve([])
+                : this.api.getRecommendedTracksForPlaylist([track], 12);
+            const [albumResult, recommendationResult] = await Promise.allSettled([albumRequest, recommendationRequest]);
+
+            if (this.currentPage !== 'track' || this.currentTrackPageId !== track.id) return;
+
+            const albumTracks = albumResult.status === 'fulfilled' ? albumResult.value?.tracks || [] : [];
+            if (albumResult.status === 'rejected') {
+                console.warn('Failed to load more tracks from album:', albumResult.reason);
+            } else if (albumTracks.length > 0) {
+                albumSection.style.display = 'block';
+                await this.renderListWithTracks(albumTracksContainer, albumTracks, false);
+            }
+
+            if (recommendationResult.status === 'rejected') {
+                console.warn('Failed to load similar tracks:', recommendationResult.reason);
+            } else {
+                const excludedIds = new Set([track.id, ...albumTracks.map((albumTrack) => albumTrack.id)].map(String));
+                const recommendations = contentBlockingSettings
+                    .filterTracks(recommendationResult.value || [])
+                    .filter((recommendedTrack) => !excludedIds.has(String(recommendedTrack.id)))
+                    .slice(0, 10);
+                if (recommendations.length > 0) {
+                    similarSection.style.display = 'block';
+                    await this.renderListWithTracks(similarTracksContainer, recommendations, true, false, false, true);
                 }
             }
 

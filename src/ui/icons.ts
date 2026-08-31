@@ -1,6 +1,5 @@
 import arrowLeftToLine from '../../node_modules/lucide-static/icons/arrow-left-to-line.svg?svg';
 import arrowRightToLine from '../../node_modules/lucide-static/icons/arrow-right-to-line.svg?svg';
-import cast from '../../node_modules/lucide-static/icons/cast.svg?svg';
 import chevronLeft from '../../node_modules/lucide-static/icons/chevron-left.svg?svg';
 import chevronRight from '../../node_modules/lucide-static/icons/chevron-right.svg?svg';
 import clock from '../../node_modules/lucide-static/icons/clock.svg?svg';
@@ -37,7 +36,6 @@ import squares from '../../images/squares.svg?svg';
 export const icons = {
     arrowLeftToLine,
     arrowRightToLine,
-    cast,
     chevronLeft,
     chevronRight,
     clock,

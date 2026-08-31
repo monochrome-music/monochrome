@@ -2447,7 +2447,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                         const fetchRecs = autoplaySettings.isSmartRecsEnabled()
                             ? (async () => {
                                   const { smartRecommendations } = await import('./smart-recommendations.js');
-                                  const recs = await api.getTrackRecommendations(clickedTrack.id);
+                                  const recs = await api.getRecommendedTracksForPlaylist([clickedTrack], 20);
                                   if (recs && recs.length > 0) {
                                       const filtered = smartRecommendations.filterRecommendations(recs);
                                       const ranked = smartRecommendations.rankRecommendations(filtered);
@@ -2455,13 +2455,16 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                                   }
                                   return [];
                               })()
-                            : api.getTrackRecommendations(clickedTrack.id);
+                            : api.getRecommendedTracksForPlaylist([clickedTrack], 20);
 
-                        fetchRecs.then((recs) => {
-                            if (recs && recs.length > 0) {
-                                player.addToQueue(recs);
-                            }
-                        });
+                        fetchRecs
+                            .then((recs) => {
+                                if (String(player.currentTrack?.id) !== String(clickedTrack.id)) return;
+                                if (recs && recs.length > 0) {
+                                    player.addToQueue(recs);
+                                }
+                            })
+                            .catch((error) => console.warn('Failed to load search result recommendations:', error));
                     }
                 }
             } else {
@@ -2841,25 +2844,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     api,
                     lyricsManager,
                     player.currentTrack.type || 'track',
-                    ui,
-                    scrobbler
-                );
-            }
-        });
-    }
-
-    const nowPlayingMixBtn = document.getElementById('now-playing-mix-btn');
-    if (nowPlayingMixBtn) {
-        nowPlayingMixBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (player.currentTrack) {
-                await handleTrackAction(
-                    'track-mix',
-                    player.currentTrack,
-                    player,
-                    api,
-                    lyricsManager,
-                    'track',
                     ui,
                     scrobbler
                 );

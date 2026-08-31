@@ -101,13 +101,6 @@ export function NowPlayingBar() {
                         id="now-playing-add-playlist-btn"
                         label="Add to playlist"
                     />
-                    <PlayerButton
-                        className="mix-btn"
-                        hidden
-                        icon={icons.mix}
-                        id="now-playing-mix-btn"
-                        label="Track mix"
-                    />
                     <PlayerButton hidden icon={icons.micVocal} id="toggle-lyrics-btn" label="Lyrics" />
                     <PlayerButton
                         className="desktop-only"
@@ -115,7 +108,6 @@ export function NowPlayingBar() {
                         id="download-current-btn"
                         label="Download current track"
                     />
-                    <PlayerButton icon={icons.cast} id="cast-btn" label="Cast" />
                     <PlayerButton
                         className="mobile-only"
                         icon={icons.listPlus}

@@ -532,10 +532,6 @@ export class Player {
                     this.loadAlbumYear(track, trackArtistsHTML, artistEl);
                 }
 
-                const mixBtn = document.getElementById('now-playing-mix-btn');
-                if (mixBtn) {
-                    mixBtn.style.display = track.mixes && track.mixes.TRACK_MIX ? 'flex' : 'none';
-                }
                 const totalDurationEl = document.getElementById('total-duration');
                 if (totalDurationEl) totalDurationEl.textContent = formatTime(track.duration);
                 document.title = `${trackTitle} • ${getTrackArtists(track)}`;
@@ -1423,10 +1419,6 @@ export class Player {
             this.loadAlbumYear(track, trackArtistsHTML, artistEl);
         }
 
-        const mixBtn = document.getElementById('now-playing-mix-btn');
-        if (mixBtn) {
-            mixBtn.style.display = track.mixes && track.mixes.TRACK_MIX ? 'flex' : 'none';
-        }
         document.title = `${trackTitle} • ${getTrackArtists(track)}`;
 
         this.updatePlayingTrackIndicator();

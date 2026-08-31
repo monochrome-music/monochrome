@@ -522,15 +522,83 @@ export const isTrackUnavailable = (track) => {
 
 export const debounce = (func, wait) => {
     let timeout;
-    return function executedFunction(...args) {
+    function executedFunction(...args) {
         const later = () => {
             clearTimeout(timeout);
             func(...args);
         };
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
+    }
+    executedFunction.cancel = () => {
+        clearTimeout(timeout);
+        timeout = undefined;
     };
+    return executedFunction;
 };
+
+const REPORT_SENSITIVE_KEY = /(authorization|cookie|password|secret|token|jwt|api.?key|decryption|manifest|url)/i;
+
+export function sanitizeErrorReportDetails(value, seen = new WeakSet()) {
+    if (value instanceof Error) {
+        return { name: value.name, message: value.message };
+    }
+    if (typeof value === 'string') {
+        return value
+            .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]')
+            .replace(/([?&](?:token|key|signature|jwt|authorization)=)[^&\s]+/gi, '$1[redacted]');
+    }
+    if (!value || typeof value !== 'object') return value;
+    if (seen.has(value)) return '[circular]';
+    seen.add(value);
+
+    if (Array.isArray(value)) return value.map((item) => sanitizeErrorReportDetails(item, seen));
+
+    return Object.fromEntries(
+        Object.entries(value).map(([key, item]) => [
+            key,
+            REPORT_SENSITIVE_KEY.test(key) ? '[redacted]' : sanitizeErrorReportDetails(item, seen),
+        ])
+    );
+}
+
+export function buildErrorReportUrl(message, details = null) {
+    const title = `[Bug] ${String(message || 'Unexpected error')}`.slice(0, 120);
+    const context = {
+        page:
+            typeof location !== 'undefined'
+                ? `${location.origin}${location.pathname}${location.hash || ''}`
+                : 'unknown',
+        browser: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+        platform: typeof navigator !== 'undefined' ? navigator.platform || 'unknown' : 'unknown',
+        language: typeof navigator !== 'undefined' ? navigator.language || 'unknown' : 'unknown',
+        viewport: typeof window !== 'undefined' ? `${window.innerWidth || 0}x${window.innerHeight || 0}` : 'unknown',
+        // eslint-disable-next-line no-undef
+        commit: typeof __COMMIT_HASH__ !== 'undefined' ? __COMMIT_HASH__ : 'dev',
+    };
+    const sanitized = details ? sanitizeErrorReportDetails(details) : null;
+    let diagnosticJson = sanitized ? JSON.stringify(sanitized, null, 2) : 'No additional diagnostic data captured.';
+    if (diagnosticJson.length > 6000) diagnosticJson = `${diagnosticJson.slice(0, 6000)}\n… (truncated)`;
+    const body = [
+        '### Error',
+        String(message || 'Unexpected error'),
+        '',
+        '### Environment',
+        ...Object.entries(context).map(([key, value]) => `- ${key}: ${value}`),
+        '',
+        '### Diagnostic details',
+        '```json',
+        diagnosticJson,
+        '```',
+        '',
+        '### Steps to reproduce',
+        '1. ',
+    ].join('\n');
+    const url = new URL('https://github.com/monochrome-music/monochrome/issues/new');
+    url.searchParams.set('title', title);
+    url.searchParams.set('body', body);
+    return url.toString();
+}
 
 export const escapeHtml = (unsafe) => {
     if (typeof unsafe !== 'string') return unsafe;

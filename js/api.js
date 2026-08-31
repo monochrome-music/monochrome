@@ -54,11 +54,48 @@ const UNIFIED_TURNSTILE_JWT_KEY = 'unified-playback-turnstile-jwt';
 const UNIFIED_TURNSTILE_EXPIRY_KEY = 'unified-playback-turnstile-expiry';
 const UNIFIED_TURNSTILE_SITE_KEY = '0x4AAAAAADgxqF6QVMm0GLHH';
 const UNIFIED_TURNSTILE_EXPIRY_LEEWAY_SECONDS = 15;
-function notifyAudioSourceMissing() {
+
+function createAudioSourceReportDetails(track, fallbackId, quality, intent, unifiedPlayback) {
+    const artistNames = Array.isArray(track?.artists)
+        ? track.artists.map((artist) => artist?.name || (typeof artist === 'string' ? artist : null)).filter(Boolean)
+        : [];
+    const artist =
+        artistNames.join(', ') ||
+        track?.artist?.name ||
+        (typeof track?.artist === 'string' ? track.artist : null) ||
+        null;
+    return {
+        track: {
+            id: track?.id ?? fallbackId ?? null,
+            title: track?.title || track?.name || null,
+            artist,
+            album:
+                track?.album?.title ||
+                track?.album?.name ||
+                (typeof track?.album === 'string' ? track.album : null) ||
+                null,
+            isrc: track?.isrc || null,
+            provider:
+                track?.provider || (String(track?.id ?? fallbackId ?? '').startsWith('apple:') ? 'apple' : 'tidal'),
+        },
+        requestedQuality: quality || null,
+        intent,
+        unifiedPlayback,
+    };
+}
+
+function notifyAudioSourceMissing(details = null) {
     const now = Date.now();
     if (now - lastAudioSourceMissingNotifyAt < 3000) return;
     lastAudioSourceMissingNotifyAt = now;
-    import('./downloads.js').then((m) => m.showNotification('Could not find Audio Source')).catch(() => {});
+    import('./downloads.js')
+        .then((m) =>
+            m.showNotification('Could not find Audio Source', {
+                type: 'error',
+                details,
+            })
+        )
+        .catch(() => {});
 }
 
 export class LosslessAPI {
@@ -70,6 +107,7 @@ export class LosslessAPI {
         });
         this.streamCache = new Map();
         this.unifiedPlaybackRequests = new Map();
+        this.unifiedPlaybackFailures = new Map();
         this.turnstileLoadPromise = null;
         this._combinedSearchUnavailable = false;
 
@@ -2585,38 +2623,58 @@ export class LosslessAPI {
                     envelope = await response.json();
                 } catch {}
 
+                const failureKey = String(track?.id || 'unknown');
+                const rememberFailure = (reason) => {
+                    this.unifiedPlaybackFailures.set(failureKey, {
+                        reason,
+                        status: response.status,
+                        statusText: response.statusText,
+                        response: envelope,
+                    });
+                    if (this.unifiedPlaybackFailures.size > 20) {
+                        this.unifiedPlaybackFailures.delete(this.unifiedPlaybackFailures.keys().next().value);
+                    }
+                };
+
                 if ((response.status === 401 || response.status === 428) && attempt === 0) {
                     this.clearUnifiedTurnstileJwt();
                     continue;
                 }
                 if (response.status === 429) {
+                    rememberFailure('rate limited');
                     this.setUnifiedPlaybackRateLimited(response);
                     return null;
                 }
                 if (response.status === 404 || response.status === 502) {
+                    rememberFailure('track could not be resolved');
                     console.warn('Unified Playback could not resolve the track:', envelope?.sources || envelope);
                     return null;
                 }
                 if (response.status === 401 || response.status === 403 || response.status === 428) {
+                    rememberFailure('authorization failed');
                     throw new Error(`Unified Playback API authorization failed: ${response.status}`);
                 }
                 if (!response.ok) {
+                    rememberFailure('request failed');
                     throw new Error(`Unified Playback API failed: ${response.status}`);
                 }
 
                 const schemaMajor = String(envelope?.schema_version || '').split('.')[0];
                 if (schemaMajor !== '1' && schemaMajor !== '2') {
+                    rememberFailure('unsupported schema version');
                     throw new Error(
                         `Unsupported Unified Playback schema version: ${envelope?.schema_version || 'missing'}`
                     );
                 }
                 if (!Array.isArray(envelope.playback) || envelope.playback.length === 0) {
+                    rememberFailure('response contained no playable resources');
                     console.warn(
                         'Unified Playback response contained no playable resources:',
                         envelope?.sources || envelope
                     );
                     return null;
                 }
+                this.unifiedPlaybackFailures.delete(failureKey);
                 return envelope;
             }
             return null;
@@ -2709,8 +2767,10 @@ export class LosslessAPI {
     }
 
     async getUnifiedPlaybackStreamUrl(tidalTrackId, quality = 'LOSSLESS', options = {}) {
+        let track = null;
+        let envelope = null;
         try {
-            const track =
+            track =
                 options.track ||
                 (tidalTrackId && !String(tidalTrackId).startsWith('apple:')
                     ? await this.getTrackMetadata(tidalTrackId).catch(() => null)
@@ -2719,7 +2779,7 @@ export class LosslessAPI {
 
             const intent = options.intent || 'stream';
             const canonicalQuality = normalizeQualityToken(quality) || quality || 'HI_RES_LOSSLESS';
-            const envelope = await this.fetchUnifiedPlaybackEnvelope(track, canonicalQuality, { ...options, intent });
+            envelope = await this.fetchUnifiedPlaybackEnvelope(track, canonicalQuality, { ...options, intent });
             if (!envelope) return null;
 
             const resource = this.getUnifiedPlaybackResource(envelope);
@@ -2852,6 +2912,13 @@ export class LosslessAPI {
                 mimeType: resource.mime_type || 'audio/mp4',
             };
         } catch (error) {
+            const failureKey = String(track?.id || tidalTrackId || 'unknown');
+            const previousFailure = this.unifiedPlaybackFailures.get(failureKey);
+            this.unifiedPlaybackFailures.set(failureKey, {
+                ...previousFailure,
+                reason: error?.message || String(error),
+                response: previousFailure?.response || envelope,
+            });
             console.warn(`Unified Playback failed for track ${tidalTrackId}:`, error);
             return null;
         }
@@ -2992,7 +3059,15 @@ export class LosslessAPI {
             return result;
         }
 
-        notifyAudioSourceMissing();
+        notifyAudioSourceMissing(
+            createAudioSourceReportDetails(
+                track,
+                id,
+                quality,
+                'stream',
+                this.unifiedPlaybackFailures.get(String(track?.id || id)) || null
+            )
+        );
         throw new Error(
             track?.isrc
                 ? 'Could not resolve stream URL from Unified Playback or Deezer'
@@ -3165,7 +3240,15 @@ export class LosslessAPI {
                         },
                     };
                 } else {
-                    notifyAudioSourceMissing();
+                    notifyAudioSourceMissing(
+                        createAudioSourceReportDetails(
+                            track,
+                            id,
+                            cleanQuality,
+                            'download',
+                            this.unifiedPlaybackFailures.get(String(track?.id || id)) || null
+                        )
+                    );
                     throw new Error(
                         track?.isrc
                             ? 'Could not resolve audio stream from Unified Playback or Deezer'
@@ -3614,6 +3697,7 @@ export class LosslessAPI {
     async clearCache() {
         await this.cache.clear();
         this.streamCache.clear();
+        this.unifiedPlaybackFailures.clear();
     }
 
     getCacheStats() {
