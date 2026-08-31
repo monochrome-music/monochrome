@@ -2575,11 +2575,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 3000);
 
     let suggestionsAbortController = null;
-    const selectSearchSuggestion = (query) => {
+    const selectSearchSuggestion = (suggestion) => {
+        const query = suggestion.searchTerm;
         searchInput.value = query;
         UIRenderer.instance.addToSearchHistory(query);
         const dropdown = document.getElementById('search-history');
         if (dropdown) dropdown.style.display = 'none';
+        if (suggestion.kind === 'song' && suggestion.track?.appleMusicId) {
+            navigate(`/track/apple/${suggestion.track.appleMusicId}`);
+            return;
+        }
         performSearch(query);
     };
     const loadSearchSuggestions = debounce(async (query) => {
@@ -2595,7 +2600,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             if (error.name !== 'AbortError') console.warn('Search suggestions failed:', error);
         }
-    }, 200);
+    }, 50);
 
     const handleExternalLink = (query) => {
         const isExternalLink =
