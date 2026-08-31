@@ -563,6 +563,9 @@ export class UIRenderer {
         }
 
         const yearDisplay = getTrackYearDisplay(track);
+        const lyricSnippetHTML = track.lyricSnippet
+            ? `<div class="track-lyric-snippet">Lyrics: “${escapeHtml(track.lyricSnippet)}”</div>`
+            : '';
 
         const actionsHTML = isUnavailable
             ? ''
@@ -616,6 +619,7 @@ export class UIRenderer {
                             ${qualityBadge}
                         </div>
                         <div class="artist">${getTrackArtistsHTML(track)}${yearDisplay}</div>
+                        ${lyricSnippetHTML}
                     </div>
                 </div>
                 ${inlineLikeHTML}
@@ -4808,11 +4812,22 @@ export class UIRenderer {
 
         historyEl.innerHTML = suggestions
             .map(
-                (suggestion) => `
+                (suggestion, index) => `
                 <div class="search-history-item search-suggestion-item" role="option"
-                     data-query="${escapeHtml(suggestion.searchTerm)}">
-                    ${SVG_SEARCH(16)}
-                    <span class="query-text">${escapeHtml(suggestion.displayTerm)}</span>
+                     data-suggestion-index="${index}">
+                    ${
+                        suggestion.kind === 'song'
+                            ? `<img crossorigin="anonymous" src="${escapeHtml(suggestion.image)}" alt="" class="search-suggestion-cover">`
+                            : SVG_SEARCH(16)
+                    }
+                    <span class="query-text">
+                        <span class="search-suggestion-title">${escapeHtml(suggestion.displayTerm)}</span>
+                        ${
+                            suggestion.kind === 'song'
+                                ? `<span class="search-suggestion-subtitle">${escapeHtml(suggestion.subtitle)}${suggestion.lyricSnippet ? ` · Lyrics: “${escapeHtml(suggestion.lyricSnippet)}”` : ''}</span>`
+                                : ''
+                        }
+                    </span>
                 </div>
             `
             )
@@ -4821,7 +4836,7 @@ export class UIRenderer {
 
         historyEl.querySelectorAll('.search-suggestion-item').forEach((item) => {
             item.addEventListener('mousedown', (event) => event.preventDefault());
-            item.addEventListener('click', () => onSelect(item.dataset.query));
+            item.addEventListener('click', () => onSelect(suggestions[Number(item.dataset.suggestionIndex)]));
         });
     }
 

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import {
     decodeJwtExpiration,
+    buildAppleRequestHeaders,
     extractSearchSuggestions,
     extractVideoCovers,
     normalizeAppleSearchResults,
@@ -69,9 +70,49 @@ describe('Apple Music search ranking', () => {
         });
 
         expect(result).toEqual([
-            { searchTerm: 'beach bunny', displayTerm: 'Beach Bunny' },
-            { searchTerm: 'cloud 9 beach bunny', displayTerm: 'cloud 9 beach bunny' },
+            { kind: 'term', searchTerm: 'beach bunny', displayTerm: 'Beach Bunny' },
+            { kind: 'term', searchTerm: 'cloud 9 beach bunny', displayTerm: 'cloud 9 beach bunny' },
         ]);
+    });
+
+    test('hydrates song suggestions and carries Apple lyric snippets', () => {
+        const result = extractSearchSuggestions({
+            results: {
+                suggestions: [
+                    {
+                        kind: 'topResults',
+                        content: {
+                            id: '1440841384',
+                            type: 'songs',
+                            meta: { snippets: [{ kind: 'lyric', text: '<mark>Baby, I like your style</mark>' }] },
+                        },
+                    },
+                ],
+            },
+            resources: {
+                songs: {
+                    1440841384: {
+                        id: '1440841384',
+                        type: 'songs',
+                        attributes: {
+                            name: 'One Dance (feat. Wizkid & Kyla)',
+                            artistName: 'Drake',
+                            artwork: { url: 'https://example.com/{w}x{h}.{f}' },
+                        },
+                    },
+                },
+            },
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toMatchObject({
+            kind: 'song',
+            displayTerm: 'One Dance (feat. Wizkid & Kyla)',
+            subtitle: 'Drake',
+            image: 'https://example.com/80x80.jpg',
+            lyricSnippet: 'Baby, I like your style',
+        });
+        expect(result[0].track.id).toBe('apple:track:1440841384');
     });
 
     test('prefers a square editorial video cover', () => {
@@ -166,5 +207,43 @@ describe('Apple Music search ranking', () => {
             provider: 'apple',
         });
         expect(result.playlists.items).toEqual([]);
+    });
+
+    test('normalizes mapped AMP search resources and result lyric metadata', () => {
+        const result = normalizeAppleSearchResults({
+            results: {
+                song: {
+                    data: [
+                        {
+                            id: '1440841384',
+                            type: 'songs',
+                            meta: { snippets: [{ kind: 'lyric', text: '<mark>Baby, I like your style</mark>' }] },
+                        },
+                    ],
+                },
+            },
+            resources: {
+                songs: {
+                    1440841384: {
+                        id: '1440841384',
+                        type: 'songs',
+                        attributes: { name: 'One Dance', artistName: 'Drake' },
+                    },
+                },
+            },
+        });
+
+        expect(result.tracks.items[0]).toMatchObject({
+            id: 'apple:track:1440841384',
+            title: 'One Dance',
+            lyricSnippet: 'Baby, I like your style',
+        });
+    });
+
+    test('adds the requesting origin to Apple Music requests', () => {
+        expect(buildAppleRequestHeaders({ token: 'dev-token' }, { origin: 'https://monochrome.tf' })).toEqual({
+            Authorization: 'Bearer dev-token',
+            Origin: 'https://monochrome.tf',
+        });
     });
 });

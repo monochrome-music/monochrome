@@ -1526,9 +1526,37 @@ body.has-page-background .track-item:hover {
 
 .search-history-item .query-text {
     flex: 1;
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.search-suggestion-cover {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    outline: 1px solid rgb(0 0 0 / 10%);
+}
+
+[data-theme='dark'] .search-suggestion-cover,
+.dark .search-suggestion-cover {
+    outline-color: rgb(255 255 255 / 10%);
+}
+
+.search-suggestion-title,
+.search-suggestion-subtitle {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-suggestion-subtitle {
+    margin-top: 0.125rem;
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
 }
 
 .search-history-item .delete-history-btn {
@@ -2451,6 +2479,15 @@ body.multi-select-mode .track-item:hover {
 .track-item-details .artist {
     font-size: 0.9rem;
     color: var(--muted-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.track-lyric-snippet {
+    margin-top: 0.125rem;
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
