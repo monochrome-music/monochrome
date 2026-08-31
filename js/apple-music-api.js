@@ -802,6 +802,9 @@ export class AppleMusicSearchAPI {
         url.searchParams.set('storefront', storefront);
         const response = await appleFetchWithRateLimitRetry(url, token, options);
         if (!response.ok) throw appleResponseError(response, 'Apple Music video cover lookup');
+        if (!response.headers.get('Content-Type')?.includes('application/json')) {
+            throw new Error('Apple Music video cover Pages Function returned a non-JSON response');
+        }
         const cover = (await response.json())?.cover || null;
         storeVideoCover(cacheKey, cover);
         return cover;
@@ -819,6 +822,9 @@ export class AppleMusicSearchAPI {
         url.searchParams.set('storefront', storefront);
         const response = await appleFetchWithRateLimitRetry(url, token, options);
         if (!response.ok) return null;
+        if (!response.headers.get('Content-Type')?.includes('application/json')) {
+            throw new Error('Apple Music video cover Pages Function returned a non-JSON response');
+        }
         const cover = (await response.json())?.cover || null;
         storeVideoCover(cacheKey, cover);
         return cover;

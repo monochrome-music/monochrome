@@ -365,6 +365,7 @@ describe('Apple Music search ranking', () => {
             .mockResolvedValueOnce({
                 ok: true,
                 status: 200,
+                headers: new Headers({ 'Content-Type': 'application/json' }),
                 json: async () => ({ cover: { hlsUrl: 'https://example.com/cover.m3u8' } }),
             });
         globalThis.fetch = fetchMock;
