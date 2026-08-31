@@ -10,6 +10,7 @@ import {
     getExtensionFromBlob,
     escapeHtml,
     getTrackDiscNumber,
+    buildErrorReportUrl,
 } from './utils.js';
 import { lyricsSettings, playlistSettings } from './storage.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
@@ -155,25 +156,41 @@ function friendlyEnrichError(error) {
     return msg || 'the track could not be prepared for download';
 }
 
-export function showNotification(message) {
+export function showNotification(message, options = {}) {
+    if (typeof options === 'string') options = { type: options };
     const container = createDownloadNotification();
 
     const notifEl = document.createElement('div');
     notifEl.className = 'download-task';
 
     const innerDiv = document.createElement('div');
-    innerDiv.style.display = 'flex';
-    innerDiv.style.alignItems = 'start';
+    innerDiv.className = 'notification-message';
     innerDiv.textContent = message;
     notifEl.appendChild(innerDiv);
+
+    const isError =
+        options.type === 'error' ||
+        /\b(error|failed|failure|could not|couldn't|cannot|unable|unavailable|not found)\b/i.test(String(message));
+    if (isError && options.reportIssue !== false) {
+        const reportLink = document.createElement('a');
+        reportLink.className = 'error-report-link';
+        reportLink.href = buildErrorReportUrl(message, options.details || options.error || null);
+        reportLink.target = '_blank';
+        reportLink.rel = 'noopener noreferrer';
+        reportLink.textContent = 'Report this issue';
+        notifEl.appendChild(reportLink);
+    }
 
     container.appendChild(notifEl);
 
     // Auto remove
-    setTimeout(() => {
-        notifEl.style.animation = 'slide-out 0.3s ease forwards';
-        setTimeout(() => notifEl.remove(), 300);
-    }, 1500);
+    setTimeout(
+        () => {
+            notifEl.style.animation = 'slide-out 0.3s ease forwards';
+            setTimeout(() => notifEl.remove(), 300);
+        },
+        isError ? 10000 : 1500
+    );
 }
 
 export function addDownloadTask(trackId, track, _filename, api, abortController) {

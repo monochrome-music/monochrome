@@ -19,6 +19,54 @@ vi.mock('../storage.js', () => ({
 }));
 
 describe('utils.js', () => {
+    describe('debounce', () => {
+        test('can cancel a pending invocation', () => {
+            vi.useFakeTimers();
+            const callback = vi.fn();
+            const debounced = utils.debounce(callback, 200);
+
+            debounced('query');
+            debounced.cancel();
+            vi.advanceTimersByTime(200);
+
+            expect(callback).not.toHaveBeenCalled();
+            vi.useRealTimers();
+        });
+    });
+
+    describe('buildErrorReportUrl', () => {
+        test('prefills a GitHub issue and redacts unified playback credentials', () => {
+            const reportUrl = new URL(
+                utils.buildErrorReportUrl('Could not find Audio Source', {
+                    track: {
+                        id: '12345',
+                        title: 'Example Song',
+                        artist: 'Example Artist',
+                        album: 'Example Album',
+                        isrc: 'GBTEST123456',
+                    },
+                    status: 502,
+                    response: {
+                        error: 'upstream unavailable',
+                        token: 'secret-token',
+                        playbackUrl: 'https://example.test/audio?signature=secret',
+                    },
+                })
+            );
+            const body = reportUrl.searchParams.get('body');
+
+            expect(reportUrl.hostname).toBe('github.com');
+            expect(reportUrl.pathname).toBe('/monochrome-music/monochrome/issues/new');
+            expect(body).toContain('Example Song');
+            expect(body).toContain('Example Artist');
+            expect(body).toContain('GBTEST123456');
+            expect(body).toContain('upstream unavailable');
+            expect(body).toContain('[redacted]');
+            expect(body).not.toContain('secret-token');
+            expect(body).not.toContain('signature=secret');
+        });
+    });
+
     describe('formatTime', () => {
         test('formats seconds into M:SS', () => {
             expect(utils.formatTime(0)).toBe('0:00');

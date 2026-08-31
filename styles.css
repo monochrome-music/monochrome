@@ -5491,6 +5491,24 @@ input:checked + .slider::before {
     min-width: 300px;
 }
 
+.notification-message {
+    display: flex;
+    align-items: flex-start;
+}
+
+.error-report-link {
+    display: inline-block;
+    margin-top: 0.45rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.error-report-link:hover {
+    color: var(--foreground);
+}
+
 .download-cancel:hover {
     background: var(--secondary) !important;
     color: var(--foreground) !important;
@@ -5504,41 +5522,6 @@ input:checked + .slider::before {
 
 .desktop-only {
     display: flex;
-}
-
-#cast-btn {
-    position: relative;
-}
-
-#cast-btn.available {
-    color: var(--highlight);
-}
-
-#cast-btn.available::before {
-    content: '';
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 6px;
-    height: 6px;
-    background-color: var(--highlight);
-    border-radius: var(--radius-full);
-    animation: pulse 2s infinite;
-}
-
-#cast-btn.connected {
-    color: #10b981;
-}
-
-#cast-btn.connected::after {
-    content: '';
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 8px;
-    height: 8px;
-    background-color: #10b981;
-    border-radius: var(--radius-full);
 }
 
 #download-current-btn:disabled {
@@ -6951,39 +6934,6 @@ img[src=''] {
 
     .desktop-only {
         display: none !important;
-    }
-
-    /* position the cast button on mobile to the bottom right cuz damn shit already cluttered */
-    #cast-btn {
-        position: absolute !important;
-        bottom: 10px !important;
-        right: 10px !important;
-        z-index: 10 !important;
-        background: transparent !important;
-        border: none !important;
-        border-radius: 0 !important;
-        width: 24px !important;
-        height: 24px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-    }
-
-    #cast-btn:hover {
-        background: transparent !important;
-        transform: none !important;
-    }
-
-    #cast-btn svg {
-        width: 20px !important;
-        height: 20px !important;
-    }
-
-    .now-playing-bar .player-controls {
-        position: relative !important;
-        padding-bottom: 50px !important;
     }
 
     .player-controls.waveform-loaded {
