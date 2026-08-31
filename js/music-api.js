@@ -186,6 +186,10 @@ export class MusicAPI {
 
     // Get methods
     async getTrack(id, quality) {
+        if (this.isAppleId(id, 'track') || this.isAppleId(id, 'video') || this.isAppleId(id)) {
+            const track = await this.getTrackMetadata(id);
+            return { track, info: track, originalTrackUrl: null };
+        }
         const appleTrack = this.getCachedAppleTrack(id);
         if (appleTrack) return { track: appleTrack, info: appleTrack, originalTrackUrl: null };
         const api = this.getAPI();
@@ -194,6 +198,13 @@ export class MusicAPI {
     }
 
     async getTrackMetadata(id) {
+        if (this.isAppleId(id, 'track') || this.isAppleId(id, 'video') || this.isAppleId(id)) {
+            const cached = this.getCachedAppleTrack(id);
+            if (cached) return cached;
+            const appleTrack = await this.appleMusicSearchAPI.track(id);
+            this.cacheAppleTracks([appleTrack]);
+            return appleTrack;
+        }
         const appleTrack = this.getCachedAppleTrack(id);
         if (appleTrack) return appleTrack;
         const api = this.getAPI();
@@ -292,12 +303,15 @@ export class MusicAPI {
     }
 
     // Stream methods
-    async getStreamUrl(id, quality) {
+    async getStreamUrl(id, quality, options = {}) {
         const api = this.getAPI();
-        const appleTrack = this.getCachedAppleTrack(id);
-        if (appleTrack) return api.getStreamUrl(id, quality, { track: appleTrack });
+        let appleTrack = options?.track || this.getCachedAppleTrack(id);
+        if (!appleTrack && (this.isAppleId(id, 'track') || this.isAppleId(id, 'video') || this.isAppleId(id))) {
+            appleTrack = await this.getTrackMetadata(id).catch(() => null);
+        }
+        if (appleTrack) return api.getStreamUrl(id, quality, { ...options, track: appleTrack });
         const cleanId = this.stripProviderPrefix(id);
-        return api.getStreamUrl(cleanId, quality);
+        return api.getStreamUrl(cleanId, quality, options);
     }
 
     usesSingleUsePlaybackUrls() {

@@ -716,7 +716,7 @@ export class Player {
                 const streamInfo =
                     track.type == 'video'
                         ? await this.api.getVideoStreamUrl(track.id)
-                        : await this.api.getStreamUrl(track.id, this.quality);
+                        : await this.api.getStreamUrl(track.id, this.quality, { track });
 
                 if (this.preloadAbortController.signal.aborted) break;
 
@@ -1685,7 +1685,7 @@ export class Player {
                     ? Promise.resolve(preparedPlayback.streamInfo)
                     : cachedStreamInfo
                       ? Promise.resolve(cachedStreamInfo)
-                      : this.api.getStreamUrl(track.id, this.quality);
+                      : this.api.getStreamUrl(track.id, this.quality, { track });
 
                 // We only need the legacy track info if we missed getting ReplayGain from the manifest endpoint
                 let resolvedStreamInfo = await streamInfoPromise;
@@ -2099,7 +2099,7 @@ export class Player {
             try {
                 streamInfo =
                     this.preloadCache.get(candidate.track.id) ||
-                    (await this.api.getStreamUrl(candidate.track.id, this.quality));
+                    (await this.api.getStreamUrl(candidate.track.id, this.quality, { track: candidate.track }));
             } catch {
                 return false;
             }

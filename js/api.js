@@ -2711,7 +2711,10 @@ export class LosslessAPI {
     async getUnifiedPlaybackStreamUrl(tidalTrackId, quality = 'LOSSLESS', options = {}) {
         try {
             const track =
-                options.track || (tidalTrackId ? await this.getTrackMetadata(tidalTrackId).catch(() => null) : null);
+                options.track ||
+                (tidalTrackId && !String(tidalTrackId).startsWith('apple:')
+                    ? await this.getTrackMetadata(tidalTrackId).catch(() => null)
+                    : null);
             if (!track) return null;
 
             const intent = options.intent || 'stream';
@@ -2854,7 +2857,7 @@ export class LosslessAPI {
         }
     }
 
-    async getStreamUrl(id, quality = 'LOSSLESS') {
+    async getStreamUrl(id, quality = 'LOSSLESS', options = {}) {
         const cacheKey = `stream_info_${id}_${quality}`;
 
         if (this.streamCache.has(cacheKey)) {
@@ -2887,7 +2890,11 @@ export class LosslessAPI {
             return result;
         }
 
-        const track = await this.getTrackMetadata(id);
+        const inputTrack = options?.track || null;
+        const isApple = inputTrack?.provider === 'apple' || String(id || '').startsWith('apple:');
+        const track =
+            inputTrack ||
+            (id && !isApple ? await this.getTrackMetadata(id).catch(() => null) : null);
 
         const canPlayAmazonCenc = canUseNativeAmazonCenc;
         const needsProxyDecryption = !canPlayAmazonCenc;
@@ -2897,6 +2904,8 @@ export class LosslessAPI {
         const exactAtmosQuality = isAtmosQuality(quality) ? quality : null;
         const preferredAtmosQuality = preferDolbyAtmosSettings.isEnabled() ? 'DOLBY_ATMOS_EAC3_HIGH' : null;
         const atmosQuality = exactAtmosQuality || preferredAtmosQuality;
+
+        let unifiedResult = null;
 
         if (atmosQuality) {
             try {
@@ -3045,11 +3054,12 @@ export class LosslessAPI {
 
         const id = input?.id || input;
         const inputTrack = typeof input === 'object' ? input : null;
+        const isApple = inputTrack?.provider === 'apple' || String(id || '').startsWith('apple:');
         const metadataTrack =
-            id && inputTrack?.provider !== 'apple' ? await this.getTrackMetadata(id).catch(() => null) : null;
+            id && !isApple ? await this.getTrackMetadata(id).catch(() => null) : null;
         const track = metadataTrack
             ? this.prepareTrack({ ...(inputTrack || {}), ...metadataTrack })
-            : inputTrack?.isrc
+            : inputTrack?.isrc || isApple
               ? inputTrack
               : await this.getTrackMetadata(id);
         const isVideo = track?.type?.toLowerCase().includes('video');
