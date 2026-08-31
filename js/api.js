@@ -2892,9 +2892,7 @@ export class LosslessAPI {
 
         const inputTrack = options?.track || null;
         const isApple = inputTrack?.provider === 'apple' || String(id || '').startsWith('apple:');
-        const track =
-            inputTrack ||
-            (id && !isApple ? await this.getTrackMetadata(id).catch(() => null) : null);
+        const track = inputTrack || (id && !isApple ? await this.getTrackMetadata(id).catch(() => null) : null);
 
         const canPlayAmazonCenc = canUseNativeAmazonCenc;
         const needsProxyDecryption = !canPlayAmazonCenc;
@@ -3055,8 +3053,7 @@ export class LosslessAPI {
         const id = input?.id || input;
         const inputTrack = typeof input === 'object' ? input : null;
         const isApple = inputTrack?.provider === 'apple' || String(id || '').startsWith('apple:');
-        const metadataTrack =
-            id && !isApple ? await this.getTrackMetadata(id).catch(() => null) : null;
+        const metadataTrack = id && !isApple ? await this.getTrackMetadata(id).catch(() => null) : null;
         const track = metadataTrack
             ? this.prepareTrack({ ...(inputTrack || {}), ...metadataTrack })
             : inputTrack?.isrc || isApple
