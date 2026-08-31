@@ -3,7 +3,12 @@
 import { LosslessAPI } from './api.js';
 import { PodcastsAPI } from './podcasts-api.js';
 import { musicProviderSettings } from './storage.js';
-import { AppleMusicSearchAPI, normalizeAppleSearchResults } from './apple-music-api.js';
+import {
+    AppleMusicSearchAPI,
+    clearStoredVideoCovers,
+    normalizeAppleArtist,
+    normalizeAppleSearchResults,
+} from './apple-music-api.js';
 import { getCommunityPlaylist } from './community-playlists.js';
 
 /**
@@ -59,8 +64,12 @@ export class MusicAPI {
         this.podcastsAPI = new PodcastsAPI();
         this._settings = settings;
         this.videoArtworkCache = new Map();
+        this.videoArtworkRequests = new Map();
         this.appleTrackCache = new Map();
         this.appleArtistCache = new Map();
+        this.appleAlbumCache = new Map();
+        this.applePlaylistCache = new Map();
+        this.appleEntityRequests = new Map();
         this.appleArtistIds = new Set();
         this.appleAlbumIds = new Set();
         this.applePlaylistIds = new Set();
@@ -215,10 +224,20 @@ export class MusicAPI {
     async getAlbum(id, provider = null) {
         if (this.isAppleId(id, 'album', provider) || this.appleAlbumIds.has(String(id))) {
             const appleId = this.getAppleId(id, 'album');
-            const result = await this.appleMusicSearchAPI.album(appleId);
-            this.appleAlbumIds.add(String(appleId));
-            this.cacheAppleTracks(result.tracks);
-            return result;
+            if (this.appleAlbumCache.has(String(appleId))) return this.appleAlbumCache.get(String(appleId));
+            const requestKey = `album:${appleId}`;
+            if (this.appleEntityRequests.has(requestKey)) return this.appleEntityRequests.get(requestKey);
+            const request = this.appleMusicSearchAPI
+                .album(appleId)
+                .then((result) => {
+                    this.appleAlbumIds.add(String(appleId));
+                    this.appleAlbumCache.set(String(appleId), result);
+                    this.cacheAppleTracks(result.tracks);
+                    return result;
+                })
+                .finally(() => this.appleEntityRequests.delete(requestKey));
+            this.appleEntityRequests.set(requestKey, request);
+            return request;
         }
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
@@ -228,12 +247,24 @@ export class MusicAPI {
     async getArtist(id, provider = null) {
         if (this.isAppleId(id, 'artist', provider) || this.appleArtistIds.has(String(id))) {
             const appleId = this.getAppleId(id, 'artist');
-            const artist = await this.appleMusicSearchAPI.artist(appleId);
-            this.appleArtistIds.add(String(appleId));
-            this.appleArtistCache.set(String(appleId), artist);
-            this.cacheAppleTracks([...artist.tracks, ...artist.videos]);
-            for (const album of [...artist.albums, ...artist.eps]) this.appleAlbumIds.add(String(album.appleMusicId));
-            return artist;
+            const cached = this.appleArtistCache.get(String(appleId));
+            if (cached) return cached;
+            const requestKey = `artist:${appleId}`;
+            if (this.appleEntityRequests.has(requestKey)) return this.appleEntityRequests.get(requestKey);
+            const request = this.appleMusicSearchAPI
+                .artist(appleId)
+                .then((artist) => {
+                    this.appleArtistIds.add(String(appleId));
+                    this.appleArtistCache.set(String(appleId), artist);
+                    this.cacheAppleTracks([...artist.tracks, ...artist.videos]);
+                    for (const album of [...artist.albums, ...artist.eps]) {
+                        this.appleAlbumIds.add(String(album.appleMusicId));
+                    }
+                    return artist;
+                })
+                .finally(() => this.appleEntityRequests.delete(requestKey));
+            this.appleEntityRequests.set(requestKey, request);
+            return request;
         }
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
@@ -278,10 +309,20 @@ export class MusicAPI {
 
         if (this.isAppleId(id, 'playlist', provider) || this.applePlaylistIds.has(String(id))) {
             const appleId = this.getAppleId(id, 'playlist');
-            const result = await this.appleMusicSearchAPI.playlist(appleId);
-            this.applePlaylistIds.add(String(appleId));
-            this.cacheAppleTracks(result.tracks);
-            return result;
+            if (this.applePlaylistCache.has(String(appleId))) return this.applePlaylistCache.get(String(appleId));
+            const requestKey = `playlist:${appleId}`;
+            if (this.appleEntityRequests.has(requestKey)) return this.appleEntityRequests.get(requestKey);
+            const request = this.appleMusicSearchAPI
+                .playlist(appleId)
+                .then((result) => {
+                    this.applePlaylistIds.add(String(appleId));
+                    this.applePlaylistCache.set(String(appleId), result);
+                    this.cacheAppleTracks(result.tracks);
+                    return result;
+                })
+                .finally(() => this.appleEntityRequests.delete(requestKey));
+            this.appleEntityRequests.set(requestKey, request);
+            return request;
         }
 
         return this.tidalAPI.getPlaylist(id);
@@ -350,22 +391,30 @@ export class MusicAPI {
     async getVideoArtwork(title, artist) {
         const cacheKey = `${title}-${artist}`.toLowerCase();
         if (this.videoArtworkCache.has(cacheKey)) {
-            return this.videoArtworkCache.get(cacheKey);
+            const cached = this.videoArtworkCache.get(cacheKey);
+            if (cached) return cached;
+            this.videoArtworkCache.delete(cacheKey);
         }
+        if (this.videoArtworkRequests.has(cacheKey)) return this.videoArtworkRequests.get(cacheKey);
 
-        try {
-            const cover = await this.appleMusicSearchAPI.videoCover(title, artist);
-            const result = cover
-                ? { videoUrl: null, hlsUrl: cover.hlsUrl, previewFrameUrl: cover.previewFrameUrl }
-                : null;
-            this.videoArtworkCache.set(cacheKey, result);
-            return result;
-        } catch (error) {
-            if (error.name === 'AbortError') throw error;
-            if (import.meta.env.DEV) console.warn('Failed to fetch Apple Music video artwork:', error);
-            this.videoArtworkCache.set(cacheKey, null);
-            return null;
-        }
+        const request = (async () => {
+            try {
+                const cover = await this.appleMusicSearchAPI.videoCover(title, artist);
+                const result = cover
+                    ? { videoUrl: null, hlsUrl: cover.hlsUrl, previewFrameUrl: cover.previewFrameUrl }
+                    : null;
+                if (result) this.videoArtworkCache.set(cacheKey, result);
+                return result;
+            } catch (error) {
+                if (error.name === 'AbortError') throw error;
+                if (import.meta.env.DEV) console.warn('Failed to fetch Apple Music video artwork:', error);
+                return null;
+            } finally {
+                this.videoArtworkRequests.delete(cacheKey);
+            }
+        })();
+        this.videoArtworkRequests.set(cacheKey, request);
+        return request;
     }
 
     getArtistPictureUrl(id, size = '320') {
@@ -490,7 +539,7 @@ export class MusicAPI {
             const appleId = this.getAppleId(artistId, 'artist');
             const cached = this.appleArtistCache.get(String(appleId));
             if (cached) return cached.similar || [];
-            return (await this.getArtist(appleId, 'apple')).similar || [];
+            return (await this.appleMusicSearchAPI.artistView(appleId, 'similar-artists')).map(normalizeAppleArtist);
         }
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(artistId);
@@ -513,20 +562,69 @@ export class MusicAPI {
     }
 
     async getSimilarAlbums(albumId) {
-        if (this.isAppleId(albumId, 'album') || this.appleAlbumIds.has(String(albumId))) return [];
+        if (this.isAppleId(albumId, 'album') || this.appleAlbumIds.has(String(albumId))) {
+            return this.appleMusicSearchAPI.relatedAlbums(this.getAppleId(albumId, 'album'));
+        }
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(albumId);
         return api.getSimilarAlbums(cleanId);
     }
 
     async getRecommendedTracksForPlaylist(tracks, limit = 20, options = {}) {
-        // Use Tidal for recommendations
-        return this.tidalAPI.getRecommendedTracksForPlaylist(tracks, limit, options);
+        const appleSeeds = tracks.filter(
+            (track) => track?.provider === 'apple' || this.isAppleId(track?.id) || this.getCachedAppleTrack(track?.id)
+        );
+        const tidalSeeds = tracks.filter((track) => !appleSeeds.includes(track));
+        const canFallbackToTidal = tidalSeeds.length > 0;
+        const [appleTracks, tidalTracks] = await Promise.all([
+            appleSeeds.length
+                ? this.appleMusicSearchAPI
+                      .recommendedTracks(appleSeeds, limit, {
+                          skipCache: options.skipCache || options.refresh,
+                          retryOnRateLimit: !canFallbackToTidal,
+                      })
+                      .catch((error) => {
+                          if (error.status === 429 && canFallbackToTidal) return [];
+                          throw error;
+                      })
+                : [],
+            tidalSeeds.length ? this.tidalAPI.getRecommendedTracksForPlaylist(tidalSeeds, limit, options) : [],
+        ]);
+        this.cacheAppleTracks(appleTracks);
+        const excluded = new Set([
+            ...tracks.map((track) => String(track.id)),
+            ...Array.from(options.knownTrackIds || [], (id) => String(id)),
+        ]);
+        const combined = [];
+        for (let index = 0; index < Math.max(appleTracks.length, tidalTracks.length); index += 1) {
+            if (appleTracks[index]) combined.push(appleTracks[index]);
+            if (tidalTracks[index]) combined.push(tidalTracks[index]);
+        }
+        const seen = new Set();
+        return combined
+            .filter((track) => {
+                const id = String(track?.id || '');
+                if (!id || excluded.has(id) || seen.has(id)) return false;
+                seen.add(id);
+                return true;
+            })
+            .slice(0, limit);
     }
 
     // Cache methods
     async clearCache() {
         await this.tidalAPI.clearCache();
+        this.videoArtworkCache.clear();
+        this.videoArtworkRequests.clear();
+        clearStoredVideoCovers();
+        this.appleTrackCache.clear();
+        this.appleArtistCache.clear();
+        this.appleAlbumCache.clear();
+        this.applePlaylistCache.clear();
+        this.appleEntityRequests.clear();
+        this.appleMusicSearchAPI.suggestionCache.clear();
+        this.appleMusicSearchAPI.viewCache.clear();
+        this.appleMusicSearchAPI.viewRequests.clear();
     }
 
     getCacheStats() {

@@ -1,6 +1,7 @@
 const DEFAULT_TYPES = ['songs', 'albums', 'artists', 'music-videos', 'playlists'];
 const TOKEN_URL = 'https://am-mint.binimum.org/token';
 const TOKEN_STORAGE_KEY = 'apple-music-api-token';
+const VIDEO_COVER_STORAGE_KEY = 'apple-music-video-covers-v1';
 const SECTION_TO_APPLE_TYPE = {
     tracks: 'songs',
     albums: 'albums',
@@ -10,6 +11,8 @@ const SECTION_TO_APPLE_TYPE = {
 };
 let memoryToken = null;
 let tokenRequestPromise = null;
+let videoCoverStorageLoaded = false;
+const persistentVideoCoverCache = new Map();
 
 function normalize(value) {
     return String(value || '')
@@ -19,6 +22,45 @@ function normalize(value) {
         .replace(/&/g, ' and ')
         .replace(/[^a-z0-9]+/g, ' ')
         .trim();
+}
+
+function loadVideoCoverCache() {
+    if (videoCoverStorageLoaded) return;
+    videoCoverStorageLoaded = true;
+    try {
+        const stored = JSON.parse(localStorage.getItem(VIDEO_COVER_STORAGE_KEY) || '{}');
+        for (const [key, cover] of Object.entries(stored)) {
+            if (cover?.hlsUrl) persistentVideoCoverCache.set(key, cover);
+        }
+    } catch {
+        // Storage can be unavailable in private browsing or non-browser tests.
+    }
+}
+
+function getStoredVideoCover(key) {
+    loadVideoCoverCache();
+    return persistentVideoCoverCache.get(key);
+}
+
+function storeVideoCover(key, cover) {
+    if (!cover?.hlsUrl) return;
+    loadVideoCoverCache();
+    persistentVideoCoverCache.set(key, cover);
+    try {
+        localStorage.setItem(VIDEO_COVER_STORAGE_KEY, JSON.stringify(Object.fromEntries(persistentVideoCoverCache)));
+    } catch {
+        // Keep using the in-memory cache if persistent storage is unavailable or full.
+    }
+}
+
+export function clearStoredVideoCovers() {
+    persistentVideoCoverCache.clear();
+    videoCoverStorageLoaded = true;
+    try {
+        localStorage.removeItem(VIDEO_COVER_STORAGE_KEY);
+    } catch {
+        // Ignore unavailable browser storage.
+    }
 }
 
 export function decodeJwtExpiration(token) {
@@ -107,6 +149,58 @@ async function appleFetch(url, tokenInfo, options = {}, retry = true) {
         return appleFetch(url, refreshed, options, false);
     }
     return response;
+}
+
+function appleResponseError(response, operation) {
+    const error = new Error(`${operation} failed with status ${response.status}`);
+    error.name = 'AppleMusicAPIError';
+    error.status = response.status;
+    error.retryAfter = response.headers?.get?.('Retry-After') || null;
+    return error;
+}
+
+function rateLimitDelay(response, attempt, options) {
+    const retryAfter = response.headers?.get?.('Retry-After');
+    const retrySeconds = Number(retryAfter);
+    if (retryAfter != null && retryAfter !== '' && Number.isFinite(retrySeconds) && retrySeconds >= 0) {
+        return retrySeconds * 1000;
+    }
+    const retryAt = Date.parse(retryAfter || '');
+    if (Number.isFinite(retryAt)) return Math.max(0, retryAt - Date.now());
+    const baseDelay = options.rateLimitBaseDelayMs ?? 1000;
+    return Math.min(baseDelay * 2 ** attempt, options.rateLimitMaxDelayMs ?? 30000);
+}
+
+function waitForRetry(delay, signal) {
+    if (signal?.aborted) {
+        const error = new Error('The operation was aborted');
+        error.name = 'AbortError';
+        return Promise.reject(error);
+    }
+    if (delay <= 0) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            signal?.removeEventListener('abort', onAbort);
+            resolve();
+        }, delay);
+        const onAbort = () => {
+            clearTimeout(timeout);
+            const error = new Error('The operation was aborted');
+            error.name = 'AbortError';
+            reject(error);
+        };
+        signal?.addEventListener('abort', onAbort, { once: true });
+    });
+}
+
+export async function appleFetchWithRateLimitRetry(url, tokenInfo, options = {}) {
+    let attempt = 0;
+    while (true) {
+        const response = await appleFetch(url, tokenInfo, options);
+        if (response.status !== 429 || options.retryOnRateLimit === false) return response;
+        await waitForRetry(rateLimitDelay(response, attempt, options), options.signal);
+        attempt += 1;
+    }
 }
 
 function scoreMatch(section, appleResource, currentItem) {
@@ -360,27 +454,6 @@ export function selectVideoCover(covers = []) {
     );
 }
 
-function findSong(data, title, artist) {
-    const songs = Object.values(data?.resources?.songs || {});
-    const candidates = songs.length ? songs : data?.results?.songs?.data || [];
-    const normalizedTitle = normalize(title);
-    const normalizedArtist = normalize(artist);
-    return (
-        candidates.find((song) => {
-            const attributes = song?.attributes || {};
-            return (
-                normalize(attributes.name) === normalizedTitle && normalize(attributes.artistName) === normalizedArtist
-            );
-        }) || candidates.find((song) => normalize(song?.attributes?.name) === normalizedTitle)
-    );
-}
-
-function albumIdFromSong(song) {
-    const relationshipId = song?.relationships?.albums?.data?.[0]?.id;
-    if (relationshipId) return String(relationshipId);
-    return song?.attributes?.url?.match(/\/album\/[^/]+\/(\d+)(?:\?|$)/)?.[1] || null;
-}
-
 function aspectRatio(width, height) {
     if (!width || !height) return 'unknown';
     const ratio = width / height;
@@ -431,6 +504,28 @@ export function buildAppleRequestHeaders(tokenInfo, options = {}) {
 export class AppleMusicSearchAPI {
     constructor() {
         this.suggestionCache = new Map();
+        this.viewCache = new Map();
+        this.viewRequests = new Map();
+    }
+
+    async cachedView(key, options, loader) {
+        if (!options.skipCache) {
+            const cached = this.viewCache.get(key);
+            if (cached?.expiresAt > Date.now()) return cached.value;
+            if (!options.signal && this.viewRequests.has(key)) return this.viewRequests.get(key);
+        }
+
+        const request = loader().then((value) => {
+            this.viewCache.set(key, { value, expiresAt: Date.now() + 10 * 60 * 1000 });
+            if (this.viewCache.size > 100) this.viewCache.delete(this.viewCache.keys().next().value);
+            return value;
+        });
+        if (!options.signal) this.viewRequests.set(key, request);
+        try {
+            return await request;
+        } finally {
+            this.viewRequests.delete(key);
+        }
     }
 
     async remainingPages(next, options = {}, maximumPages = 20) {
@@ -440,7 +535,11 @@ export class AppleMusicSearchAPI {
         let pageUrl = next;
         let pageCount = 0;
         while (pageUrl && pageCount < maximumPages) {
-            const response = await appleFetch(new URL(pageUrl, 'https://api.music.apple.com'), token, options);
+            const response = await appleFetchWithRateLimitRetry(
+                new URL(pageUrl, 'https://api.music.apple.com'),
+                token,
+                options
+            );
             if (!response.ok) break;
             const page = await response.json();
             items.push(...(page.data || []));
@@ -457,21 +556,40 @@ export class AppleMusicSearchAPI {
         for (const [key, value] of Object.entries(params)) {
             if (value != null && value !== '') url.searchParams.set(key, String(value));
         }
-        const response = await appleFetch(url, token, options);
-        if (!response.ok) throw new Error(`Apple Music ${type} lookup failed with status ${response.status}`);
+        const response = await appleFetchWithRateLimitRetry(url, token, options);
+        if (!response.ok) throw appleResponseError(response, `Apple Music ${type} lookup`);
         return response.json();
     }
 
     async artistView(id, view, options = {}) {
-        const token = await getAppleMusicToken(options);
-        const storefront = resolveStorefront(options.storefront, token.storefront);
-        const url = new URL(`https://api.music.apple.com/v1/catalog/${storefront}/artists/${id}/view/${view}`);
-        url.searchParams.set('limit', String(Math.min(options.limit || 25, 25)));
-        url.searchParams.set('extend[songs]', 'artistUrl');
-        url.searchParams.set('extend[albums]', 'artistUrl');
-        const response = await appleFetch(url, token, options);
-        if (!response.ok) return [];
-        return (await response.json())?.data || [];
+        const cacheKey = `${resolveStorefront(options.storefront, '')}:artist:${id}:${view}:${options.limit || 25}`;
+        return this.cachedView(cacheKey, options, async () => {
+            const token = await getAppleMusicToken(options);
+            const storefront = resolveStorefront(options.storefront, token.storefront);
+            const url = new URL(`https://api.music.apple.com/v1/catalog/${storefront}/artists/${id}/view/${view}`);
+            url.searchParams.set('limit', String(Math.min(options.limit || 25, 25)));
+            url.searchParams.set('extend[songs]', 'artistUrl');
+            url.searchParams.set('extend[albums]', 'artistUrl');
+            const response = await appleFetchWithRateLimitRetry(url, token, options);
+            if (!response.ok) return [];
+            return (await response.json())?.data || [];
+        });
+    }
+
+    async albumView(id, view, options = {}) {
+        const cacheKey = `${resolveStorefront(options.storefront, '')}:album:${id}:${view}:${options.limit || 10}`;
+        return this.cachedView(cacheKey, options, async () => {
+            const token = await getAppleMusicToken(options);
+            const storefront = resolveStorefront(options.storefront, token.storefront);
+            const url = new URL(`https://api.music.apple.com/v1/catalog/${storefront}/albums/${id}/view/${view}`);
+            url.searchParams.set('limit', String(Math.min(options.limit || 10, 25)));
+            url.searchParams.set('include', 'tracks');
+            url.searchParams.set('extend[songs]', 'artistUrl');
+            url.searchParams.set('extend[albums]', 'artistUrl');
+            const response = await appleFetchWithRateLimitRetry(url, token, options);
+            if (!response.ok) return [];
+            return (await response.json())?.data || [];
+        });
     }
 
     async track(id, options = {}) {
@@ -524,17 +642,19 @@ export class AppleMusicSearchAPI {
     }
 
     async artist(id, options = {}) {
-        const [response, tracks, albums, singles, similar, videos] = await Promise.all([
-            this.catalogResource('artists', id, options),
-            this.artistView(id, 'top-songs', options),
-            this.artistView(id, 'full-albums', options),
-            this.artistView(id, 'singles', options),
-            this.artistView(id, 'similar-artists', options),
-            this.artistView(id, 'top-music-videos', options),
-        ]);
+        const response = await this.catalogResource('artists', id, options, {
+            views: 'top-songs,full-albums,singles,similar-artists,top-music-videos',
+            'extend[songs]': 'artistUrl',
+            'extend[albums]': 'artistUrl',
+        });
         const resource = response?.data?.[0];
         if (!resource) throw new Error('Apple Music artist was not found');
         const artist = normalizeAppleArtist(resource);
+        const tracks = resource.views?.['top-songs']?.data || [];
+        const albums = resource.views?.['full-albums']?.data || [];
+        const singles = resource.views?.singles?.data || [];
+        const similar = resource.views?.['similar-artists']?.data || [];
+        const videos = resource.views?.['top-music-videos']?.data || [];
         const attachArtist = (track) => {
             const normalized = normalizeAppleTrack(track, track.type === 'music-videos' ? 'video' : 'track');
             if (!normalized.artist.id) normalized.artist = normalized.artists[0] = artist;
@@ -548,6 +668,61 @@ export class AppleMusicSearchAPI {
             videos: videos.map(attachArtist),
             similar: similar.map(normalizeAppleArtist),
         };
+    }
+
+    async relatedAlbums(id, options = {}) {
+        return (await this.albumView(id, 'related-albums', options)).map(normalizeAppleAlbum);
+    }
+
+    async recommendedTracks(tracks, limit = 20, options = {}) {
+        const seen = new Set(tracks.map((track) => String(track.id)));
+        const albumIds = [];
+        const artistIds = [];
+        for (const track of tracks) {
+            const albumId = track.album?.appleMusicId || String(track.album?.id || '').replace(/^apple:album:/, '');
+            const artistId = track.artist?.appleMusicId || String(track.artist?.id || '').replace(/^apple:artist:/, '');
+            if (albumId && !albumIds.includes(albumId)) albumIds.push(albumId);
+            if (artistId && !artistIds.includes(artistId)) artistIds.push(artistId);
+        }
+
+        const relatedAlbums = (
+            await Promise.all(albumIds.slice(0, 2).map((id) => this.albumView(id, 'related-albums', options)))
+        ).flat();
+        const recommendations = [];
+        for (const albumResource of relatedAlbums) {
+            const album = normalizeAppleAlbum(albumResource);
+            for (const resource of albumResource.relationships?.tracks?.data || []) {
+                if (resource.type !== 'songs') continue;
+                const track = normalizeAppleTrack(resource);
+                track.album = {
+                    id: album.id,
+                    appleMusicId: album.appleMusicId,
+                    title: album.title,
+                    cover: album.cover,
+                    releaseDate: album.releaseDate,
+                };
+                if (!seen.has(String(track.id))) {
+                    seen.add(String(track.id));
+                    recommendations.push(track);
+                }
+            }
+        }
+
+        if (recommendations.length === 0) {
+            const topSongs = (
+                await Promise.all(
+                    artistIds.slice(0, 2).map((id) => this.artistView(id, 'top-songs', { ...options, limit }))
+                )
+            ).flat();
+            for (const resource of topSongs) {
+                const track = normalizeAppleTrack(resource);
+                if (!seen.has(String(track.id))) {
+                    seen.add(String(track.id));
+                    recommendations.push(track);
+                }
+            }
+        }
+        return recommendations.slice(0, limit);
     }
 
     async playlist(id, options = {}) {
@@ -585,7 +760,7 @@ export class AppleMusicSearchAPI {
         url.searchParams.set('limit', String(Math.min(options.limit || 25, 25)));
         url.searchParams.set('with', 'lyricHighlights,lyrics,naturalLanguage,serverBubbles,subtitles');
         const response = await appleFetch(url, token, options);
-        if (!response.ok) throw new Error(`Apple Music search failed with status ${response.status}`);
+        if (!response.ok) throw appleResponseError(response, 'Apple Music search');
         return response.json();
     }
 
@@ -607,7 +782,7 @@ export class AppleMusicSearchAPI {
         url.searchParams.set('types', 'songs');
         url.searchParams.set('with', 'naturalLanguage');
         const response = await appleFetch(url, token, options);
-        if (!response.ok) throw new Error(`Apple Music suggestions failed with status ${response.status}`);
+        if (!response.ok) throw appleResponseError(response, 'Apple Music suggestions');
         const result = extractSearchSuggestions(await response.json());
         this.suggestionCache.set(cacheKey, result);
         if (this.suggestionCache.size > 50) this.suggestionCache.delete(this.suggestionCache.keys().next().value);
@@ -615,33 +790,37 @@ export class AppleMusicSearchAPI {
     }
 
     async videoCover(title, artist, options = {}) {
+        const cacheKey = `song:${normalize(options.storefront || 'default')}:${normalize(title)}:${normalize(artist)}`;
+        const cached = getStoredVideoCover(cacheKey);
+        if (cached) return cached;
+
         const token = await getAppleMusicToken(options);
         const storefront = resolveStorefront(options.storefront, token.storefront);
-        const searchUrl = new URL(`https://api.music.apple.com/v1/catalog/${storefront}/search`);
-        searchUrl.searchParams.set('term', `${title} ${artist}`);
-        searchUrl.searchParams.set('types', 'songs');
-        searchUrl.searchParams.set('limit', '10');
-        searchUrl.searchParams.set('relate[songs]', 'albums');
-        const searchResponse = await appleFetch(searchUrl, token, options);
-        if (!searchResponse.ok) throw new Error(`Apple Music video search failed with status ${searchResponse.status}`);
-        const albumId = albumIdFromSong(findSong(await searchResponse.json(), title, artist));
-        if (!albumId) return null;
-
-        const albumUrl = new URL(`https://api.music.apple.com/v1/catalog/${storefront}/albums/${albumId}`);
-        albumUrl.searchParams.set('extend', 'editorialVideo');
-        const albumResponse = await appleFetch(albumUrl, token, options);
-        if (!albumResponse.ok) throw new Error(`Apple Music album lookup failed with status ${albumResponse.status}`);
-        const album = (await albumResponse.json())?.data?.[0];
-        return selectVideoCover(extractVideoCovers(album));
+        const url = new URL('/api/apple-video-cover', globalThis.location?.origin || 'http://localhost');
+        url.searchParams.set('title', title);
+        url.searchParams.set('artist', artist);
+        url.searchParams.set('storefront', storefront);
+        const response = await appleFetchWithRateLimitRetry(url, token, options);
+        if (!response.ok) throw appleResponseError(response, 'Apple Music video cover lookup');
+        const cover = (await response.json())?.cover || null;
+        storeVideoCover(cacheKey, cover);
+        return cover;
     }
 
     async albumVideoCover(albumId, options = {}) {
+        const cacheKey = `album:${normalize(options.storefront || 'default')}:${albumId}`;
+        const cached = getStoredVideoCover(cacheKey);
+        if (cached) return cached;
+
         const token = await getAppleMusicToken(options);
         const storefront = resolveStorefront(options.storefront, token.storefront);
-        const albumUrl = new URL(`https://api.music.apple.com/v1/catalog/${storefront}/albums/${albumId}`);
-        albumUrl.searchParams.set('extend', 'editorialVideo');
-        const response = await appleFetch(albumUrl, token, options);
+        const url = new URL('/api/apple-video-cover', globalThis.location?.origin || 'http://localhost');
+        url.searchParams.set('albumId', albumId);
+        url.searchParams.set('storefront', storefront);
+        const response = await appleFetchWithRateLimitRetry(url, token, options);
         if (!response.ok) return null;
-        return selectVideoCover(extractVideoCovers((await response.json())?.data?.[0]));
+        const cover = (await response.json())?.cover || null;
+        storeVideoCover(cacheKey, cover);
+        return cover;
     }
 }

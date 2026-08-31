@@ -1364,6 +1364,7 @@ export class UIRenderer {
             if (qualityMenu) qualityMenu.style.display = 'none';
 
             const videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
+            const videoCoverResult = track.videoCoverResult || videoCoverUrl;
             const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.album?.cover, '1280');
 
             const fsLikeBtn = document.getElementById('fs-like-btn');
@@ -1371,14 +1372,32 @@ export class UIRenderer {
                 await this.updateLikeState(fsLikeBtn.parentElement, track.type || 'track', track.id);
             }
 
-            const currentImage = document.getElementById('fullscreen-cover-image');
+            let currentImage = document.getElementById('fullscreen-cover-image');
+            if (!currentImage) {
+                const artworkCard = document.getElementById('fullscreen-artwork-card');
+                if (artworkCard) {
+                    for (const node of artworkCard.childNodes) {
+                        if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() === 'null') {
+                            node.remove();
+                        }
+                    }
+                    currentImage = document.createElement('img');
+                    currentImage.id = 'fullscreen-cover-image';
+                    currentImage.alt = 'Album Cover';
+                    currentImage.crossOrigin = 'anonymous';
+                    currentImage.referrerPolicy = 'no-referrer';
+                    currentImage.src = this.api.getCoverUrl(track.album?.cover, '1280');
+                    artworkCard.prepend(currentImage);
+                }
+            }
+
+            if (!currentImage) return;
 
             if (videoCoverUrl) {
-                const isPaused = this.player?.activeElement?.paused ?? true;
+                let video = currentImage;
                 if (currentImage.tagName === 'IMG') {
-                    const video = document.createElement('video');
-                    video.src = videoCoverUrl;
-                    video.autoplay = !isPaused;
+                    video = document.createElement('video');
+                    video.autoplay = true;
                     video.loop = true;
                     video.muted = true;
                     video.playsInline = true;
@@ -1386,24 +1405,26 @@ export class UIRenderer {
                     video.className = currentImage.className;
                     video.id = currentImage.id;
                     video.style.objectFit = 'cover';
+                    video.poster = currentImage.src;
                     currentImage.replaceWith(video);
-                    if (!isPaused) {
-                        video.play().catch(() => {});
-                    }
-                } else if (currentImage.src !== videoCoverUrl) {
-                    currentImage.src = videoCoverUrl;
-                    if (!isPaused) {
-                        currentImage.play().catch(() => {});
-                    } else {
-                        currentImage.pause();
-                    }
-                } else {
-                    if (!isPaused) {
-                        currentImage.play().catch(() => {});
-                    } else {
-                        currentImage.pause();
-                    }
+                    await this.setupHlsVideo(video, videoCoverResult, currentImage);
+                    video.dataset.videoCoverUrl = videoCoverUrl;
+                } else if (currentImage.dataset.videoCoverUrl !== videoCoverUrl) {
+                    currentImage._hls?.destroy();
+                    currentImage.autoplay = true;
+                    const fallbackImg = document.createElement('img');
+                    fallbackImg.id = currentImage.id;
+                    fallbackImg.className = currentImage.className;
+                    fallbackImg.alt = 'Album Cover';
+                    fallbackImg.crossOrigin = 'anonymous';
+                    fallbackImg.referrerPolicy = 'no-referrer';
+                    fallbackImg.src = this.api.getCoverUrl(track.album?.cover, '1280');
+                    currentImage.poster = fallbackImg.src;
+                    await this.setupHlsVideo(currentImage, videoCoverResult, fallbackImg);
+                    currentImage.dataset.videoCoverUrl = videoCoverUrl;
                 }
+                video.addEventListener('playing', () => video.removeAttribute('poster'), { once: true });
+                video.play().catch(() => {});
             } else {
                 if (currentImage.tagName === 'VIDEO') {
                     const img = document.createElement('img');
@@ -1456,6 +1477,11 @@ export class UIRenderer {
         coverCard?.classList.toggle('cd', isCdMode);
         cdRing?.classList.toggle('cd', isCdMode);
 
+        const needsVideoCover = track.type !== 'video' && !track.videoCoverResult;
+        const videoCoverRequest = needsVideoCover
+            ? this.api.getVideoArtwork(getTrackTitle(track), getTrackArtists(track))
+            : null;
+
         await this.updateFullscreenMetadata(track, nextTrack);
 
         if (nextTrack) {
@@ -1507,6 +1533,24 @@ export class UIRenderer {
 
         this.setupFullscreenControls();
         overlay.style.display = 'flex';
+
+        if (videoCoverRequest) {
+            try {
+                const result = await videoCoverRequest;
+                const videoCoverUrl = result?.videoUrl || result?.hlsUrl;
+                if (
+                    videoCoverUrl &&
+                    this.player?.currentTrack?.id === track.id &&
+                    getComputedStyle(overlay).display !== 'none'
+                ) {
+                    track.videoCoverUrl = videoCoverUrl;
+                    track.videoCoverResult = result;
+                    await this.updateFullscreenMetadata(track, this.player?.getNextTrack());
+                }
+            } catch (error) {
+                console.warn('Failed to load fullscreen video artwork:', error);
+            }
+        }
 
         if (fullscreenCoverNoRoundSettings.isEnabled()) {
             overlay.classList.add('fullscreen-cover-no-round');
@@ -4342,7 +4386,17 @@ export class UIRenderer {
         const url = typeof result === 'string' ? result : result.videoUrl || result.hlsUrl;
         if (!url) return;
 
-        if (url.endsWith('.m3u8')) {
+        video._hls?.destroy();
+        video._hls = null;
+
+        let isHls = false;
+        try {
+            isHls = new URL(url, globalThis.location?.href || 'http://localhost').pathname.endsWith('.m3u8');
+        } catch {
+            isHls = url.includes('.m3u8');
+        }
+
+        if (isHls) {
             const Hls = (await import('hls.js')).default;
             if (Hls.isSupported()) {
                 const hls = new Hls();
@@ -4350,6 +4404,7 @@ export class UIRenderer {
                 hls.loadSource(url);
                 hls.attachMedia(video);
                 hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    if (!video.autoplay) return;
                     video.play().catch((e) => {
                         console.warn('Autoplay failed, muted play might be required:', e);
                         video.muted = true;
@@ -4359,8 +4414,9 @@ export class UIRenderer {
                 hls.on(Hls.Events.ERROR, (_event, data) => {
                     if (data.fatal) {
                         console.warn('HLS fatal error:', data.type);
-                        video.replaceWith(fallbackImg);
+                        if (fallbackImg) video.replaceWith(fallbackImg);
                         hls.destroy();
+                        if (video._hls === hls) video._hls = null;
                     }
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -4368,31 +4424,33 @@ export class UIRenderer {
                 try {
                     video.src = url;
                 } catch {
-                    video.replaceWith(fallbackImg);
+                    if (fallbackImg) video.replaceWith(fallbackImg);
                 }
             } else {
-                video.replaceWith(fallbackImg);
+                if (fallbackImg) video.replaceWith(fallbackImg);
             }
         } else {
             // MP4
             try {
                 video.src = url;
             } catch {
-                video.replaceWith(fallbackImg);
+                if (fallbackImg) video.replaceWith(fallbackImg);
                 return;
             }
-            video.play().catch((e) => {
-                console.warn('MP4 autoplay failed:', e);
-                video.muted = true;
-                video.play().catch(() => {});
-            });
+            if (video.autoplay) {
+                video.play().catch((e) => {
+                    console.warn('MP4 autoplay failed:', e);
+                    video.muted = true;
+                    video.play().catch(() => {});
+                });
+            }
         }
         video.onerror = async () => {
             if (result.hlsUrl) {
                 // HLS fallback (for some reason alot of animated covers js dont work on MP4 lol)
                 await this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
             } else {
-                video.replaceWith(fallbackImg);
+                if (fallbackImg) video.replaceWith(fallbackImg);
             }
         };
     }
@@ -5807,55 +5865,8 @@ export class UIRenderer {
                 // Try to get cover from first track album
                 if (tracks.length > 0 && tracks[0].album?.cover) {
                     const firstTrack = tracks[0];
-                    let videoCoverUrl =
+                    const videoCoverUrl =
                         firstTrack.videoUrl || firstTrack.videoCoverUrl || firstTrack.album?.videoCoverUrl || null;
-
-                    if (!videoCoverUrl && (firstTrack.album || firstTrack.type === 'video')) {
-                        const fetchArtwork = () => {
-                            this.api
-                                .getVideoArtwork(firstTrack.title, getTrackArtists(firstTrack))
-                                .then(async (result) => {
-                                    if (result && this.currentPage === 'mix' && this.currentMixId === mixId) {
-                                        const url = result.videoUrl || result.hlsUrl;
-                                        if (!url) return;
-                                        firstTrack.album = firstTrack.album || {};
-                                        firstTrack.album.videoCoverUrl = url;
-                                        const currentImageEl = document.getElementById('mix-detail-image');
-                                        if (currentImageEl && currentImageEl.tagName !== 'VIDEO') {
-                                            const video = document.createElement('video');
-                                            video.autoplay = true;
-                                            video.loop = true;
-                                            video.muted = true;
-                                            video.playsInline = true;
-                                            video.preload = 'auto';
-                                            video.className = currentImageEl.className;
-                                            video.id = currentImageEl.id;
-                                            video.style.opacity = '1';
-                                            video.poster = currentImageEl.src;
-
-                                            await this.setupHlsVideo(video, result, currentImageEl);
-                                            currentImageEl.replaceWith(video);
-                                        }
-                                    }
-                                });
-                        };
-
-                        if (firstTrack.type === 'video') {
-                            await this.api
-                                .getVideoStreamUrl(firstTrack.id)
-                                .then(async (url) => {
-                                    if (url) {
-                                        firstTrack.videoUrl = url;
-                                        await this.renderMixPage(mixId);
-                                    } else {
-                                        fetchArtwork();
-                                    }
-                                })
-                                .catch(fetchArtwork);
-                        } else {
-                            fetchArtwork();
-                        }
-                    }
 
                     const coverUrl = videoCoverUrl || this.api.getCoverUrl(firstTrack.album.cover);
 
@@ -6034,39 +6045,6 @@ export class UIRenderer {
         }
 
         try {
-            const currentId = this.currentArtistId;
-            this.api
-                .getArtistBanner(artist.name)
-                .then(async (banner) => {
-                    if (this.currentArtistId !== currentId) return;
-
-                    if (banner && banner.hlsUrl && bannerContainer) {
-                        const video = document.createElement('video');
-                        video.autoplay = true;
-                        video.loop = true;
-                        video.muted = true;
-                        video.playsInline = true;
-                        video.setAttribute('muted', '');
-                        video.setAttribute('autoplay', '');
-                        video.setAttribute('playsinline', '');
-                        video.style.opacity = '1';
-
-                        try {
-                            await this.setupHlsVideo(video, banner, null);
-                            if (this.currentArtistId === currentId) {
-                                bannerContainer.appendChild(video);
-                                bannerContainer.style.opacity = '1';
-                                video.play().catch(() => {});
-                            }
-                        } catch (e) {
-                            console.warn('Failed to setup artist banner video:', e);
-                        }
-                    }
-                })
-                .catch((e) => {
-                    console.warn('Failed to fetch artist banner:', e);
-                });
-
             // Handle Biography
             if (bioEl) {
                 // Pre-define regex patterns for better performance
