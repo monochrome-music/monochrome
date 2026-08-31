@@ -677,4 +677,43 @@ describe('Unified Playback API', () => {
 
         await expect(api.getUnifiedPlaybackStreamUrl('123', 'LOSSLESS', { track })).resolves.toBeNull();
     });
+
+    test('resolves Apple Music track directly via unified playback without querying Tidal metadata', async () => {
+        const appleTrack = {
+            id: 'apple:track:1485384412',
+            appleMusicId: '1485384412',
+            provider: 'apple',
+            title: 'Blinding Lights',
+            artist: { name: 'The Weeknd' },
+            artists: [{ name: 'The Weeknd' }],
+            album: { title: 'After Hours' },
+            isrc: 'USUM71921104',
+            duration: 200,
+        };
+
+        api.getTrackMetadata = vi.fn(() => Promise.reject(new Error('Tidal should not be queried')));
+        api.getUnifiedPlaybackStreamUrl = vi.fn(() =>
+            Promise.resolve({
+                url: 'https://audio.example/apple-track.flac',
+                provider: 'monochrome',
+                playbackType: 'direct',
+                mimeType: 'audio/flac',
+            })
+        );
+        api.getDeezerStreamUrl = vi.fn();
+
+        await expect(
+            api.getStreamUrl('apple:track:1485384412', 'LOSSLESS', { track: appleTrack })
+        ).resolves.toMatchObject({
+            url: 'https://audio.example/apple-track.flac',
+            provider: 'monochrome',
+        });
+
+        expect(api.getTrackMetadata).not.toHaveBeenCalled();
+        expect(api.getUnifiedPlaybackStreamUrl).toHaveBeenCalledWith(
+            'apple:track:1485384412',
+            'LOSSLESS',
+            expect.objectContaining({ track: appleTrack, intent: 'stream' })
+        );
+    });
 });

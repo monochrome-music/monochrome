@@ -424,6 +424,20 @@ export class AppleMusicSearchAPI {
         return (await response.json())?.data || [];
     }
 
+    async track(id, options = {}) {
+        const isVideo = String(id).startsWith('apple:video:');
+        const appleId = typeof id === 'string' ? id.replace(/^apple:(?:track|video):/, '') : id;
+        const type = isVideo ? 'music-videos' : 'songs';
+        const response = await this.catalogResource(type, appleId, options, {
+            'extend[songs]': 'artistUrl',
+            'extend[albums]': 'artistUrl',
+            include: 'albums,artists',
+        });
+        const resource = response?.data?.[0];
+        if (!resource) throw new Error(`Apple Music ${isVideo ? 'video' : 'track'} was not found`);
+        return normalizeAppleTrack(resource, isVideo ? 'video' : 'track');
+    }
+
     async album(id, options = {}) {
         const [response, videoCover] = await Promise.all([
             this.catalogResource('albums', id, options, {
