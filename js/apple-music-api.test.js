@@ -1,5 +1,8 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import {
+    AppleMusicSearchAPI,
+    appleFetchWithRateLimitRetry,
+    clearStoredVideoCovers,
     decodeJwtExpiration,
     buildAppleRequestHeaders,
     extractSearchSuggestions,
@@ -245,5 +248,145 @@ describe('Apple Music search ranking', () => {
             Authorization: 'Bearer dev-token',
             Origin: 'https://monochrome.tf',
         });
+    });
+
+    test('retries rate-limited Apple-only requests using Retry-After', async () => {
+        const originalFetch = globalThis.fetch;
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(new Response(null, { status: 429, headers: { 'Retry-After': '0' } }))
+            .mockResolvedValueOnce(Response.json({ data: [{ id: 'artist-id' }] }));
+        globalThis.fetch = fetchMock;
+
+        try {
+            const response = await appleFetchWithRateLimitRetry(
+                'https://api.music.apple.com/v1/catalog/us/artists/artist-id',
+                { token: 'dev-token' }
+            );
+            expect(response.status).toBe(200);
+            expect(fetchMock).toHaveBeenCalledTimes(2);
+        } finally {
+            globalThis.fetch = originalFetch;
+        }
+    });
+
+    test('returns a 429 immediately when a caller has a Tidal fallback', async () => {
+        const originalFetch = globalThis.fetch;
+        const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 429 }));
+        globalThis.fetch = fetchMock;
+
+        try {
+            const response = await appleFetchWithRateLimitRetry(
+                'https://api.music.apple.com/v1/catalog/us/search',
+                { token: 'dev-token' },
+                { retryOnRateLimit: false }
+            );
+            expect(response.status).toBe(429);
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+        } finally {
+            globalThis.fetch = originalFetch;
+        }
+    });
+
+    test('builds Apple recommendations from related album tracks in one view request', async () => {
+        const api = new AppleMusicSearchAPI();
+        api.albumView = async () => [
+            {
+                id: 'related-album',
+                attributes: { name: 'Related Album', artistName: 'Related Artist' },
+                relationships: {
+                    tracks: {
+                        data: [{ id: 'recommended-song', type: 'songs', attributes: { name: 'Recommended Song' } }],
+                    },
+                },
+            },
+        ];
+
+        const result = await api.recommendedTracks(
+            [{ id: 'apple:track:seed', album: { appleMusicId: 'seed-album' } }],
+            10
+        );
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toMatchObject({
+            id: 'apple:track:recommended-song',
+            title: 'Recommended Song',
+            album: { id: 'apple:album:related-album', title: 'Related Album' },
+        });
+    });
+
+    test('loads an Apple artist and all recommendation views with one catalog request', async () => {
+        const api = new AppleMusicSearchAPI();
+        const catalogResource = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: 'artist-id',
+                    attributes: { name: 'Artist' },
+                    views: {
+                        'top-songs': { data: [] },
+                        'full-albums': { data: [] },
+                        singles: { data: [] },
+                        'similar-artists': { data: [] },
+                        'top-music-videos': { data: [] },
+                    },
+                },
+            ],
+        });
+        api.catalogResource = catalogResource;
+
+        await api.artist('artist-id');
+
+        expect(catalogResource).toHaveBeenCalledTimes(1);
+        expect(catalogResource.mock.calls[0][3].views).toContain('similar-artists');
+    });
+
+    test('persists video covers without an expiry and reuses them without another request', async () => {
+        const values = new Map();
+        const originalLocalStorage = globalThis.localStorage;
+        const originalFetch = globalThis.fetch;
+        globalThis.localStorage = {
+            getItem: (key) => values.get(key) ?? null,
+            setItem: (key, value) => values.set(key, value),
+            removeItem: (key) => values.delete(key),
+        };
+        clearStoredVideoCovers();
+
+        const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }))
+            .replace(/=/g, '')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_');
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                json: async () => ({ dev_token: `header.${payload}.signature`, storefront_id: 'us' }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                json: async () => ({ cover: { hlsUrl: 'https://example.com/cover.m3u8' } }),
+            });
+        globalThis.fetch = fetchMock;
+
+        try {
+            const api = new AppleMusicSearchAPI();
+            await expect(api.videoCover('Song', 'Artist')).resolves.toEqual({
+                hlsUrl: 'https://example.com/cover.m3u8',
+            });
+            await expect(api.videoCover('Song', 'Artist')).resolves.toEqual({
+                hlsUrl: 'https://example.com/cover.m3u8',
+            });
+
+            expect(fetchMock).toHaveBeenCalledTimes(2);
+            const persisted = JSON.parse(values.get('apple-music-video-covers-v1'));
+            expect(Object.values(persisted)).toEqual([{ hlsUrl: 'https://example.com/cover.m3u8' }]);
+            expect(JSON.stringify(persisted)).not.toContain('expires');
+        } finally {
+            clearStoredVideoCovers();
+            globalThis.fetch = originalFetch;
+            if (originalLocalStorage === undefined) delete globalThis.localStorage;
+            else globalThis.localStorage = originalLocalStorage;
+        }
     });
 });
