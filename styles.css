@@ -10835,9 +10835,13 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     letter-spacing: -0.03em;
 }
 
-#fullscreen-cover-overlay #fullscreen-track-artist,
+#fullscreen-cover-overlay #fullscreen-track-artist {
+    font-size: 0.84rem;
+    color: rgb(255 255 255 / 0.74);
+}
+
 #fullscreen-cover-overlay #fullscreen-track-album {
-    font-size: 1rem;
+    font-size: 0.94rem;
     color: rgb(255 255 255 / 0.74);
 }
 
