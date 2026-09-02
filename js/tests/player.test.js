@@ -269,6 +269,22 @@ describe('Player', () => {
         expect(audioEffectsSettings.setSpeed.mock.calls.at(-1)?.[0]).toBe(16);
     });
 
+    test('refreshes an expired monochrome stream after a long pause', async () => {
+        player = new Player(audioElement, api);
+        player.currentTrack = { id: '123' };
+        player.currentStreamProvider = 'monochrome';
+        player.pausedAt = Date.now() - 300000;
+        audioElement.src = 'https://tracks.example/expired';
+        Object.defineProperty(audioElement, 'currentTime', { configurable: true, value: 42 });
+        player.playTrackFromQueue = vi.fn();
+        player.safePlay = vi.fn();
+
+        await player.handlePlayPause();
+
+        expect(player.playTrackFromQueue).toHaveBeenCalledWith(42, 0);
+        expect(player.safePlay).not.toHaveBeenCalled();
+    });
+
     test('compensates when Safari lands a direct FLAC seek before the requested time', async () => {
         player = new Player(audioElement, api);
         player.currentTrack = { id: '123' };

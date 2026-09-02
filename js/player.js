@@ -75,6 +75,7 @@ export class Player {
         this.preloadAbortController = null;
         this.currentTrack = null;
         this.currentStreamProvider = null;
+        this.pausedAt = null;
         this.safariSeekCorrectionSeconds = 0;
         this.seekSequence = 0;
         this.currentRgValues = null;
@@ -121,6 +122,11 @@ export class Player {
             void this.seekTo(event.detail.time, { resume: event.detail.resume === true });
         };
         this.audioElements.forEach((element) => element.addEventListener('exact-seek-request', handleExactSeekRequest));
+        this.audioElements.forEach((element) =>
+            element.addEventListener('pause', () => {
+                if (this.activeElement === element && !this.isLoadingTrack && !element.ended) this.pausedAt = Date.now();
+            })
+        );
         if (this.video) {
             this.video.addEventListener('exact-seek-request', handleExactSeekRequest);
         }
@@ -2630,6 +2636,15 @@ export class Player {
         }
 
         if (el.paused) {
+            if (
+                this.currentTrack &&
+                this.currentStreamProvider === 'monochrome' &&
+                this.pausedAt &&
+                Date.now() - this.pausedAt >= 300000
+            ) {
+                await this.playTrackFromQueue(el.currentTime, 0);
+                return;
+            }
             this.safePlay(el).catch(async (e) => {
                 if (e.name === 'NotAllowedError' || e.name === 'AbortError') return;
                 console.error('Play failed, reloading track:', e);
