@@ -2001,6 +2001,10 @@ export class LosslessAPI {
         return codec ? `audio/mp4; codecs="${codec}"` : 'audio/mp4';
     }
 
+    async canPlayAmazonMusicStream(_trackInfo = null) {
+        return canUseNativeAmazonCenc;
+    }
+
     getAmazonQualityDisplay(trackInfo, qualityInfo = null) {
         const quality = String(trackInfo?.quality_selected || trackInfo?.quality_requested || '')
             .trim()

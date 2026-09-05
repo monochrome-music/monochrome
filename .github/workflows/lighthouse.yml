@@ -12,28 +12,24 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
             - name: Setup Node
               uses: actions/setup-node@v4
               with:
-                  node-version: '20'
-                  cache: 'npm'
+                  node-version: '22'
 
             - name: Install dependencies
-              run: npm install
+              run: bun install --frozen-lockfile
 
             - name: Build
-              run: npm run build
-
-            - name: Preview build
-              run: npm run preview &
-              continue-on-error: true
-
-            - name: Wait for preview server
-              run: sleep 10
+              run: bun run build
 
             - name: Run Lighthouse
-              run: |
-                  npx lhci autorun --config=.lhci.yml || true
+              run: bunx lhci autorun --config=lhci.yml || true
 
             - name: Upload results
               if: always()

@@ -342,13 +342,12 @@ describe('Apple Music search ranking', () => {
 
     test('persists video covers without an expiry and reuses them without another request', async () => {
         const values = new Map();
-        const originalLocalStorage = globalThis.localStorage;
         const originalFetch = globalThis.fetch;
-        globalThis.localStorage = {
+        vi.stubGlobal('localStorage', {
             getItem: (key) => values.get(key) ?? null,
             setItem: (key, value) => values.set(key, value),
             removeItem: (key) => values.delete(key),
-        };
+        });
         clearStoredVideoCovers();
 
         const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }))
@@ -386,8 +385,7 @@ describe('Apple Music search ranking', () => {
         } finally {
             clearStoredVideoCovers();
             globalThis.fetch = originalFetch;
-            if (originalLocalStorage === undefined) delete globalThis.localStorage;
-            else globalThis.localStorage = originalLocalStorage;
+            vi.unstubAllGlobals();
         }
     });
 });

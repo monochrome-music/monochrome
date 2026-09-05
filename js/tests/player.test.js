@@ -29,6 +29,14 @@ vi.mock('../storage.js', () => ({
         setPreservePitch: vi.fn(),
     },
     radioSettings: { isEnabled: vi.fn(() => false) },
+    autoplaySettings: {
+        isEnabled: vi.fn(() => false),
+        setEnabled: vi.fn(),
+        isSmartRecsEnabled: vi.fn(() => false),
+        setSmartRecsEnabled: vi.fn(),
+    },
+    binauralDspSettings: { isEnabled: vi.fn(() => false) },
+    nativeOsAtmosSettings: { isEnabled: vi.fn(() => false) },
     crossfadeSettings: { isEnabled: vi.fn(() => true) },
     contentBlockingSettings: {
         shouldHideTrack: vi.fn(() => false),
@@ -64,6 +72,7 @@ vi.mock('../ui.js', () => ({
 vi.mock('../platform-detection.js', () => ({
     isIos: false,
     isSafari: false,
+    isEdge: false,
     canUseNativeAmazonCenc: true,
     getAmazonDecrypterCodec: vi.fn(() => 'flac'),
 }));
