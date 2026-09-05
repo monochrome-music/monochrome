@@ -4737,8 +4737,27 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                         }
                     }
                     if (bands.length === 0) return;
-                    parametricBands = bands;
-                    applyBandsToAudio(parametricBands);
+                    // Importing while on the AutoEQ tab saves a reference AutoEQ
+                    // profile instead of overwriting the Parametric EQ bands.
+                    if (currentMode === 'autoeq') {
+                        autoeqCurrentBands = bands.map((b, i) => ({ channel: 'stereo', ...b, id: i }));
+                        const profileName = file.name.replace(/\.(txt|csv)$/i, '') || 'Imported';
+                        const id = equalizerSettings.saveAutoEQProfile({
+                            id: 'autoeq_' + Date.now(),
+                            name: profileName,
+                            headphoneName: profileName,
+                            headphoneType: 'over-ear',
+                            bandCount: bands.length,
+                            bands: autoeqCurrentBands.map((b) => ({ ...b })),
+                            preamp,
+                        });
+                        if (id) equalizerSettings.setActiveAutoEQProfile(id);
+                        renderSavedProfiles();
+                        applyBandsToAudio(autoeqCurrentBands);
+                    } else {
+                        parametricBands = bands;
+                        applyBandsToAudio(parametricBands);
+                    }
                     equalizerSettings.setPreamp(preamp);
                     if (eqPreampSlider) eqPreampSlider.value = preamp;
                     if (autoeqPreampValue) autoeqPreampValue.textContent = `${preamp} dB`;
