@@ -2649,7 +2649,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const router = createRouter(UIRenderer.instance);
 
+    // Navigations (search submit, suggestion clicks, links) can fire while the
+    // initial route is still loading below. Queue them instead of dropping them.
+    let routerReady = false;
+    let pendingNavigation = false;
+
     const handleRouteChange = async (event) => {
+        if (!routerReady) {
+            pendingNavigation = true;
+            return;
+        }
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const isFullscreenOpen = overlay && getComputedStyle(overlay).display === 'flex';
 
@@ -2689,8 +2698,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateTabTitle(Player.instance);
     };
 
-    await handleRouteChange();
-
     window.addEventListener('popstate', handleRouteChange);
 
     document.body.addEventListener('click', (e) => {
@@ -2706,6 +2713,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             navigate(link.pathname);
         }
     });
+
+    await handleRouteChange();
+
+    routerReady = true;
+    if (pendingNavigation) {
+        pendingNavigation = false;
+        await handleRouteChange();
+    }
 
     audioPlayer.addEventListener('play', () => {
         updateTabTitle(Player.instance);

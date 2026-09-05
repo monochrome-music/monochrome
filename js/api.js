@@ -93,6 +93,9 @@ function notifyAudioSourceMissing(details = null) {
             m.showNotification('Could not find Audio Source', {
                 type: 'error',
                 details,
+                // Transient playback failure, not an actionable bug — don't
+                // offer a GitHub report link (it floods the tracker).
+                reportIssue: false,
             })
         )
         .catch(() => {});
