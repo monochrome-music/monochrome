@@ -11858,21 +11858,6 @@ img.cd {
     color: var(--primary);
 }
 
-.donate-alt-section {
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border);
-}
-
-.donate-alt-text {
-    font-size: 0.9rem;
-    color: var(--muted-foreground);
-    margin-bottom: 1rem;
-}
-
-.donate-github-btn {
-    text-decoration: none;
-}
-
 #sidebar-nav-donate {
     border-radius: var(--radius);
     transition:
