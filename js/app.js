@@ -1062,38 +1062,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const btn = e.target.closest('#play-album-btn');
             if (btn.disabled) return;
 
-            const pathParts = window.location.pathname.split('/');
-            const albumIndex = pathParts.indexOf('album');
-            let albumId = albumIndex !== -1 ? pathParts[albumIndex + 1] : null;
-            // Handle /album/t/ID format
-            if (albumId === 't') {
-                albumId = pathParts[albumIndex + 2];
-            }
-
-            if (!albumId) return;
-
-            try {
-                const { tracks } = await MusicAPI.instance.getAlbum(albumId);
-                if (tracks && tracks.length > 0) {
-                    // Sort tracks by disc and track number for consistent playback
-                    const sortedTracks = [...tracks].sort((a, b) => {
-                        const discA = a.volumeNumber ?? a.discNumber ?? 1;
-                        const discB = b.volumeNumber ?? b.discNumber ?? 1;
-                        if (discA !== discB) return discA - discB;
-                        return a.trackNumber - b.trackNumber;
-                    });
-
-                    Player.instance.setQueue(sortedTracks, 0);
-                    const shuffleBtn = document.getElementById('shuffle-btn');
-                    if (shuffleBtn) shuffleBtn.classList.remove('active');
-                    Player.instance.shuffleActive = false;
-                    await Player.instance.playTrackFromQueue();
-                }
-            } catch (error) {
-                console.error('Failed to play album:', error);
-                const { showNotification } = await loadDownloadsModule();
-                showNotification('Failed to play album');
-            }
+            const firstTrackItem = document.querySelector(
+                '#album-detail-tracklist .track-item:not(.unavailable):not(.blocked)'
+            );
+            firstTrackItem?.click();
         }
 
         if (e.target.closest('#shuffle-album-btn')) {
