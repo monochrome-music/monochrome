@@ -45,6 +45,7 @@ export default defineConfig(({ mode }) => {
         define: {
             __COMMIT_HASH__: JSON.stringify(commitHash),
             __VITEST__: !!process.env.VITEST,
+            'process.env.CI': JSON.stringify(process.env.CI ?? ''),
         },
         worker: {
             format: 'es',
@@ -62,6 +63,7 @@ export default defineConfig(({ mode }) => {
         },
         optimizeDeps: {
             exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util'],
+            include: ['workbox-window', '@sentry/browser', '@capacitor/haptics', 'fuse.js'],
         },
         server: {
             fs: {

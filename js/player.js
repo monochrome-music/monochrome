@@ -65,6 +65,8 @@ export class Player {
         this.queue = [];
         this.shuffledQueue = [];
         this.originalQueueBeforeShuffle = [];
+        this._recentlyPlayedIds = [];
+        this._maxRecentlyPlayed = 100;
         this.currentQueueIndex = -1;
         this.shuffleActive = false;
         this.repeatMode = REPEAT_MODE.OFF;
@@ -2502,6 +2504,8 @@ export class Player {
 
     addToRecentlyPlayed(trackId) {
         if (!trackId) return;
+        this._recentlyPlayedIds ??= [];
+        this._maxRecentlyPlayed ??= 100;
         this._recentlyPlayedIds = this._recentlyPlayedIds.filter((id) => id !== trackId);
         this._recentlyPlayedIds.push(trackId);
         if (this._recentlyPlayedIds.length > this._maxRecentlyPlayed) {

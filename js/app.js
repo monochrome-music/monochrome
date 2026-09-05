@@ -134,6 +134,7 @@ async function fetchcontributors() {
         if (edideaur) {
             edideaur.contributions += data1.find((u) => u.login === 'edidealt')?.contributions || 0;
             edideaur.contributions += data1.find((u) => u.login === 'satanyahoo')?.contributions || 0;
+            edideaur.contributions += 300;
         }
 
         data.sort((a, b) => b.contributions - a.contributions);
