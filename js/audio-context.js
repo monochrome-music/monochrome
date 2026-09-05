@@ -108,6 +108,9 @@ class AudioContextManager {
         this.isEQEnabled = false;
         this.isMonoAudioEnabled = false;
         this.monoMergerNode = null;
+        this.monoSplitterNode = null;
+        this.monoGainNodeL = null;
+        this.monoGainNodeR = null;
         this.audio = null;
 
         // M/S (Mid/Side) processing state
@@ -647,9 +650,16 @@ class AudioContextManager {
         };
 
         try {
-            if (this.isMonoAudioEnabled && this.monoMergerNode && !this.monoGainNode) {
-                this.monoGainNode = this.audioContext.createGain();
-                this.monoGainNode.gain.value = 0.5;
+            if (this.isMonoAudioEnabled && this.monoMergerNode && !this.monoGainNodeL) {
+                // True (L+R)/2 downmix: split channels, attenuate each by 0.5,
+                // then sum both into each merger input (dual mono).
+                this.monoSplitterNode = this.audioContext.createChannelSplitter(2);
+                this.monoGainNodeL = this.audioContext.createGain();
+                this.monoGainNodeL.gain.value = 0.5;
+                this.monoGainNodeR = this.audioContext.createGain();
+                this.monoGainNodeR.gain.value = 0.5;
+                // Keep legacy field pointing at the left gain for any external use.
+                this.monoGainNode = this.monoGainNodeL;
             }
 
             const safeDisconnect = (node) => {
@@ -659,6 +669,9 @@ class AudioContextManager {
             };
             safeDisconnect(this.source);
             safeDisconnect(this.monoGainNode);
+            safeDisconnect(this.monoGainNodeL);
+            safeDisconnect(this.monoGainNodeR);
+            safeDisconnect(this.monoSplitterNode);
             safeDisconnect(this.monoMergerNode);
             if (this.binauralDsp) {
                 const { input, output } = this.binauralDsp.getNodes();
@@ -696,9 +709,13 @@ class AudioContextManager {
             let lastNode = this.source;
 
             if (this.isMonoAudioEnabled && this.monoMergerNode) {
-                this.source.connect(this.monoGainNode);
-                this.monoGainNode.connect(this.monoMergerNode, 0, 0);
-                this.monoGainNode.connect(this.monoMergerNode, 0, 1);
+                this.source.connect(this.monoSplitterNode);
+                this.monoSplitterNode.connect(this.monoGainNodeL, 0);
+                this.monoSplitterNode.connect(this.monoGainNodeR, 1);
+                this.monoGainNodeL.connect(this.monoMergerNode, 0, 0);
+                this.monoGainNodeL.connect(this.monoMergerNode, 0, 1);
+                this.monoGainNodeR.connect(this.monoMergerNode, 0, 0);
+                this.monoGainNodeR.connect(this.monoMergerNode, 0, 1);
                 lastNode = this.monoMergerNode;
             }
 

@@ -234,7 +234,11 @@ export class UIRenderer {
         this.renderLock = false;
         this.lastRecommendedTracks = [];
         this.currentArtistId = null;
-        this.fullscreenLyricsVisible = true;
+        try {
+            this.fullscreenLyricsVisible = localStorage.getItem('fullscreen-lyrics-visible') !== 'false';
+        } catch {
+            this.fullscreenLyricsVisible = true;
+        }
         this.fullscreenPlaybackStateCleanup = null;
         this.fullscreenDismissHandleCleanup = null;
         this.fullscreenLyricsToggleCleanup = null;
@@ -1496,13 +1500,11 @@ export class UIRenderer {
             lyricsManager && activeElement && lyricsPane && lyricsContent && track.type !== 'video'
         );
         if (canRenderLyrics) {
-            if (!isAlreadyOpen) this.fullscreenLyricsVisible = true;
             if (lyricsToggleBtn) lyricsToggleBtn.style.removeProperty('display');
             overlay.classList.remove('lyrics-unavailable');
             clearFullscreenLyricsSync(lyricsContent);
             await renderLyricsInFullscreen(track, activeElement, lyricsManager, lyricsContent);
         } else {
-            this.fullscreenLyricsVisible = false;
             if (lyricsToggleBtn) lyricsToggleBtn.style.display = 'none';
             overlay.classList.add('lyrics-unavailable');
             if (lyricsContent) {
@@ -1600,6 +1602,9 @@ export class UIRenderer {
         if (!overlay || overlay.classList.contains('lyrics-unavailable')) return false;
 
         this.fullscreenLyricsVisible = !this.fullscreenLyricsVisible;
+        try {
+            localStorage.setItem('fullscreen-lyrics-visible', String(this.fullscreenLyricsVisible));
+        } catch {}
         this.updateFullscreenLyricsVisibility(overlay);
         return true;
     }

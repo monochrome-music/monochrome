@@ -216,8 +216,9 @@ export function createMp4MetadataAtoms(track) {
         '©nam': getTrackTitle(track) || DEFAULT_TITLE,
         '©ART': getFullArtistString(track) || DEFAULT_ARTIST,
         '©alb': track.album?.title || DEFAULT_ALBUM,
-        aART: track.album?.artist?.name || track.artist?.name || DEFAULT_ARTIST,
+        aART: track.album?.artist?.name ?? track.album?.artists?.[0]?.name ?? undefined,
     };
+    if (tags.aART === undefined) delete tags.aART;
 
     if (track.isrc) {
         tags['ISRC'] = track.isrc;

@@ -272,7 +272,7 @@ export function createVorbisComments(track) {
     if (track.album?.title) {
         comments.push(['ALBUM', track.album.title]);
     }
-    const albumArtist = track.album?.artist?.name || track.artist?.name;
+    const albumArtist = track.album?.artist?.name ?? track.album?.artists?.[0]?.name ?? undefined;
     if (albumArtist) {
         comments.push(['ALBUMARTIST', albumArtist]);
     }

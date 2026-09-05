@@ -156,6 +156,11 @@ function friendlyEnrichError(error) {
     return msg || 'the track could not be prepared for download';
 }
 
+// Transient playback/download failures that are not actionable bugs.
+// Never offer a GitHub "Report this issue" link for these — they flood the tracker.
+const NO_ISSUE_REPORT_PATTERN =
+    /could not find audio source|failed to play album|couldn'?t download|failed to download/i;
+
 export function showNotification(message, options = {}) {
     if (typeof options === 'string') options = { type: options };
     const container = createDownloadNotification();
@@ -171,7 +176,7 @@ export function showNotification(message, options = {}) {
     const isError =
         options.type === 'error' ||
         /\b(error|failed|failure|could not|couldn't|cannot|unable|unavailable|not found)\b/i.test(String(message));
-    if (isError && options.reportIssue !== false) {
+    if (isError && options.reportIssue !== false && !NO_ISSUE_REPORT_PATTERN.test(String(message))) {
         const reportLink = document.createElement('a');
         reportLink.className = 'error-report-link';
         reportLink.href = buildErrorReportUrl(message, options.details || options.error || null);
@@ -402,7 +407,10 @@ async function bulkDownload({
                     fileFraction = Math.min(fileFraction, 0.99); // Cap at 99% to avoid showing 100% before finalization
                     updateBulkDownloadProgress(notification, i + fileFraction, tracks.length, trackTitle, p);
                 });
-                const filename = buildTrackFilename(track, quality, extension);
+                // Playlists/queues/liked lists mix tracks from many albums, so use
+                // the list sequence; albums/discographies keep album numbers.
+                const sequenceNumber = type === 'playlist' || type === 'queue' || type === 'liked' ? i + 1 : null;
+                const filename = buildTrackFilename(track, quality, extension, sequenceNumber);
                 const discNumber = discLayout.resolveDiscNumber(i);
                 const discPath = separateByDisc ? `${getDiscFolderName(discNumber)}/${filename}` : filename;
 

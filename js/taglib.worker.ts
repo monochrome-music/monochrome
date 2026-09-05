@@ -93,8 +93,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
         if (artistArray.length)
             props.replace('ARTIST', supportsMultiValuedArtist ? artistArray : [artistArray.join('; ')]);
         if (albumTitle) props.replace('ALBUM', [albumTitle]);
-        if (albumArtist || artistArray.length)
-            props.replace('ALBUMARTIST', albumArtist ? [albumArtist] : [artistArray.join('; ')]);
+        if (albumArtist) props.replace('ALBUMARTIST', [albumArtist]);
 
         if (trackNumber) {
             const trackStr =
