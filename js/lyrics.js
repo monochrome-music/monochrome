@@ -1,5 +1,5 @@
 //js/lyrics.js
-import { getTrackTitle, getTrackArtists, buildTrackFilename } from './utils.js';
+import { getTrackTitle, getTrackArtists, buildTrackFilename, escapeHtml } from './utils.js';
 import {
     SVG_CLOSE,
     SVG_GENIUS_ACTIVE,
@@ -546,6 +546,88 @@ export class LyricsManager {
 
     downloadLRC(lyricsData, track) {
         const blob = this.getLRC(lyricsData, track);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = blob.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    formatTTMLTime(seconds) {
+        const totalMs = Math.max(0, Math.round(seconds * 1000));
+        const ms = totalMs % 1000;
+        const totalSeconds = Math.floor(totalMs / 1000);
+        const s = totalSeconds % 60;
+        const totalMinutes = Math.floor(totalSeconds / 60);
+        const m = totalMinutes % 60;
+        const h = Math.floor(totalMinutes / 60);
+        const pad = (n, len = 2) => String(n).padStart(len, '0');
+        return `${pad(h)}:${pad(m)}:${pad(s)}.${pad(ms, 3)}`;
+    }
+
+    generateTTMLContent(lyricsData, track) {
+        if (!lyricsData || !lyricsData.subtitles) return null;
+        const lines = this.parseSyncedLyrics(lyricsData.subtitles);
+        if (!lines.length) return null;
+
+        const trackTitle = getTrackTitle(track);
+        const trackArtist = getTrackArtists(track);
+
+        // Detect per-line singer prefixes ("V1:", "V2:", ...) for ttm:agent.
+        const agents = new Set();
+        const paras = lines.map((line, i) => {
+            let text = line.text;
+            let agent = '';
+            const match = text.match(/^\s*V\s?(\d+)\s*[:\-–—]\s*/i);
+            if (match) {
+                agent = `v${parseInt(match[1], 10)}`;
+                agents.add(agent);
+                text = text.slice(match[0].length);
+            }
+            const nextBegin = i + 1 < lines.length ? lines[i + 1].time : null;
+            let end = nextBegin ?? line.time + 4;
+            if (Number.isFinite(track?.duration) && track.duration > line.time) {
+                end = Math.min(end, track.duration);
+            }
+            if (!(end > line.time)) end = line.time + 1;
+            return { begin: line.time, end, agent, text };
+        });
+
+        let ttml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        ttml += '<tt xmlns="http://www.w3.org/ns/ttml" xmlns:ttm="http://www.w3.org/ns/ttml#metadata" xml:lang="">\n';
+        ttml += '<head>\n<metadata>\n';
+        ttml += `<ttm:title>${escapeHtml(trackTitle)}</ttm:title>\n`;
+        if (trackArtist) ttml += `<ttm:copyright>${escapeHtml(trackArtist)}</ttm:copyright>\n`;
+        for (const agent of agents) {
+            ttml += `<ttm:agent type="person" xml:id="${agent}"/>\n`;
+        }
+        ttml += '</metadata>\n</head>\n<body>\n<div>\n';
+        for (const para of paras) {
+            const agentAttr = para.agent ? ` ttm:agent="${para.agent}"` : '';
+            ttml += `<p begin="${this.formatTTMLTime(para.begin)}" end="${this.formatTTMLTime(para.end)}"${agentAttr}>${escapeHtml(para.text)}</p>\n`;
+        }
+        ttml += '</div>\n</body>\n</tt>';
+        return ttml;
+    }
+
+    getTTML(lyricsData, track) {
+        const ttmlContent = this.generateTTMLContent(lyricsData, track);
+        if (!ttmlContent) return undefined;
+
+        return new File([ttmlContent], buildTrackFilename(track, 'LOSSLESS').replace(/\.flac$/, '.ttml'), {
+            type: 'application/xml',
+        });
+    }
+
+    downloadTTML(lyricsData, track) {
+        const blob = this.getTTML(lyricsData, track);
+        if (!blob) {
+            alert('No synced lyrics available for this track');
+            return;
+        }
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;

@@ -435,6 +435,15 @@ async function bulkDownload({
                                     input: lrcContent,
                                 };
                             }
+                            const ttmlContent = lyricsManager.generateTTMLContent(lyricsData, track);
+                            if (ttmlContent) {
+                                const ttmlFilename = filename.replace(/\.[^.]+$/, '.ttml');
+                                yield {
+                                    name: buildZipTrackPath(folderName, ttmlFilename, separateByDisc, discNumber),
+                                    lastModified: new Date(),
+                                    input: ttmlContent,
+                                };
+                            }
                         }
                     } catch {
                         /* ignore */
@@ -787,6 +796,19 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
     const signal = abortController.signal;
     const stats = { failed: 0, total: 0, firstError: null };
 
+    // Different versions of the same album (standard/deluxe) otherwise produce
+    // identical folder paths and entry names. Disambiguate folders per
+    // release and skip exact-duplicate entries (e.g. repeated cover.jpg).
+    const seenFolders = new Set();
+    const seenEntries = new Set();
+    async function* dedupeEntries(generator) {
+        for await (const entry of generator) {
+            if (seenEntries.has(entry.name)) continue;
+            seenEntries.add(entry.name);
+            yield entry;
+        }
+    }
+
     async function* yieldDiscography() {
         for (let albumIndex = 0; albumIndex < selectedReleases.length; albumIndex++) {
             if (signal.aborted) break;
@@ -809,7 +831,12 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                     year: year,
                 });
 
-                const fullFolderPath = `${rootFolder}/${albumFolder}`;
+                let fullFolderPath = `${rootFolder}/${albumFolder}`;
+                const versionSuffix = fullAlbum.version || String(fullAlbum.id ?? album.id ?? '');
+                if (seenFolders.has(fullFolderPath) && versionSuffix) {
+                    fullFolderPath = `${fullFolderPath} [${sanitizeForFilename(versionSuffix)}]`;
+                }
+                seenFolders.add(fullFolderPath);
                 if (coverBlob && playlistSettings.shouldIncludeCover())
                     yield { name: `${fullFolderPath}/cover.jpg`, lastModified: new Date(), input: coverBlob };
 
@@ -854,6 +881,20 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                                             ),
                                             lastModified: new Date(),
                                             input: lrcContent,
+                                        };
+                                    }
+                                    const ttmlContent = lyricsManager.generateTTMLContent(lyricsData, track);
+                                    if (ttmlContent) {
+                                        const ttmlFilename = filename.replace(/\.[^.]+$/, '.ttml');
+                                        yield {
+                                            name: buildZipTrackPath(
+                                                fullFolderPath,
+                                                ttmlFilename,
+                                                separateByDisc,
+                                                discNumber
+                                            ),
+                                            lastModified: new Date(),
+                                            input: ttmlContent,
                                         };
                                     }
                                 }
@@ -932,7 +973,7 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
         const writer = await createBulkWriter(rootFolder);
 
         if (writer) {
-            await writer.write(yieldDiscography());
+            await writer.write(dedupeEntries(yieldDiscography()));
         }
 
         completeBulkDownload(notification, true, null, {
@@ -1196,6 +1237,16 @@ export async function downloadTrackWithMetadata(
                             input: lyricsManager.getLRC(lyricsData, track),
                         })
                     );
+                    const ttmlFile = lyricsManager.getTTML(lyricsData, track);
+                    if (ttmlFile) {
+                        await folderWriter.write(
+                            singleWriterEntry({
+                                name: [...entryName.split('.').slice(0, -1), 'ttml'].join('.'),
+                                lastModified: new Date(),
+                                input: ttmlFile,
+                            })
+                        );
+                    }
                 }
             } catch {
                 console.log('Could not download lyrics for track');
