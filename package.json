@@ -74,7 +74,7 @@
         "@kawarp/core": "^1.1.1",
         "@sentry/browser": "^10.70.0",
         "@types/wicg-file-system-access": "^2023.10.7",
-        "@uimaxbai/am-lyrics": "^1.6.1",
+        "@uimaxbai/am-lyrics": "^1.6.2",
         "appwrite": "^23.0.0",
         "better-auth": "^1.6.26",
         "butterchurn": "^2.6.7",
