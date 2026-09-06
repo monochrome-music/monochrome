@@ -2204,13 +2204,16 @@ class HiFiClient {
                     mapped.artists = artists;
                     if (artists.length > 0) mapped.artist = artists[0];
                     const albumRef = item.relationships?.albums?.data?.[0];
-                    if (albumRef) {
+                    if (albumRef && albumRef.id) {  // Ensure album ID exists before converting
                         const albumItem = includedMap.get(`albums:${albumRef.id}`);
-                        mapped.album = {
-                            id: Number(albumRef.id),
-                            title: albumItem?.attributes?.title ?? '',
-                            cover: albumItem ? resolveArtworkId(albumItem, 'coverArt') : null,
-                        };
+                        const albumId = Number(albumRef.id);
+                        if (Number.isFinite(albumId)) {  // Validate the ID is a valid number
+                            mapped.album = {
+                                id: albumId,
+                                title: albumItem?.attributes?.title ?? '',
+                                cover: albumItem ? resolveArtworkId(albumItem, 'coverArt') : null,
+                            };
+                        }
                     }
                 } else if (item.type === 'videos') {
                     const artists = resolveArtists(item);

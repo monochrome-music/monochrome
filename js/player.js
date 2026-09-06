@@ -83,6 +83,7 @@ export class Player {
         this.userVolume = parseFloat(localStorage.getItem('volume') || '0.7');
         this.isFallbackRetry = false;
         this.isFallbackInProgress = false;
+        this.atmosPlaybackUnavailable = false;
         this.autoplayBlocked = false;
         this.isLoadingTrack = false;
         this.isIOS = isIos;
@@ -233,7 +234,6 @@ export class Player {
                 bufferingGoal: 30,
                 rebufferingGoal: 2,
                 bufferBehind: 30,
-                jumpLargeGaps: true,
             },
             abr: {
                 enabled: true,
@@ -646,6 +646,8 @@ export class Player {
 
     setQuality(quality) {
         this.quality = normalizeQualityToken(quality) || quality;
+        // A deliberate quality selection should be allowed to retry Atmos.
+        this.atmosPlaybackUnavailable = false;
     }
 
     preloadNextTracks() {
@@ -1592,12 +1594,17 @@ export class Player {
                 }
 
                 // Tidal: Try to get ReplayGain from manifest first, supplement with track info if needed
-                const cachedStreamInfo = preparedPlayback ? null : this.preloadCache.get(track.id);
+                                const cachedStreamInfo = preparedPlayback ? null : this.preloadCache.get(track.id);
+                                const requestedQuality =
+                                        this.atmosPlaybackUnavailable && this.quality?.startsWith('DOLBY_ATMOS')
+                                                ? 'LOSSLESS'
+                                                : this.quality;
+                                const useCachedStream = !this.atmosPlaybackUnavailable || !this.quality?.startsWith('DOLBY_ATMOS');
                 const streamInfoPromise = preparedPlayback?.streamInfo
                     ? Promise.resolve(preparedPlayback.streamInfo)
-                    : cachedStreamInfo
+                                        : cachedStreamInfo && useCachedStream
                       ? Promise.resolve(cachedStreamInfo)
-                      : this.api.getStreamUrl(track.id, this.quality, { track });
+                                            : this.api.getStreamUrl(track.id, requestedQuality, { track });
 
                 // We only need the legacy track info if we missed getting ReplayGain from the manifest endpoint
                 let resolvedStreamInfo = await streamInfoPromise;
@@ -1792,7 +1799,13 @@ export class Player {
                 return;
             }
 
-            if (this.quality === 'HI_RES_LOSSLESS' && !this.isFallbackRetry) {
+            const isAtmosQuality = this.quality?.startsWith('DOLBY_ATMOS');
+            const isShakaDrmFailure = error?.code === 6001;
+            if ((this.quality === 'HI_RES_LOSSLESS' || (isAtmosQuality && isShakaDrmFailure)) && !this.isFallbackRetry) {
+                if (isAtmosQuality && isShakaDrmFailure) {
+                    this.atmosPlaybackUnavailable = true;
+                    await this.discardCachedPreload(track.id);
+                }
                 this.isFallbackRetry = true;
                 const originalQuality = this.quality;
                 this.quality = 'LOSSLESS';

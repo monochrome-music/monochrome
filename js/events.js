@@ -7,6 +7,7 @@ import {
     positionMenu,
     getShareUrl,
     escapeHtml,
+    isValidAlbumId,
 } from './utils.js';
 import {
     lastFMStorage,
@@ -1887,7 +1888,7 @@ export async function handleTrackAction(
             navigate(`/artist/${artistId}`);
         }
     } else if (action === 'go-to-album') {
-        if (item.album?.id) {
+        if (isValidAlbumId(item.album?.id)) {
             navigate(`/album/${item.album.id}`);
         }
     } else if (action === 'copy-link' || action === 'share') {
@@ -2794,14 +2795,14 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     // Now playing bar interactions
     document.querySelector('.now-playing-bar .title')?.addEventListener('click', () => {
         const track = player.currentTrack;
-        if (track?.album?.id) {
+        if (isValidAlbumId(track?.album?.id)) {
             navigate(`/album/${track.album.id}`);
         }
     });
 
     document.querySelector('.now-playing-bar .album')?.addEventListener('click', () => {
         const track = player.currentTrack;
-        if (track?.album?.id) {
+        if (isValidAlbumId(track?.album?.id)) {
             navigate(`/album/${track.album.id}`);
         }
     });

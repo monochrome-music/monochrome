@@ -16,6 +16,7 @@ import {
     decodeHtml,
     getShareUrl,
     createModal,
+    isValidAlbumId,
 } from './utils.js';
 import { openLyricsPanel, renderLyricsInFullscreen, clearFullscreenLyricsSync } from './lyrics.js';
 import {
@@ -3645,7 +3646,7 @@ export class UIRenderer {
         card.style.pointerEvents = 'none';
         try {
             const album = await this.findAOTYAlbumInLibrary(artist, title);
-            if (album) {
+            if (album && isValidAlbumId(album.id)) {
                 navigate(`/album/${album.id}`);
             } else if (aotyUrl) {
                 window.open(aotyUrl, '_blank', 'noopener');

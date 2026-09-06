@@ -1,4 +1,4 @@
-import { debounce } from './utils.js';
+import { debounce, isValidAlbumId } from './utils.js';
 import { db } from './db.js';
 import Fuse from 'fuse.js';
 import { navigate } from './router.js';
@@ -880,7 +880,9 @@ class CommandPalette {
                     label: album.title,
                     description: album.artist?.name || 'Unknown',
                     action: () => {
-                        navigate(`/album/${album.id}`);
+                        if (isValidAlbumId(album.id)) {
+                            navigate(`/album/${album.id}`);
+                        }
                     },
                 }));
             }

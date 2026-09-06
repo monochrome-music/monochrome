@@ -720,8 +720,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } else {
             // Default to 'album' mode - navigate to album
-            if (Player.instance.currentTrack.album?.id) {
-                navigate(`/album/${Player.instance.currentTrack.album.id}`);
+            const albumId = Player.instance.currentTrack.album?.id;
+            if (albumId && Number.isFinite(albumId) && albumId > 0) {
+                navigate(`/album/${albumId}`);
             }
         }
     });

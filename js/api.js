@@ -3277,7 +3277,12 @@ export class LosslessAPI {
             });
         }
 
+        const isAppleAlbum =
+            isApple ||
+            String(track?.album?.id || '').startsWith('apple:') ||
+            String(track?.album?.provider || '').toLowerCase() === 'apple';
         if (
+            !isAppleAlbum &&
             track.album?.id &&
             (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null || !track.album?.cover)
         ) {
@@ -3458,8 +3463,10 @@ export class LosslessAPI {
 
                 const encryptedBlob = await response.blob();
                 const preserveAtmos = isAtmosQuality(downloadQuality) || isAtmosQuality(postProcessingQuality);
-                const outputName = preserveAtmos ? 'output.m4a' : 'output.flac';
-                const outputMime = preserveAtmos ? 'audio/mp4' : 'audio/flac';
+                // E-AC-3 is not accepted by FFmpeg's MP4/iPod muxer. Keep the
+                // Atmos bitstream in an audio Matroska container instead.
+                const outputName = preserveAtmos ? 'output.mka' : 'output.flac';
+                const outputMime = preserveAtmos ? 'audio/x-matroska' : 'audio/flac';
                 blob = await ffmpeg(encryptedBlob, {
                     rawArgs: [
                         '-decryption_key',

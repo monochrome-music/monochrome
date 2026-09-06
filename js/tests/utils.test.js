@@ -155,6 +155,11 @@ describe('utils.js', () => {
             expect(utils.detectAudioFormat(view)).toBe('ogg');
         });
 
+        test('detects Matroska audio used for E-AC-3 Atmos downloads', () => {
+            const view = new DataView(new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]).buffer);
+            expect(utils.detectAudioFormat(view)).toBe('mka');
+        });
+
         test('returns null for unknown format', () => {
             const view = new DataView(new Uint8Array([0, 0, 0, 0]).buffer);
             expect(utils.detectAudioFormat(view)).toBeNull();

@@ -567,8 +567,18 @@ export class MusicDatabase {
                     if (item.id && typeof item.id === 'string' && !isNaN(item.id)) {
                         item.id = parseInt(item.id, 10);
                     }
-                    if (item.album?.id && typeof item.album.id === 'string' && !isNaN(item.album.id)) {
-                        item.album.id = parseInt(item.album.id, 10);
+                    if (item.album?.id) {
+                        const parsedId = typeof item.album.id === 'string' 
+                            ? parseInt(item.album.id, 10) 
+                            : item.album.id;
+                        // Only set if result is a valid number (not NaN)
+                        if (Number.isFinite(parsedId) && parsedId > 0) {
+                            item.album.id = parsedId;
+                        } else {
+                            console.warn(`Invalid album ID during import: ${item.album.id}`);
+                            // Remove invalid ID to prevent /album/NaN URLs
+                            delete item.album.id;
+                        }
                     }
                     if (item.artists) {
                         item.artists.forEach((artist) => {

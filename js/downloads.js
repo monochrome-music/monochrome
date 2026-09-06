@@ -149,10 +149,32 @@ function createDownloadNotification() {
 
 function friendlyEnrichError(error) {
     const msg = String(error?.message || error || '');
+    
+    // 4xx Client Errors
+    if (msg.includes('status 400')) return 'invalid request to the provider';
+    if (msg.includes('status 403')) return 'this track is restricted in your region';
+    if (msg.includes('status 404')) return 'this track was not found on the provider';
+    if (msg.includes('status 423')) return 'this track is temporarily locked';
+    
+    // 422 Unprocessable Entity (special case for downloads)
+    if (msg.includes('status 422')) return 'this track cannot be downloaded';
+    
+    // Rate Limiting (429)
+    if (msg.includes('status 429')) return 'rate limited - please wait before downloading more tracks';
+    
+    // 5xx Server Errors (transient failures - should retry)
+    if (msg.includes('status 500')) return 'provider server error - please try again later';
+    if (msg.includes('status 502')) return 'provider gateway error - please try again later';
+    if (msg.includes('status 503')) return 'provider temporarily unavailable - please try again later';
+    if (msg.includes('status 504')) return 'provider timeout - please try again later';
+    
+    // CloudFlare/origin errors
+    if (msg.includes('status 523')) return 'provider unreachable - please try again later';
+    
+    // Generic fallback
     if (msg.includes('Could not resolve audio stream')) return 'no audio stream is available for this track';
     if (msg.includes('DOLBY ATMOS') || msg.includes('Dolby Atmos')) return msg;
-    if (msg.includes('status 404')) return 'this track was not found on the provider';
-    if (msg.includes('status 422')) return 'this track cannot be downloaded';
+    
     return msg || 'the track could not be prepared for download';
 }
 

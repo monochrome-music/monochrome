@@ -171,6 +171,18 @@ export const detectAudioFormat = (view, mimeType = '') => {
         return 'mp4';
     }
 
+    // E-AC-3 Atmos downloads use Matroska because the MP4/iPod muxer rejects
+    // E-AC-3 stream copy.
+    if (
+        view.byteLength >= 4 &&
+        view.getUint8(0) === 0x1a &&
+        view.getUint8(1) === 0x45 &&
+        view.getUint8(2) === 0xdf &&
+        view.getUint8(3) === 0xa3
+    ) {
+        return 'mka';
+    }
+
     // Check for MP3 signature: ID3 tag or MPEG frame sync
     if (
         view.byteLength >= 3 &&
@@ -247,6 +259,7 @@ export const getExtensionFromBlob = async (blob) => {
 
     if (blob.type.includes('video')) return 'mp4';
     if (blob.type === 'audio/flac') return 'flac';
+    if (blob.type === 'audio/x-matroska' || blob.type === 'audio/matroska') return 'mka';
     if (blob.type === 'audio/ogg') return 'ogg';
     if (blob.type === 'audio/mp4' || blob.type === 'audio/x-m4a') return 'mp4';
     if (blob.type === 'audio/mp3' || blob.type === 'audio/mpeg') return 'mp3';
@@ -901,6 +914,35 @@ export function fetchBlob(url) {
 
 export async function fetchBlobURL(url) {
     return URL.createObjectURL(await fetchBlob(url));
+}
+
+/**
+ * Validates whether an album ID is in a valid format and safe to use
+ * @param {any} id - The album ID to validate (can be string, number, or any type)
+ * @returns {boolean} true if the ID is a valid positive number or numeric string
+ * @example
+ * isValidAlbumId(123) // true
+ * isValidAlbumId("123") // true
+ * isValidAlbumId(NaN) // false
+ * isValidAlbumId(undefined) // false
+ * isValidAlbumId("") // false
+ */
+export function isValidAlbumId(id) {
+    if (id === null || id === undefined) return false;
+    
+    // Handle numeric types
+    if (typeof id === 'number') {
+        return Number.isFinite(id) && id > 0;
+    }
+    
+    // Handle string types
+    if (typeof id === 'string') {
+        if (id.trim() === '') return false;
+        const parsed = parseInt(id, 10);
+        return Number.isFinite(parsed) && parsed > 0;
+    }
+    
+    return false;
 }
 
 export function getMimeType(data) {

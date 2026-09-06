@@ -7,6 +7,9 @@ let loadingPromise = null;
 let totalDurationSeconds = null;
 let lastProgress = 0;
 
+// For error diagnostics - capture FFmpeg output for error messages
+let ffmpegLogs = [];
+
 function parseTimestamp(str) {
     // Expects format: 00:03:19.26
     const match = str.match(/(\d+):(\d+):(\d+\.?\d*)/);
@@ -41,6 +44,12 @@ async function loadFFmpeg(loadOptions = {}) {
 
         ffmpeg.on('log', ({ message }) => {
             self.postMessage({ type: 'log', stage: 'stdout', message });
+            
+            // Capture logs for error diagnostics (keep last 50 lines)
+            ffmpegLogs.push(message);
+            if (ffmpegLogs.length > 50) {
+                ffmpegLogs.shift();
+            }
 
             // Try to extract total duration from input log
             if (totalDurationSeconds === null) {
@@ -90,6 +99,7 @@ async function loadFFmpeg(loadOptions = {}) {
         // Reset progress state for each run
         totalDurationSeconds = null;
         lastProgress = 0;
+        ffmpegLogs = [];  // Clear logs for new encoding session
     })();
 
     return loadingPromise;
@@ -112,6 +122,11 @@ self.onmessage = async (e) => {
 
     try {
         await loadFFmpeg(loadOptions);
+        
+        // Reset logs and progress for this encoding session
+        ffmpegLogs = [];
+        totalDurationSeconds = null;
+        lastProgress = 0;
 
         self.postMessage({ type: 'progress', stage: 'encoding', message: encodeStartMessage, progress: 0.0 });
 
@@ -130,7 +145,13 @@ self.onmessage = async (e) => {
             const exitCode = await ffmpeg.exec(ffmpegArgs);
 
             if (exitCode !== 0) {
-                throw new Error(`FFmpeg failed with exit code ${exitCode}.`);
+                // Capture the last 10 log lines for diagnostic information
+                const diagnosticLogs = ffmpegLogs.slice(-10).join('\n');
+                const errorMessage = 
+                    `FFmpeg failed with exit code ${exitCode}.\n` +
+                    `Command: ${ffmpegArgs.join(' ')}\n` +
+                    `Last output:\n${diagnosticLogs}`;
+                throw new Error(errorMessage);
             }
 
             self.postMessage({ type: 'progress', stage: 'finalizing', message: encodeEndMessage, progress: 100.0 });
