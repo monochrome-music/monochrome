@@ -2581,6 +2581,8 @@ export class LosslessAPI {
             params.set('quality', 'HI_RES_LOSSLESS');
         }
 
+        params.set('customerId', 'anonymous');
+
         return params;
     }
 
@@ -3081,11 +3083,19 @@ export class LosslessAPI {
                 this.unifiedPlaybackFailures.get(String(track?.id || id)) || null
             )
         );
-        throw new Error(
-            track?.isrc
-                ? 'Could not resolve stream URL from Unified Playback or Deezer'
-                : 'Could not resolve stream URL: Unified Playback failed and the track has no ISRC for Deezer lookup'
-        );
+        const unifiedFailure = this.unifiedPlaybackFailures.get(String(track?.id || id));
+        let errorMessage = track?.isrc
+            ? 'Could not resolve stream URL from Unified Playback or Deezer'
+            : 'Could not resolve stream URL: Unified Playback failed and the track has no ISRC for Deezer lookup';
+
+        if (unifiedFailure?.response?.error?.message === 'Every playback source failed.') {
+            const amazonError = unifiedFailure.response.sources?.find(s => s.source === 'amazon')?.error;
+            if (amazonError?.message?.includes('customerId')) {
+                errorMessage = 'Playback failed: The upstream unified playback server is experiencing Amazon API errors (missing customerId). Please wait for a backend update, or configure a Deezer fallback in settings.';
+            }
+        }
+
+        throw new Error(errorMessage);
     }
 
     async getVideoStreamUrl(id) {
