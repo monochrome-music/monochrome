@@ -2568,6 +2568,12 @@ export class LosslessAPI {
         if (duration) params.set('duration', String(Math.round(duration)));
         if (intent) params.set('intent', intent);
 
+        if (track?.explicit === true || track?.explicitLyrics === true) {
+            params.set('explicit', 'true');
+        } else if (track?.explicit === false || track?.explicitLyrics === false) {
+            params.set('explicit', 'false');
+        }
+
         const canonicalQuality = normalizeQualityToken(quality) || quality;
         if (canonicalQuality && canonicalQuality !== 'auto' && canonicalQuality !== 'ADAPTIVE') {
             params.set('quality', canonicalQuality);
@@ -3418,19 +3424,21 @@ export class LosslessAPI {
                         ? findValue(lookup, 'manifest') || findValue(lookup, 'Manifest')
                         : lookup.info?.manifest;
 
-                    if (!manifest) {
-                        throw new Error('Could not resolve manifest');
-                    }
-
                     if (preferDolbyAtmosSettings.isEnabled() && enrichedTrack.audioModes?.includes('DOLBY_ATMOS')) {
                         try {
-                            const stream = await this.getStreamUrl(id, 'DOLBY_ATMOS_EAC3_HIGH');
-                            const manifestRes = await fetch(stream.url, { signal: options.signal });
-                            const manifestText = await manifestRes.text();
-                            streamUrl = this.extractStreamUrlFromManifest(btoa(manifestText));
+                            const stream = await this.getStreamUrl(id, 'DOLBY_ATMOS_EAC3_HIGH', {
+                                track: inputTrackObj || enrichedTrack,
+                                intent: 'download',
+                                signal: options.signal
+                            });
+                            if (stream && stream.url) {
+                                const manifestRes = await fetch(stream.url, { signal: options.signal });
+                                const manifestText = await manifestRes.text();
+                                streamUrl = this.extractStreamUrlFromManifest(btoa(manifestText));
 
-                            if (streamUrl) {
-                                postProcessingQuality = 'DOLBY_ATMOS_EAC3_HIGH';
+                                if (streamUrl) {
+                                    postProcessingQuality = 'DOLBY_ATMOS_EAC3_HIGH';
+                                }
                             }
                         } catch (err) {
                             console.error('Failed to extract Dolby Atmos stream URL:', err);
@@ -3438,6 +3446,9 @@ export class LosslessAPI {
                     }
 
                     if (!streamUrl) {
+                        if (!manifest) {
+                            throw new Error('Could not resolve manifest');
+                        }
                         streamUrl = this.extractStreamUrlFromManifest(manifest);
                         if (!streamUrl) {
                             throw new Error('Could not resolve stream URL');
