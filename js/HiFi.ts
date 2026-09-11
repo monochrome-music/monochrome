@@ -917,20 +917,6 @@ export interface TidalAudioNormData {
 }
 
 /**
- * DRM licence data embedded in a track manifest attributes object.
- */
-export interface DrmData {
-    /** DRM system identifier, e.g. `"WIDEVINE"`. */
-    drmSystem: string;
-    /** Licence acquisition URL. */
-    licenseUrl: string;
-    /** Certificate URL. */
-    certificateUrl: string;
-    /** DRM initialisation data, or `null`. */
-    initData: string | null;
-}
-
-/**
  * Attributes of a single track-manifest resource from the TIDAL OpenAPI.
  *
  * @remarks
@@ -952,8 +938,6 @@ export interface TrackManifestAttributes {
     albumAudioNormalizationData: TidalAudioNormData;
     /** Track-level audio normalisation data. */
     trackAudioNormalizationData: TidalAudioNormData;
-    /** DRM data (only present when the track is DRM-protected). */
-    drmData?: DrmData;
 }
 
 /**
@@ -1100,9 +1084,7 @@ class HiFiClient {
         return HiFiClient.#instance;
     }
 
-    /**
-     * The base URL to use for adjusting widevine license URLs.
-     */
+    /** The base URL to use for API requests. */
     #baseUrl: string | null = null;
     #token: string | null = null;
     #refreshToken: string | null = null;
@@ -1525,24 +1507,7 @@ class HiFiClient {
         }
 
         const res = await this.#fetchJson<TrackManifestApiResponse>(url, params, signal);
-        const drmData = res.data.attributes.drmData;
-
-        if (drmData && this.#baseUrl) {
-            const url = `${this.#baseUrl.replace(/\/+$/g, '')}/widevine`;
-            drmData.licenseUrl = url;
-            drmData.certificateUrl = url;
-        }
-
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: res });
-    }
-
-    /**
-     * Fetches a raw Widevine licence response from the TIDAL API.
-     *
-     * @returns The raw {@link Response} from the Widevine endpoint.
-     */
-    async getWidevine(): Promise<Response> {
-        return await this.#fetchAuthenticated('https://api.tidal.com/v2/widevine');
     }
 
     /**
@@ -2651,8 +2616,6 @@ class HiFiClient {
                             adaptive: Boolean(qp.adaptive?.toLowerCase()) || undefined,
                         })
                     );
-                case '/widevine':
-                    return new TidalResponse(await this.getWidevine());
                 default:
                     throw new Error(`Unknown route: ${pathname}`);
             }

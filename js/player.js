@@ -25,7 +25,7 @@ import {
     crossfadeSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
-import { isIos, isSafari, isEdge, canUseNativeLegacyCenc, getLegacyDecrypterCodec } from './platform-detection.js';
+import { isIos, isSafari, isEdge } from './platform-detection.js';
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
 import { getReplayGainScale } from './replay-gain.js';
@@ -282,9 +282,7 @@ export class Player {
 
         return (
             isDash ||
-            playbackType.includes('cenc') ||
             (isHls && !isSafari && !isIos) ||
-            (this.isNativeLegacyHlsDecryptionUrl(streamUrl) && !isSafari) ||
             (streamUrl.startsWith('blob:') && playbackType !== 'direct' && playbackType !== 'hls')
         );
     }
@@ -301,33 +299,7 @@ export class Player {
         this.configureShakaPlayer(player, shaka);
         await player.attach(element);
 
-        if (
-            String(streamInfo.playbackType || '')
-                .toLowerCase()
-                .includes('cenc')
-        ) {
-            if (!streamInfo.keyId || !streamInfo.decryptionKey) {
-                await player.destroy();
-                throw new Error('Encrypted crossfade stream is missing its Clear Key');
-            }
-            player.configure({
-                drm: {
-                    clearKeys: {
-                        [streamInfo.keyId]: streamInfo.decryptionKey,
-                    },
-                },
-            });
-        } else {
-            player.configure({ drm: { clearKeys: {} } });
-        }
-
-        const shakaMimeType = String(streamInfo.playbackType || '')
-            .toLowerCase()
-            .includes('cenc')
-            ? streamInfo.mimeType || null
-            : this.isNativeLegacyHlsDecryptionUrl(streamInfo.url)
-              ? 'application/vnd.apple.mpegurl'
-              : null;
+        const shakaMimeType = null;
         try {
             await player.load(getProxyUrl(streamInfo.url), null, shakaMimeType);
             return player;
@@ -740,14 +712,10 @@ export class Player {
                     continue;
                 }
 
-                // Warm connection and pre-fetch. The service-worker HLS URL has
-                // no .m3u8 suffix, but it is still an adaptive manifest and must
-                // never be assigned directly to Firefox's <audio> element.
+                // Warm connection and pre-fetch adaptive manifests.
                 if (!streamUrl.startsWith('blob:')) {
-                    const shakaPreloadMimeType = this.isNativeLegacyHlsDecryptionUrl(streamUrl)
-                        ? 'application/vnd.apple.mpegurl'
-                        : null;
-                    if (streamUrl.includes('.mpd') || streamUrl.includes('.m3u8') || shakaPreloadMimeType) {
+                    const shakaPreloadMimeType = null;
+                    if (streamUrl.includes('.mpd') || streamUrl.includes('.m3u8')) {
                         if (
                             this.shakaInitialized &&
                             this.shakaPlayer &&
@@ -796,7 +764,7 @@ export class Player {
                         }
                     } else {
                         // Prime the actual handoff element. A throwaway Audio would consume a
-                        // signed URL (or duplicate work in the decrypter service worker) and then
+                        // signed URL and then
                         // force the transition to request the same stream again.
                         const preloader = this.audioElements.find((element) => element !== this.activeElement);
                         if (preloader) {
@@ -841,47 +809,6 @@ export class Player {
     }
 
     backfillReplayGainFromTrack(_track, _currentSequence) {}
-
-    shouldUseNativeLegacyDecrypter() {
-        return !canUseNativeLegacyCenc;
-    }
-
-    getLegacyNativeDecrypterCodec(streamInfo = null) {
-        const resourceCodec = String(streamInfo?.codec || '').toLowerCase();
-        if (resourceCodec === 'opus') return 'opus';
-        if (resourceCodec === 'ac4' || resourceCodec === 'ac-4') return 'ac4';
-        if (resourceCodec === 'eac3' || resourceCodec === 'eac3-joc' || resourceCodec === 'ec-3') return 'eac3';
-        if (resourceCodec === 'aac' || resourceCodec.startsWith('mp4a')) return 'mp4a';
-        return getLegacyDecrypterCodec(this.quality);
-    }
-
-    isNativeLegacyHlsDecryptionUrl(url) {
-        if (!url || !url.includes('/api/decrypt-stream')) return false;
-
-        try {
-            const parsed = new URL(url, window.location.origin);
-            return parsed.searchParams.get('codec') === 'flac-hls';
-        } catch {
-            return url.includes('codec=flac-hls');
-        }
-    }
-
-    getNativeLegacyDecryptionUrl(streamInfo, streamUrl) {
-        if (!this.shouldUseNativeLegacyDecrypter()) return null;
-        if (!streamInfo || streamInfo.provider !== 'legacy' || !streamInfo.decryptionKey || !streamUrl) return null;
-        if (streamUrl.includes('/api/decrypt-stream')) return null;
-
-        const sourceUrl = streamInfo.sourceUrl || streamUrl;
-        if (!sourceUrl || sourceUrl.startsWith('blob:') || sourceUrl.includes('.mpd')) return null;
-
-        const params = new URLSearchParams();
-        params.set('url', sourceUrl);
-        params.set('key', streamInfo.decryptionKey);
-        params.set('codec', this.getLegacyNativeDecrypterCodec(streamInfo));
-
-        console.warn('[SW Decrypter] Player rescued a protected stream URL');
-        return `${window.location.protocol}//${window.location.host}/api/decrypt-stream?${params.toString()}`;
-    }
 
     async teardownShakaForNativePlayback() {
         if (!this.shakaInitialized || !this.shakaPlayer) return;
@@ -953,10 +880,7 @@ export class Player {
         recursiveCount = 0,
     }) {
         const cachedStreamInfo = this.preloadCache.get(track.id);
-        const rescuedStreamUrl = this.getNativeLegacyDecryptionUrl(cachedStreamInfo, cachedStreamInfo?.url);
-        const streamInfo = rescuedStreamUrl
-            ? { ...cachedStreamInfo, url: rescuedStreamUrl, playbackType: [], preloadManager: null, preloader: null }
-            : cachedStreamInfo;
+        const streamInfo = cachedStreamInfo;
         const streamUrl = streamInfo?.url;
         const canReuseAudioElement = previousActiveElement === this.audio && activeElement === this.audio;
 
@@ -975,7 +899,6 @@ export class Player {
         const isDashManifest =
             !isHlsManifest &&
             (streamInfo.playbackType === 'dash' ||
-                streamInfo.playbackType === 'dash-cenc' ||
                 streamInfo.delivery === 'dash' ||
                 streamInfo.mimeType?.includes('dash') ||
                 (typeof streamUrl === 'string' && (streamUrl.startsWith('data:') || streamUrl.includes('.mpd'))));
@@ -983,12 +906,10 @@ export class Player {
         const requiresShaka =
             !track.isLocal &&
             (isDashManifest ||
-                streamInfo.playbackType?.includes('cenc') ||
                 (streamUrl.startsWith('blob:') &&
                     streamInfo.playbackType !== 'direct' &&
                     streamInfo.playbackType !== 'hls') ||
-                (isHlsManifest && !isSafari && !isIos) ||
-                (this.isNativeLegacyHlsDecryptionUrl(streamUrl) && !isSafari));
+                (isHlsManifest && !isSafari && !isIos));
         if (requiresShaka && (!this.shakaPlayer || this.shakaPlayer.getMediaElement() !== activeElement)) {
             return false;
         }
@@ -1033,22 +954,7 @@ export class Player {
 
         if (requiresShaka) {
             const loadTarget = streamInfo.preloadManager || streamUrl;
-            if (streamInfo.playbackType?.includes('cenc')) {
-                this.shakaPlayer.configure({
-                    drm: {
-                        clearKeys: {
-                            [streamInfo.keyId]: streamInfo.decryptionKey,
-                        },
-                    },
-                });
-            } else {
-                this.shakaPlayer.configure({ drm: { clearKeys: {} } });
-            }
-            const shakaMimeType = streamInfo.playbackType?.includes('cenc')
-                ? streamInfo.mimeType || null
-                : this.isNativeLegacyHlsDecryptionUrl(streamUrl)
-                  ? 'application/vnd.apple.mpegurl'
-                  : null;
+            const shakaMimeType = null;
             handoffPromise =
                 startTime > 0
                     ? this.shakaPlayer.load(loadTarget, startTime, shakaMimeType)
@@ -1611,18 +1517,6 @@ export class Player {
                 let resolvedStreamInfo = await streamInfoPromise;
                 if (this.playbackSequence !== currentSequence) return;
 
-                const rescuedStreamUrl = preparedPlayback
-                    ? null
-                    : this.getNativeLegacyDecryptionUrl(resolvedStreamInfo, resolvedStreamInfo.url);
-                if (rescuedStreamUrl) {
-                    resolvedStreamInfo = {
-                        ...resolvedStreamInfo,
-                        url: rescuedStreamUrl,
-                        playbackType: [],
-                        preloadManager: null,
-                        preloader: null,
-                    };
-                }
 
                 streamUrl = resolvedStreamInfo.url;
                 this.currentStreamInfo = resolvedStreamInfo;
@@ -1688,7 +1582,6 @@ export class Player {
                 const isDashManifest =
                     !isHlsManifest &&
                     (resolvedStreamInfo.playbackType === 'dash' ||
-                        resolvedStreamInfo.playbackType === 'dash-cenc' ||
                         resolvedStreamInfo.delivery === 'dash' ||
                         resolvedStreamInfo.mimeType?.includes('dash') ||
                         (typeof streamUrl === 'string' &&
@@ -1698,9 +1591,7 @@ export class Player {
                     streamUrl &&
                     !track.isLocal &&
                     (isDashManifest ||
-                        resolvedStreamInfo.playbackType?.includes('cenc') ||
                         (isHlsManifest && !isSafari && !isIos) ||
-                        (this.isNativeLegacyHlsDecryptionUrl(streamUrl) && !isSafari) ||
                         (streamUrl.startsWith('blob:') &&
                             resolvedStreamInfo.playbackType !== 'direct' &&
                             resolvedStreamInfo.playbackType !== 'hls'));
@@ -1722,22 +1613,7 @@ export class Player {
                     }
 
                     const loadTarget = resolvedStreamInfo.preloadManager || streamUrl;
-                    if (resolvedStreamInfo.playbackType?.includes('cenc')) {
-                        this.shakaPlayer.configure({
-                            drm: {
-                                clearKeys: {
-                                    [resolvedStreamInfo.keyId]: resolvedStreamInfo.decryptionKey,
-                                },
-                            },
-                        });
-                    } else {
-                        this.shakaPlayer.configure({ drm: { clearKeys: {} } });
-                    }
-                    const shakaMimeType = resolvedStreamInfo.playbackType?.includes('cenc')
-                        ? resolvedStreamInfo.mimeType || null
-                        : this.isNativeLegacyHlsDecryptionUrl(streamUrl)
-                          ? 'application/vnd.apple.mpegurl'
-                          : null;
+                    const shakaMimeType = null;
 
                     try {
                         if (startTime > 0) {
@@ -1916,45 +1792,7 @@ export class Player {
     }
 
     getCrossfadeStreamInfo(streamInfo) {
-        if (!streamInfo || streamInfo.provider !== 'legacy' || !streamInfo.decryptionKey) return streamInfo;
-        // Chrome can overlap the original DASH/CENC stream with a second Shaka
-        // player. Converting it to a service-worker URL here leaves a plain
-        // <audio> element trying to decode fragmented encrypted MP4 instead.
-        if (this.isCrossfadeShakaStream(streamInfo)) return streamInfo;
-        if (String(streamInfo.url || '').includes('/api/decrypt-stream')) {
-            const targetCodec = new URL(streamInfo.url, window.location.origin).searchParams.get('codec');
-            return {
-                ...streamInfo,
-                playbackType: 'direct',
-                mimeType:
-                    targetCodec === 'flac-hls'
-                        ? 'application/vnd.apple.mpegurl'
-                        : streamInfo.mediaMimeType || 'audio/mp4',
-            };
-        }
-
-        const sourceUrl = streamInfo.sourceUrl;
-        if (!sourceUrl || !this.hasControllingServiceWorker()) return streamInfo;
-
-        const params = new URLSearchParams();
-        params.set('url', sourceUrl);
-        params.set('key', streamInfo.decryptionKey);
-        const targetCodec = this.getLegacyNativeDecrypterCodec(streamInfo);
-        params.set('codec', targetCodec);
-
-        return {
-            ...streamInfo,
-            url: `${window.location.protocol}//${window.location.host}/api/decrypt-stream?${params.toString()}`,
-            playbackType: 'direct',
-            mimeType:
-                targetCodec === 'flac-hls' ? 'application/vnd.apple.mpegurl' : streamInfo.mediaMimeType || 'audio/mp4',
-            preloadManager: null,
-            preloader: null,
-        };
-    }
-
-    hasControllingServiceWorker() {
-        return typeof navigator !== 'undefined' && !!navigator.serviceWorker?.controller;
+        return streamInfo;
     }
 
     async prepareCrossfadeWaveform(track, streamInfo) {
@@ -1985,21 +1823,14 @@ export class Player {
 
         const playbackType = String(streamInfo.playbackType || '').toLowerCase();
         const mimeType = String(streamInfo.mimeType || streamInfo.mediaMimeType || '').toLowerCase();
-        const isServiceWorkerStream = streamUrl.includes('/api/decrypt-stream');
-        if (isServiceWorkerStream) {
-            const targetCodec = new URL(streamUrl, window.location.origin).searchParams.get('codec');
-            return targetCodec !== 'flac-hls' || isSafari || isIos || this.isCrossfadeShakaStream(streamInfo);
-        }
         if (this.isCrossfadeShakaStream(streamInfo)) return true;
         return !(
             playbackType.includes('dash') ||
             playbackType.includes('hls') ||
-            playbackType.includes('cenc') ||
             mimeType.includes('dash') ||
             mimeType.includes('mpegurl') ||
             streamUrl.includes('.mpd') ||
-            streamUrl.includes('.m3u8') ||
-            (streamInfo.decryptionKey && !streamUrl.includes('/api/decrypt-stream'))
+            streamUrl.includes('.m3u8')
         );
     }
 
