@@ -30,7 +30,7 @@ import { DownloadProgress } from './progressEvents.js';
 import { resolveDownloadTotalBytes } from './downloadProgressUtils.js';
 import { readableStreamIterator } from './readableStreamIterator.js';
 import { HiFiClient, TidalResponse } from './HiFi.ts';
-import { canUseNativeLegacyCenc, getLegacyDecrypterCodec, canBrowserStreamAtmosQuality } from './platform-detection.js';
+import { canBrowserStreamAtmosQuality } from './platform-detection.js';
 import {
     TrackAlbum,
     EnrichedAlbum,
@@ -1742,7 +1742,6 @@ export class LosslessAPI {
             trackPeakAmplitude: trackNorm.peakAmplitude,
             albumReplayGain: albumNorm.replayGain,
             albumPeakAmplitude: albumNorm.peakAmplitude,
-            drmData: attributes.drmData || null,
             formats: attributes.formats || [],
         };
 
@@ -1986,26 +1985,13 @@ export class LosslessAPI {
         return normalized;
     }
 
-    getLegacyDecryptionKey(data) {
-        return (
-            data?.decryption_key ||
-            data?.decryptionKey ||
-            data?.encryption?.key?.value ||
-            data?.decryption?.key?.value ||
-            data?.decryption?.key ||
-            data?.drm?.decryption_key ||
-            data?.drm?.decryptionKey ||
-            null
-        );
-    }
-
     getLegacyMimeType(qualityInfo = null) {
         const codec = this.getLegacyCodecString(qualityInfo?.codec);
         return codec ? `audio/mp4; codecs="${codec}"` : 'audio/mp4';
     }
 
     async canPlayLegacyStream(_trackInfo = null) {
-        return canUseNativeLegacyCenc;
+        return false;
     }
 
     getLegacyQualityDisplay(trackInfo, qualityInfo = null) {
@@ -2243,14 +2229,6 @@ export class LosslessAPI {
         return `PT${duration.toFixed(3).replace(/\.?0+$/, '')}S`;
     }
 
-    formatKeyIdUuid(keyId) {
-        const normalized = String(keyId || '')
-            .replace(/-/g, '')
-            .toLowerCase();
-        if (normalized.length !== 32) return normalized;
-        return `${normalized.slice(0, 8)}-${normalized.slice(8, 12)}-${normalized.slice(12, 16)}-${normalized.slice(16, 20)}-${normalized.slice(20)}`;
-    }
-
     readMp4Uint32(bytes, offset) {
         if (offset + 4 > bytes.length) return null;
         return ((bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]) >>> 0;
@@ -2299,23 +2277,6 @@ export class LosslessAPI {
         }
 
         return boxes;
-    }
-
-    findCencDefaultKid(buffer) {
-        const bytes = new Uint8Array(buffer);
-
-        for (let i = 4; i < bytes.length - 32; i++) {
-            if (this.readMp4Type(bytes, i) !== 'tenc') continue;
-
-            const size = this.readMp4Uint32(bytes, i - 4);
-            if (size < 32 || i - 4 + size > bytes.length) continue;
-
-            const payloadOffset = i + 4;
-            const kidOffset = payloadOffset + 8;
-            return this.bytesToHex(bytes.slice(kidOffset, kidOffset + 16));
-        }
-
-        return null;
     }
 
     findMp4SidxInfo(buffer) {
@@ -2423,98 +2384,6 @@ export class LosslessAPI {
         }
 
         return output.buffer;
-    }
-
-    getLegacyInitRangeEnd(buffer, sidxInfo) {
-        const boxes = this.findTopLevelMp4Boxes(buffer);
-        const firstSegmentStart = sidxInfo?.firstSegmentStart ?? null;
-        const moov = boxes.find((box) => box.type === 'moov');
-
-        if (moov && (firstSegmentStart == null || moov.end < firstSegmentStart)) {
-            return moov.end;
-        }
-
-        if (sidxInfo?.start > 0) {
-            return sidxInfo.start - 1;
-        }
-
-        if (firstSegmentStart && firstSegmentStart > 0) {
-            return firstSegmentStart - 1;
-        }
-
-        return null;
-    }
-
-    async getLegacyCencMp4Info(streamUrl) {
-        const maxInitBytes = 2 * 1024 * 1024;
-        const response = await this.fetchWithTimeout(
-            streamUrl,
-            {
-                headers: { Range: `bytes=0-${maxInitBytes - 1}` },
-            },
-            12000
-        );
-
-        if (!response.ok && response.status !== 206) {
-            throw new Error(`Protected init segment fetch failed: ${response.status}`);
-        }
-
-        const buffer = await this.readInitialBytes(response, maxInitBytes);
-        const keyId = this.findCencDefaultKid(buffer);
-        const sidx = this.findMp4SidxInfo(buffer);
-        if (!sidx) {
-            throw new Error('Could not find protected MP4 segment index');
-        }
-
-        return {
-            keyId,
-            sidx,
-            initRangeEnd: this.getLegacyInitRangeEnd(buffer, sidx),
-        };
-    }
-
-    createLegacyDashManifest(streamUrl, trackInfo, qualityInfo, mp4Info) {
-        const codec = this.getLegacyCodecString(qualityInfo?.codec);
-        const bandwidth = Number(qualityInfo?.bandwidth) || 1000000;
-        const sampleRate = Number(qualityInfo?.sampleRate) || 48000;
-        const channels = Number(qualityInfo?.channels) || 2;
-        const duration = this.formatDurationForMpd(mp4Info?.sidx?.durationSeconds);
-        const initEnd = Number.isFinite(mp4Info?.initRangeEnd) ? mp4Info.initRangeEnd : mp4Info.sidx.start - 1;
-        const segmentBaseAttrs =
-            mp4Info?.sidx?.timescale && mp4Info?.sidx?.earliestPresentationTime != null
-                ? ` timescale="${mp4Info.sidx.timescale}" presentationTimeOffset="${mp4Info.sidx.earliestPresentationTime}"`
-                : '';
-        const representationId = this.escapeXml(trackInfo?.asin || 'protected-audio');
-        const escapedStreamUrl = this.escapeXml(streamUrl);
-
-        let contentProtection = '';
-        if (mp4Info?.keyId) {
-            const keyId = this.formatKeyIdUuid(mp4Info.keyId);
-            contentProtection = `
-      <ContentProtection schemeIdUri="urn:mpeg:dash:mp4protection:2011" value="cenc" cenc:default_KID="${keyId}"/>
-      <ContentProtection schemeIdUri="urn:uuid:e2719d58-a985-b3c9-781a-b030af78d30e" cenc:default_KID="${keyId}"/>`;
-        }
-
-        return `<?xml version="1.0" encoding="UTF-8"?>
-<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" xmlns:cenc="urn:mpeg:cenc:2013" profiles="urn:mpeg:dash:profile:isoff-on-demand:2011" type="static" mediaPresentationDuration="${duration}" minBufferTime="PT1.5S">
-  <Period id="0" start="PT0S" duration="${duration}">
-    <AdaptationSet id="1" contentType="audio" mimeType="audio/mp4" codecs="${this.escapeXml(codec)}" audioSamplingRate="${sampleRate}" segmentAlignment="true" startWithSAP="1">${contentProtection}
-      <Representation id="${representationId}" bandwidth="${bandwidth}" codecs="${this.escapeXml(codec)}">
-        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="${channels}"/>
-        <BaseURL>${escapedStreamUrl}</BaseURL>
-        <SegmentBase indexRange="${mp4Info.sidx.start}-${mp4Info.sidx.end}"${segmentBaseAttrs}>
-          <Initialization range="0-${initEnd}"/>
-        </SegmentBase>
-      </Representation>
-    </AdaptationSet>
-  </Period>
-</MPD>`;
-    }
-
-    createLegacyDashUrl(streamUrl, trackInfo, qualityInfo, mp4Info) {
-        const manifest = this.createLegacyDashManifest(streamUrl, trackInfo, qualityInfo, mp4Info);
-        const blob = new Blob([manifest], { type: 'application/dash+xml' });
-        return URL.createObjectURL(blob);
     }
 
     getLegacyTrackTitle(track) {
@@ -2816,7 +2685,6 @@ export class LosslessAPI {
                         resource.url.startsWith('data:application/dash+xml')));
 
             const sourceUrl = resource.url;
-            const decryptionKey = this.getLegacyDecryptionKey(resource);
             const qualityInfo = this.getUnifiedPlaybackQualityInfo(resource);
             const deliveredQuality = resource.quality || envelope.quality_requested || canonicalQuality || quality;
             const normalizedQuality = normalizeQualityToken(deliveredQuality) || deliveredQuality;
@@ -2833,7 +2701,6 @@ export class LosslessAPI {
                               ? 'FLAC'
                               : normalizedQuality
                           : normalizedQuality,
-                decryptionKey,
                 keyId: this.getUnifiedPlaybackKeyId(resource),
                 codec: qualityInfo.codec || resource.codec || null,
                 bitDepth: qualityInfo.bitDepth,
@@ -2863,39 +2730,6 @@ export class LosslessAPI {
                 };
             }
 
-            if (selectedSource === 'legacy' && !isManifest && decryptionKey) {
-                const mp4Info = await this.getLegacyCencMp4Info(sourceUrl).catch((error) => {
-                    console.warn('Failed to inspect protected MP4:', error);
-                    return null;
-                });
-                const keyId = baseResult.keyId || mp4Info?.keyId || null;
-                if (decryptionKey && !keyId && !options.allowCencWithoutKeyId) {
-                    throw new Error('Could not find protected CENC key ID');
-                }
-
-                const trackInfo = {
-                    id: envelope.track?.id || null,
-                    asin: envelope.track?.id || null,
-                    duration: (envelope.track?.duration_ms || 0) / 1000 || this.getLegacyTrackDuration(track),
-                    quality_selected: normalizedQuality,
-                    quality_requested: envelope.quality_requested || canonicalQuality,
-                };
-                const manifestUrl = mp4Info
-                    ? this.createLegacyDashUrl(sourceUrl, trackInfo, qualityInfo, { ...mp4Info, keyId })
-                    : sourceUrl;
-
-                return {
-                    ...baseResult,
-                    url: manifestUrl,
-                    asin: envelope.track?.id || null,
-                    keyId,
-                    playbackType: mp4Info ? (keyId ? 'dash-cenc' : 'dash') : 'direct',
-                    mimeType: mp4Info
-                        ? 'application/dash+xml'
-                        : resource.mime_type || this.getLegacyMimeType(qualityInfo),
-                };
-            }
-
             if (isManifest) {
                 const isHls =
                     resource.delivery === 'hls' ||
@@ -2907,7 +2741,7 @@ export class LosslessAPI {
                 return {
                     ...baseResult,
                     url: sourceUrl,
-                    playbackType: isHls ? 'hls' : decryptionKey ? 'dash-cenc' : 'dash',
+                    playbackType: isHls ? 'hls' : 'dash',
                     mimeType: resource.mime_type || (isHls ? 'application/vnd.apple.mpegurl' : 'application/dash+xml'),
                 };
             }
@@ -2968,9 +2802,6 @@ export class LosslessAPI {
         const isApple = inputTrack?.provider === 'apple' || String(id || '').startsWith('apple:');
         const track = inputTrack || (id && !isApple ? await this.getTrackMetadata(id).catch(() => null) : null);
 
-        const canPlayLegacyCenc = canUseNativeLegacyCenc;
-        const needsProxyDecryption = !canPlayLegacyCenc;
-
         let actualQuality = quality;
 
         const exactAtmosQuality = isAtmosQuality(quality) ? quality : null;
@@ -2984,7 +2815,6 @@ export class LosslessAPI {
                 unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, atmosQuality, {
                     preferAdaptiveAuto: true,
                     track,
-                    allowCencWithoutKeyId: needsProxyDecryption,
                     intent: 'stream',
                 });
             } catch (err) {
@@ -3004,45 +2834,11 @@ export class LosslessAPI {
             unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, quality, {
                 preferAdaptiveAuto: true,
                 track,
-                allowCencWithoutKeyId: needsProxyDecryption,
                 intent: 'stream',
             });
         }
 
         if (unifiedResult?.url) {
-            if (
-                unifiedResult.provider === 'legacy' &&
-                needsProxyDecryption &&
-                unifiedResult.decryptionKey &&
-                (unifiedResult.sourceUrl || unifiedResult.url)
-            ) {
-                const sourceUrl = unifiedResult.sourceUrl || unifiedResult.url;
-                const resourceCodec = String(unifiedResult.codec || '').toLowerCase();
-                const targetCodec =
-                    resourceCodec === 'opus'
-                        ? 'opus'
-                        : resourceCodec === 'ac4' || resourceCodec === 'ac-4'
-                          ? 'ac4'
-                          : resourceCodec === 'eac3' || resourceCodec === 'eac3-joc' || resourceCodec === 'ec-3'
-                            ? 'eac3'
-                            : resourceCodec === 'aac' || resourceCodec.startsWith('mp4a')
-                              ? 'mp4a'
-                              : getLegacyDecrypterCodec(quality);
-                const origin =
-                    typeof window !== 'undefined' && window.location
-                        ? `${window.location.protocol}//${window.location.host}`
-                        : '';
-                return {
-                    ...unifiedResult,
-                    url: `${origin}/api/decrypt-stream?url=${encodeURIComponent(sourceUrl)}&key=${encodeURIComponent(unifiedResult.decryptionKey)}&codec=${encodeURIComponent(targetCodec)}`,
-                    playbackType: 'direct',
-                    mimeType:
-                        targetCodec === 'flac-hls'
-                            ? 'application/vnd.apple.mpegurl'
-                            : unifiedResult.mediaMimeType || 'audio/mp4',
-                };
-            }
-
             // The unified endpoint is no-store and may return a single-use Mono URL.
             return unifiedResult;
         }
@@ -3149,8 +2945,6 @@ export class LosslessAPI {
         let externalStreamUrl = null;
         let externalStreamType = null;
         let externalProvider = null;
-        let externalDecryptionKey = null;
-        let externalKeyId = null;
         let externalMimeType = null;
         let externalMediaMimeType = null;
         let externalSourceUrl = null;
@@ -3212,8 +3006,6 @@ export class LosslessAPI {
                 externalRgInfo = externalResult.rgInfo;
                 externalStreamType = externalResult.playbackType || null;
                 externalProvider = externalResult.provider || (unifiedResult?.url ? 'unified' : 'deezer');
-                externalDecryptionKey = externalResult.decryptionKey || null;
-                externalKeyId = externalResult.keyId || null;
                 externalMimeType = externalResult.mimeType || null;
                 externalMediaMimeType = externalResult.mediaMimeType || externalMimeType;
                 externalSourceUrl = externalResult.sourceUrl || externalStreamUrl;
@@ -3323,8 +3115,6 @@ export class LosslessAPI {
             result.externalStreamUrl = externalStreamUrl;
             result.externalStreamType = externalStreamType;
             result.externalProvider = externalProvider;
-            result.externalDecryptionKey = externalDecryptionKey;
-            result.externalKeyId = externalKeyId;
             result.externalMimeType = externalMimeType;
             result.externalMediaMimeType = externalMediaMimeType;
             result.externalSourceUrl = externalSourceUrl;
@@ -3446,36 +3236,7 @@ export class LosslessAPI {
                 }
             }
 
-            if (enriched.externalProvider === 'legacy' && enriched.externalStreamType?.includes('cenc')) {
-                const response = await fetch(enriched.externalSourceUrl || streamUrl, {
-                    cache: 'no-store',
-                    signal: options.signal,
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Fetch failed: ${response.status}`);
-                }
-
-                const encryptedBlob = await response.blob();
-                const preserveAtmos = isAtmosQuality(downloadQuality) || isAtmosQuality(postProcessingQuality);
-                const outputName = preserveAtmos ? 'output.m4a' : 'output.flac';
-                const outputMime = preserveAtmos ? 'audio/mp4' : 'audio/flac';
-                blob = await ffmpeg(encryptedBlob, {
-                    rawArgs: [
-                        '-decryption_key',
-                        enriched.externalDecryptionKey,
-                        '-i',
-                        'input',
-                        '-c:a',
-                        preserveAtmos ? 'copy' : 'flac',
-                        outputName,
-                    ],
-                    outputName,
-                    outputMime,
-                    onProgress,
-                    signal: options.signal,
-                });
-            } else if (
+            if (
                 streamUrl.startsWith('blob:') ||
                 streamUrl.startsWith('data:') ||
                 enriched.externalStreamType?.includes('dash') ||

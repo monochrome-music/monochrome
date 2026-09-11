@@ -58,8 +58,6 @@ import {
 } from './icons.js';
 import { HiFiClient } from './HiFi.js';
 
-const LEGACY_DECRYPTER_SW_VERSION = '2026-08-09-atmos-v11';
-
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
     const _ua = navigator.userAgent.toLowerCase();
@@ -333,77 +331,6 @@ async function clearDevPwaRuntimeCaches() {
         await Promise.all(['scripts', 'static-resources', 'images', 'media'].map((key) => caches.delete(key)));
     } catch (error) {
         console.warn('Failed to clear dev PWA runtime caches:', error);
-    }
-}
-
-function getLegacyDecrypterServiceWorkerUrl() {
-    const baseUrl =
-        import.meta.env.DEV && isSafari ? '/sw-decrypter.js' : import.meta.env.DEV ? '/dev-dist/sw.js' : '/sw.js';
-    return `${baseUrl}?decrypter-sw=${LEGACY_DECRYPTER_SW_VERSION}`;
-}
-
-async function registerLegacyDecrypterServiceWorkerFallback() {
-    const diagnostic = {
-        origin: window.location.origin,
-        protocol: window.location.protocol,
-        isSecureContext: window.isSecureContext,
-        hasServiceWorkerApi: 'serviceWorker' in navigator,
-        authGate: !!window.__AUTH_GATE__,
-        dev: import.meta.env.DEV,
-        safari: isSafari,
-    };
-
-    console.log('[SW Decrypter] SW registration probe', diagnostic);
-
-    if (!('serviceWorker' in navigator)) {
-        console.warn('[SW Decrypter] Service Worker API unavailable.', diagnostic);
-        return null;
-    }
-
-    if (!window.isSecureContext) {
-        console.warn('[SW Decrypter] Service Worker blocked because this is not a secure context.', diagnostic);
-        return null;
-    }
-
-    const swUrl = getLegacyDecrypterServiceWorkerUrl();
-
-    try {
-        const registration = await navigator.serviceWorker.register(swUrl, {
-            scope: '/',
-            updateViaCache: 'none',
-        });
-
-        await registration.update().catch((error) => {
-            console.warn('[SW Decrypter] Manual SW update failed:', error);
-        });
-
-        console.log('[SW Decrypter] Manual SW registration succeeded', {
-            swUrl,
-            scope: registration.scope,
-            active: !!registration.active,
-            installing: !!registration.installing,
-            waiting: !!registration.waiting,
-            controlled: !!navigator.serviceWorker.controller,
-        });
-
-        if (!navigator.serviceWorker.controller) {
-            console.info(
-                '[SW Decrypter] SW registered but this page is not controlled yet; reload manually if playback is not intercepted.',
-                {
-                    swVersion: LEGACY_DECRYPTER_SW_VERSION,
-                }
-            );
-        }
-
-        return registration;
-    } catch (error) {
-        console.warn('[SW Decrypter] Manual SW registration failed', {
-            swUrl,
-            errorName: error?.name,
-            errorMessage: error?.message,
-            ...diagnostic,
-        });
-        return null;
     }
 }
 
@@ -2701,21 +2628,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch {}
 
     if (isNativeApp) {
-        console.log('[SW Decrypter] PWA disabled for native app shell');
+        console.log('PWA disabled for native app shell');
         await disablePwaForAuthGate().catch(console.error);
     } else if (window.__AUTH_GATE__) {
-        console.log('[SW Decrypter] PWA disabled for auth gate');
+        console.log('PWA disabled for auth gate');
         await disablePwaForAuthGate().catch(console.error);
     } else {
         await clearDevPwaRuntimeCaches();
 
-        if (import.meta.env.DEV && isSafari) {
-            await registerLegacyDecrypterServiceWorkerFallback();
-        }
-
-        if (import.meta.env.DEV && isSafari) {
-            console.log('[SW Decrypter] Using dedicated root-scope SW in Safari dev mode');
-        } else {
+        {
             const updateSW = registerSW({
                 onRegisteredSW(swScriptUrl, registration) {
                     console.log('Service Worker registered:', swScriptUrl, registration?.scope, {

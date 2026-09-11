@@ -32,44 +32,6 @@ export const isWebKitGtk =
     lowerCaseOriginalUserAgent.includes('mozilla') &&
     lowerCaseOriginalUserAgent.includes('linux');
 
-type LegacyDecrypterBrowser = {
-    isFirefox: boolean;
-    isSafari: boolean;
-    isWebKitGtk: boolean;
-};
-
-type NavigatorWithUserAgentData = Navigator & {
-    userAgentData?: {
-        brands?: Array<{ brand: string }>;
-    };
-};
-
-/**
- * Choose the container emitted by the legacy service-worker decrypter.
- *
- * Firefox cannot reliably consume the progressively rewritten fragmented MP4:
- * after enough playback it may request a sample past the bytes it has buffered
- * and abort with MediaResult/SampleIterator decoding errors. Segmented HLS
- * avoids that progressive-resource path while retaining seekable time ranges.
- */
-export function getLegacyDecrypterCodec(
-    quality: string,
-    browser: LegacyDecrypterBrowser = { isFirefox, isSafari, isWebKitGtk }
-): 'opus' | 'mp4a' | 'eac3' | 'ac4' | 'flac-hls' | 'flac-raw' | 'flac' {
-    const normalizedQuality = quality.toUpperCase();
-    if (normalizedQuality.startsWith('DOLBY_ATMOS_AC4_')) return 'ac4';
-    if (normalizedQuality.startsWith('DOLBY_ATMOS_EAC3_') || normalizedQuality === 'DOLBY_ATMOS') return 'eac3';
-    const isOpusQuality =
-        normalizedQuality === 'HIGH' ||
-        normalizedQuality === 'NORMAL' ||
-        normalizedQuality === 'LOW' ||
-        normalizedQuality.startsWith('SD_');
-    if (isOpusQuality) return 'opus';
-    if (browser.isSafari || browser.isFirefox || browser.isWebKitGtk) return 'flac-hls';
-
-    return 'flac';
-}
-
 /** Check whether the runtime reports native support for an immersive MP4 codec. */
 export function canBrowserStreamAtmosQuality(quality: string, mediaElement: HTMLMediaElement | null = null): boolean {
     const normalizedQuality = quality.toUpperCase();
@@ -89,15 +51,6 @@ export function canBrowserStreamAtmosQuality(quality: string, mediaElement: HTML
             (typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported?.(mimeType) === true)
     );
 }
-
-const chromiumBrandPattern = /chromium|chrome|edge|opera|brave/i;
-const userAgentBrands = (navigator as NavigatorWithUserAgentData).userAgentData?.brands ?? [];
-
-/** Whether this browser supports the required native ClearKey/CENC behavior. */
-export const canUseNativeLegacyCenc =
-    !isIos &&
-    !isSafari &&
-    (userAgentBrands.some((brand) => chromiumBrandPattern.test(brand.brand)) || 'chrome' in globalThis);
 
 export function getLocalFilesSupportInfo(): { supported: boolean; message: string | null } {
     const isFileSystemAccessSupported = 'showDirectoryPicker' in window;
