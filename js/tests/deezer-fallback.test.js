@@ -47,8 +47,8 @@ vi.mock('../platform-detection.js', () => ({
     isIos: false,
     isSafari: false,
     isChrome: true,
-    canUseNativeAmazonCenc: true,
-    getAmazonDecrypterCodec: vi.fn(() => 'flac'),
+    canUseNativeLegacyCenc: true,
+    getLegacyDecrypterCodec: vi.fn(() => 'flac'),
     canBrowserStreamAtmosQuality: vi.fn(() => true),
 }));
 vi.mock('../container-classes.js', () => ({

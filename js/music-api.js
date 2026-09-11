@@ -93,8 +93,8 @@ export class MusicAPI {
         return this.tidalAPI;
     }
 
-    async canPlayAmazonMusicStream(trackInfo) {
-        return this.getAPI().canPlayAmazonMusicStream(trackInfo);
+    async canPlayLegacyStream(trackInfo) {
+        return this.getAPI().canPlayLegacyStream(trackInfo);
     }
 
     // Search methods

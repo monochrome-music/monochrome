@@ -59,8 +59,8 @@ vi.mock('../progressEvents.js', () => ({ DownloadProgress: class {} }));
 vi.mock('../readableStreamIterator.js', () => ({ readableStreamIterator: vi.fn() }));
 vi.mock('../HiFi.ts', () => ({ HiFiClient: { instance: { query: vi.fn() } }, TidalResponse: class {} }));
 vi.mock('../platform-detection.js', () => ({
-    canUseNativeAmazonCenc: true,
-    getAmazonDecrypterCodec: vi.fn(() => 'flac'),
+    canUseNativeLegacyCenc: true,
+    getLegacyDecrypterCodec: vi.fn(() => 'flac'),
     canBrowserStreamAtmosQuality: vi.fn(() => true),
 }));
 vi.mock('../container-classes.js', () => ({
@@ -113,7 +113,7 @@ const envelope = (source, resource, extra = {}) => ({
     request_id: 'request-1',
     selected_source: source,
     track: {
-        id: source === 'amazon' ? 'B000000000' : 'mono-track',
+        id: source === 'legacy' ? 'B000000000' : 'mono-track',
         title: track.title,
         artists: ['Marshmello', 'Bastille'],
         album: 'Album Title',
@@ -144,16 +144,16 @@ describe('Unified Playback API', () => {
     });
 
     test('maps API codec labels to valid MP4 codec strings', () => {
-        expect(api.getAmazonCodecString('aac')).toBe('mp4a.40.2');
-        expect(api.getAmazonCodecString('eac3')).toBe('ec-3');
-        expect(api.getAmazonCodecString('eac3-joc')).toBe('ec-3');
-        expect(api.getAmazonCodecString('ac4')).toBe('ac-4');
-        expect(api.getUnifiedPlaybackCodec({ source: 'amazon', quality: 'UHD_44', codec: 'aac' })).toBe('flac');
-        expect(api.getUnifiedPlaybackCodec({ source: 'amazon', quality: 'SD_HIGH', codec: 'flac' })).toBe('opus');
-        expect(api.getUnifiedPlaybackCodec({ source: 'amazon', quality: 'DOLBY_ATMOS_EAC3_LOW', codec: 'flac' })).toBe(
+        expect(api.getLegacyCodecString('aac')).toBe('mp4a.40.2');
+        expect(api.getLegacyCodecString('eac3')).toBe('ec-3');
+        expect(api.getLegacyCodecString('eac3-joc')).toBe('ec-3');
+        expect(api.getLegacyCodecString('ac4')).toBe('ac-4');
+        expect(api.getUnifiedPlaybackCodec({ source: 'legacy', quality: 'UHD_44', codec: 'aac' })).toBe('flac');
+        expect(api.getUnifiedPlaybackCodec({ source: 'legacy', quality: 'SD_HIGH', codec: 'flac' })).toBe('opus');
+        expect(api.getUnifiedPlaybackCodec({ source: 'legacy', quality: 'DOLBY_ATMOS_EAC3_LOW', codec: 'flac' })).toBe(
             'eac3-joc'
         );
-        expect(api.getUnifiedPlaybackCodec({ source: 'amazon', quality: 'DOLBY_ATMOS_AC4_HIGH', codec: 'flac' })).toBe(
+        expect(api.getUnifiedPlaybackCodec({ source: 'legacy', quality: 'DOLBY_ATMOS_AC4_HIGH', codec: 'flac' })).toBe(
             'ac4'
         );
     });
@@ -339,18 +339,18 @@ describe('Unified Playback API', () => {
         expect(localStorage.getItem('unified-playback-turnstile-expiry')).toBe(String(expiry));
     });
 
-    test('normalizes an incorrectly labelled Amazon UHD resource as FLAC', async () => {
+    test('normalizes an incorrectly labelled UHD resource as FLAC', async () => {
         vi.stubGlobal(
             'fetch',
             vi.fn(() =>
                 Promise.resolve(
                     jsonResponse(
-                        envelope('amazon', {
-                            id: 'amazon:B000000000:UHD',
-                            source: 'amazon',
+                        envelope('legacy', {
+                            id: 'legacy:B000000000:UHD',
+                            source: 'legacy',
                             kind: 'audio',
                             delivery: 'direct',
-                            url: 'https://amazon.example/audio.mp4',
+                            url: 'https://media.example/audio.mp4',
                             mime_type: 'audio/mp4',
                             container: 'mp4',
                             codec: 'aac',
@@ -368,19 +368,19 @@ describe('Unified Playback API', () => {
                 )
             )
         );
-        api.getAmazonCencMp4Info = vi.fn(() =>
+        api.getLegacyCencMp4Info = vi.fn(() =>
             Promise.resolve({
                 keyId: '00112233445566778899aabbccddeeff',
                 initRangeEnd: 999,
                 sidx: { start: 1000, end: 1099, durationSeconds: 214, timescale: 44100 },
             })
         );
-        api.createAmazonMusicDashUrl = vi.fn(() => 'blob:https://app.example/manifest');
+        api.createLegacyDashUrl = vi.fn(() => 'blob:https://app.example/manifest');
 
         await expect(api.getUnifiedPlaybackStreamUrl('123', 'HI_RES_LOSSLESS', { track })).resolves.toMatchObject({
-            provider: 'amazon',
+            provider: 'legacy',
             url: 'blob:https://app.example/manifest',
-            sourceUrl: 'https://amazon.example/audio.mp4',
+            sourceUrl: 'https://media.example/audio.mp4',
             playbackType: 'dash-cenc',
             decryptionKey: '001122',
             keyId: '00112233445566778899aabbccddeeff',
@@ -393,8 +393,8 @@ describe('Unified Playback API', () => {
             qualityDisplay: 'HD 24/96',
             mediaMimeType: 'audio/mp4',
         });
-        expect(api.createAmazonMusicDashUrl).toHaveBeenCalledWith(
-            'https://amazon.example/audio.mp4',
+        expect(api.createLegacyDashUrl).toHaveBeenCalledWith(
+            'https://media.example/audio.mp4',
             expect.any(Object),
             expect.objectContaining({ codec: 'flac' }),
             expect.any(Object)
@@ -460,7 +460,7 @@ describe('Unified Playback API', () => {
         await expect(api.getUnifiedPlaybackStreamUrl('123', 'LOSSLESS', { track })).resolves.toBeNull();
     });
 
-    test('uses the shared E-AC-3 High request for Amazon and Tidal Atmos', async () => {
+    test('uses the shared E-AC-3 High request for provider Atmos', async () => {
         const fetchMock = vi.fn(() =>
             Promise.resolve(
                 jsonResponse(
@@ -532,7 +532,7 @@ describe('Unified Playback API', () => {
         });
         data.sources = [
             {
-                source: 'amazon',
+                source: 'legacy',
                 status: 'error',
                 resources: [{ url: 'https://audio.example/wrong.mp4' }],
             },
@@ -554,11 +554,11 @@ describe('Unified Playback API', () => {
             vi.fn(() =>
                 Promise.resolve(
                     jsonResponse(
-                        envelope('amazon', {
-                            source: 'amazon',
+                        envelope('legacy', {
+                            source: 'legacy',
                             kind: 'manifest',
                             delivery: 'dash',
-                            url: 'https://amazon.example/manifest.mpd',
+                            url: 'https://media.example/manifest.mpd',
                             mime_type: 'application/dash+xml',
                             quality: 'UHD',
                             encryption: null,
@@ -569,8 +569,8 @@ describe('Unified Playback API', () => {
         );
 
         await expect(api.getUnifiedPlaybackStreamUrl('123', 'LOSSLESS', { track })).resolves.toMatchObject({
-            provider: 'amazon',
-            url: 'https://amazon.example/manifest.mpd',
+            provider: 'legacy',
+            url: 'https://media.example/manifest.mpd',
             playbackType: 'dash',
             mimeType: 'application/dash+xml',
         });

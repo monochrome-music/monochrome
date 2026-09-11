@@ -724,7 +724,7 @@ export const downloadQualitySettings = {
             }
 
             // The unified API no longer uses the generic Atmos request. Preserve
-            // the user's intent by migrating it to the shared Amazon/Tidal tier.
+            // the user's intent by migrating it to the shared provider tier.
             if (stored === 'DOLBY_ATMOS') {
                 this.setQuality('DOLBY_ATMOS_EAC3_HIGH');
                 return 'DOLBY_ATMOS_EAC3_HIGH';
@@ -3151,9 +3151,9 @@ export const musicProviderSettings = {
 
     getProvider() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) || 'amazon';
+            return localStorage.getItem(this.STORAGE_KEY) || 'tidal';
         } catch {
-            return 'amazon';
+            return 'tidal';
         }
     },
 
@@ -3166,17 +3166,12 @@ export const unifiedPlaybackSettings = {
     ENABLED_KEY: 'unified-playback-enabled',
     API_BASE_URL_KEY: 'unified-playback-api-base-url',
     API_TOKEN_KEY: 'unified-playback-api-token',
-    DEFAULT_API_BASE_URL: 'https://music-api.geeked.wtf',
-    LEGACY_API_BASE_URLS: ['https://amz.geeked.wtf', 'https://track-api.monochrome.tf', 'https://mono.geeked.wtf'],
-    DEFAULT_API_TOKEN: 'amp_29b2lIr4mze4tK-P8QDOxfMZ9anCgJ9_uGTUks3nIyo',
+    DEFAULT_API_BASE_URL: '',
+    LEGACY_API_BASE_URLS: [],
+    DEFAULT_API_TOKEN: '',
 
     isEnabled() {
-        try {
-            const value = localStorage.getItem(this.ENABLED_KEY) ?? localStorage.getItem('amazon-music-enabled');
-            return value !== 'false';
-        } catch {
-            return true;
-        }
+        return false;
     },
 
     setEnabled(enabled) {
@@ -3185,12 +3180,11 @@ export const unifiedPlaybackSettings = {
 
     getApiBaseUrl() {
         try {
-            const storedUrl =
-                localStorage.getItem(this.API_BASE_URL_KEY) || localStorage.getItem('amazon-music-api-base-url');
+            const storedUrl = localStorage.getItem(this.API_BASE_URL_KEY);
             if (storedUrl && !this.LEGACY_API_BASE_URLS.includes(storedUrl.replace(/\/+$/, ''))) {
                 return storedUrl;
             }
-            return import.meta.env.VITE_UNIFIED_PLAYBACK_API_BASE_URL || this.DEFAULT_API_BASE_URL;
+            return this.DEFAULT_API_BASE_URL;
         } catch {
             return this.DEFAULT_API_BASE_URL;
         }
@@ -3202,13 +3196,7 @@ export const unifiedPlaybackSettings = {
 
     getApiToken() {
         try {
-            return (
-                localStorage.getItem(this.API_TOKEN_KEY) ||
-                localStorage.getItem('amazon-music-turnstile-bypass-token') ||
-                import.meta.env.VITE_UNIFIED_PLAYBACK_API_TOKEN ||
-                import.meta.env.VITE_AMAZON_TURNSTILE_BYPASS_TOKEN ||
-                this.DEFAULT_API_TOKEN
-            );
+            return '';
         } catch {
             return this.DEFAULT_API_TOKEN;
         }
@@ -3221,12 +3209,7 @@ export const unifiedPlaybackSettings = {
     isDefaultApiToken(token) {
         const currentToken = (token || this.getApiToken() || '').trim();
         const defaultToken = (this.DEFAULT_API_TOKEN || '').trim();
-        const envToken = (
-            import.meta.env.VITE_UNIFIED_PLAYBACK_API_TOKEN ||
-            import.meta.env.VITE_AMAZON_TURNSTILE_BYPASS_TOKEN ||
-            ''
-        ).trim();
-        return currentToken === defaultToken || (Boolean(envToken) && currentToken === envToken);
+        return currentToken === defaultToken;
     },
 };
 

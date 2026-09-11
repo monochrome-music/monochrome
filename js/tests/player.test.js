@@ -73,8 +73,8 @@ vi.mock('../platform-detection.js', () => ({
     isIos: false,
     isSafari: false,
     isEdge: false,
-    canUseNativeAmazonCenc: true,
-    getAmazonDecrypterCodec: vi.fn(() => 'flac'),
+    canUseNativeLegacyCenc: true,
+    getLegacyDecrypterCodec: vi.fn(() => 'flac'),
 }));
 
 vi.mock('shaka-player', () => ({
@@ -339,11 +339,11 @@ describe('Player', () => {
         expect(streamInfo.crossfadeSilenceBoundaries).toBe(boundaries);
     });
 
-    test('keeps encrypted Amazon crossfade playback on the dual-Shaka path', () => {
+    test('keeps encrypted crossfade playback on the dual-Shaka path', () => {
         player = new Player(audioElement, api);
         player.hasControllingServiceWorker = vi.fn(() => true);
         const originalStreamInfo = {
-            provider: 'amazon',
+            provider: 'legacy',
             url: 'data:application/dash+xml;base64,manifest',
             sourceUrl: 'https://media.example/track.mp4?token=signed',
             decryptionKey: '00112233445566778899aabbccddeeff',
@@ -368,7 +368,7 @@ describe('Player', () => {
                 codec: 'flac-hls',
             }).toString();
         api.getStreamUrl.mockResolvedValue({
-            provider: 'amazon',
+            provider: 'legacy',
             url: streamUrl,
             sourceUrl: 'https://media.example/track.mp4?token=signed',
             decryptionKey: '00112233445566778899aabbccddeeff',

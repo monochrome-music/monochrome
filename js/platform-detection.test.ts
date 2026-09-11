@@ -1,28 +1,28 @@
 import { describe, expect, test } from 'vitest';
-import { canBrowserStreamAtmosQuality, getAmazonDecrypterCodec } from './platform-detection.js';
+import { canBrowserStreamAtmosQuality, getLegacyDecrypterCodec } from './platform-detection.js';
 
-describe('getAmazonDecrypterCodec', () => {
+describe('getLegacyDecrypterCodec', () => {
     test('uses seekable segmented HLS for lossless Firefox playback', () => {
-        expect(getAmazonDecrypterCodec('LOSSLESS', { isFirefox: true, isSafari: false })).toBe('flac-hls');
-        expect(getAmazonDecrypterCodec('HI_RES_LOSSLESS', { isFirefox: true, isSafari: false })).toBe('flac-hls');
+        expect(getLegacyDecrypterCodec('LOSSLESS', { isFirefox: true, isSafari: false })).toBe('flac-hls');
+        expect(getLegacyDecrypterCodec('HI_RES_LOSSLESS', { isFirefox: true, isSafari: false })).toBe('flac-hls');
     });
 
     test('keeps the existing Safari HLS and default fragmented MP4 paths', () => {
-        expect(getAmazonDecrypterCodec('LOSSLESS', { isFirefox: false, isSafari: true })).toBe('flac-hls');
-        expect(getAmazonDecrypterCodec('LOSSLESS', { isFirefox: false, isSafari: false })).toBe('flac');
+        expect(getLegacyDecrypterCodec('LOSSLESS', { isFirefox: false, isSafari: true })).toBe('flac-hls');
+        expect(getLegacyDecrypterCodec('LOSSLESS', { isFirefox: false, isSafari: false })).toBe('flac');
     });
 
     test('keeps Opus qualities in their MP4 container on every browser', () => {
-        expect(getAmazonDecrypterCodec('HIGH', { isFirefox: true, isSafari: false })).toBe('opus');
-        expect(getAmazonDecrypterCodec('SD_HIGH', { isFirefox: false, isSafari: true })).toBe('opus');
-        expect(getAmazonDecrypterCodec('SD_LOW', { isFirefox: false, isSafari: false })).toBe('opus');
+        expect(getLegacyDecrypterCodec('HIGH', { isFirefox: true, isSafari: false })).toBe('opus');
+        expect(getLegacyDecrypterCodec('SD_HIGH', { isFirefox: false, isSafari: true })).toBe('opus');
+        expect(getLegacyDecrypterCodec('SD_LOW', { isFirefox: false, isSafari: false })).toBe('opus');
     });
 
     test('preserves the requested immersive codec in decrypted MP4', () => {
-        expect(getAmazonDecrypterCodec('DOLBY_ATMOS_EAC3_HIGH')).toBe('eac3');
-        expect(getAmazonDecrypterCodec('DOLBY_ATMOS_EAC3_LOW')).toBe('eac3');
-        expect(getAmazonDecrypterCodec('DOLBY_ATMOS_AC4_HIGH')).toBe('ac4');
-        expect(getAmazonDecrypterCodec('DOLBY_ATMOS_AC4_LOW')).toBe('ac4');
+        expect(getLegacyDecrypterCodec('DOLBY_ATMOS_EAC3_HIGH')).toBe('eac3');
+        expect(getLegacyDecrypterCodec('DOLBY_ATMOS_EAC3_LOW')).toBe('eac3');
+        expect(getLegacyDecrypterCodec('DOLBY_ATMOS_AC4_HIGH')).toBe('ac4');
+        expect(getLegacyDecrypterCodec('DOLBY_ATMOS_AC4_LOW')).toBe('ac4');
     });
 
     test('uses the browser codec probe for immersive streaming support', () => {

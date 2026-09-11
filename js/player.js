@@ -25,7 +25,7 @@ import {
     crossfadeSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
-import { isIos, isSafari, isEdge, canUseNativeAmazonCenc, getAmazonDecrypterCodec } from './platform-detection.js';
+import { isIos, isSafari, isEdge, canUseNativeLegacyCenc, getLegacyDecrypterCodec } from './platform-detection.js';
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
 import { getReplayGainScale } from './replay-gain.js';
@@ -34,6 +34,8 @@ import { waveformGenerator } from './waveform.js';
 import { SVG_CLOCK, SVG_ATMOS, SVG_TRIANGLE_ALERT, SVG_PLAY, SVG_PAUSE } from './icons.js';
 import { UIRenderer } from './ui.js';
 import { MediaSession } from '@capgo/capacitor-media-session';
+
+const PLAYBACK_AVAILABLE = false;
 
 export class Player {
     static #instance = null;
@@ -282,7 +284,7 @@ export class Player {
             isDash ||
             playbackType.includes('cenc') ||
             (isHls && !isSafari && !isIos) ||
-            (this.isNativeAmazonHlsDecryptionUrl(streamUrl) && !isSafari) ||
+            (this.isNativeLegacyHlsDecryptionUrl(streamUrl) && !isSafari) ||
             (streamUrl.startsWith('blob:') && playbackType !== 'direct' && playbackType !== 'hls')
         );
     }
@@ -323,7 +325,7 @@ export class Player {
             .toLowerCase()
             .includes('cenc')
             ? streamInfo.mimeType || null
-            : this.isNativeAmazonHlsDecryptionUrl(streamInfo.url)
+            : this.isNativeLegacyHlsDecryptionUrl(streamInfo.url)
               ? 'application/vnd.apple.mpegurl'
               : null;
         try {
@@ -742,7 +744,7 @@ export class Player {
                 // no .m3u8 suffix, but it is still an adaptive manifest and must
                 // never be assigned directly to Firefox's <audio> element.
                 if (!streamUrl.startsWith('blob:')) {
-                    const shakaPreloadMimeType = this.isNativeAmazonHlsDecryptionUrl(streamUrl)
+                    const shakaPreloadMimeType = this.isNativeLegacyHlsDecryptionUrl(streamUrl)
                         ? 'application/vnd.apple.mpegurl'
                         : null;
                     if (streamUrl.includes('.mpd') || streamUrl.includes('.m3u8') || shakaPreloadMimeType) {
@@ -840,20 +842,20 @@ export class Player {
 
     backfillReplayGainFromTrack(_track, _currentSequence) {}
 
-    shouldUseNativeAmazonDecrypter() {
-        return !canUseNativeAmazonCenc;
+    shouldUseNativeLegacyDecrypter() {
+        return !canUseNativeLegacyCenc;
     }
 
-    getAmazonNativeDecrypterCodec(streamInfo = null) {
+    getLegacyNativeDecrypterCodec(streamInfo = null) {
         const resourceCodec = String(streamInfo?.codec || '').toLowerCase();
         if (resourceCodec === 'opus') return 'opus';
         if (resourceCodec === 'ac4' || resourceCodec === 'ac-4') return 'ac4';
         if (resourceCodec === 'eac3' || resourceCodec === 'eac3-joc' || resourceCodec === 'ec-3') return 'eac3';
         if (resourceCodec === 'aac' || resourceCodec.startsWith('mp4a')) return 'mp4a';
-        return getAmazonDecrypterCodec(this.quality);
+        return getLegacyDecrypterCodec(this.quality);
     }
 
-    isNativeAmazonHlsDecryptionUrl(url) {
+    isNativeLegacyHlsDecryptionUrl(url) {
         if (!url || !url.includes('/api/decrypt-stream')) return false;
 
         try {
@@ -864,9 +866,9 @@ export class Player {
         }
     }
 
-    getNativeAmazonDecryptionUrl(streamInfo, streamUrl) {
-        if (!this.shouldUseNativeAmazonDecrypter()) return null;
-        if (!streamInfo || streamInfo.provider !== 'amazon' || !streamInfo.decryptionKey || !streamUrl) return null;
+    getNativeLegacyDecryptionUrl(streamInfo, streamUrl) {
+        if (!this.shouldUseNativeLegacyDecrypter()) return null;
+        if (!streamInfo || streamInfo.provider !== 'legacy' || !streamInfo.decryptionKey || !streamUrl) return null;
         if (streamUrl.includes('/api/decrypt-stream')) return null;
 
         const sourceUrl = streamInfo.sourceUrl || streamUrl;
@@ -875,9 +877,9 @@ export class Player {
         const params = new URLSearchParams();
         params.set('url', sourceUrl);
         params.set('key', streamInfo.decryptionKey);
-        params.set('codec', this.getAmazonNativeDecrypterCodec(streamInfo));
+        params.set('codec', this.getLegacyNativeDecrypterCodec(streamInfo));
 
-        console.warn('[Amazon SW Decrypter] Player rescued raw Amazon stream URL');
+        console.warn('[SW Decrypter] Player rescued a protected stream URL');
         return `${window.location.protocol}//${window.location.host}/api/decrypt-stream?${params.toString()}`;
     }
 
@@ -951,7 +953,7 @@ export class Player {
         recursiveCount = 0,
     }) {
         const cachedStreamInfo = this.preloadCache.get(track.id);
-        const rescuedStreamUrl = this.getNativeAmazonDecryptionUrl(cachedStreamInfo, cachedStreamInfo?.url);
+        const rescuedStreamUrl = this.getNativeLegacyDecryptionUrl(cachedStreamInfo, cachedStreamInfo?.url);
         const streamInfo = rescuedStreamUrl
             ? { ...cachedStreamInfo, url: rescuedStreamUrl, playbackType: [], preloadManager: null, preloader: null }
             : cachedStreamInfo;
@@ -986,7 +988,7 @@ export class Player {
                     streamInfo.playbackType !== 'direct' &&
                     streamInfo.playbackType !== 'hls') ||
                 (isHlsManifest && !isSafari && !isIos) ||
-                (this.isNativeAmazonHlsDecryptionUrl(streamUrl) && !isSafari));
+                (this.isNativeLegacyHlsDecryptionUrl(streamUrl) && !isSafari));
         if (requiresShaka && (!this.shakaPlayer || this.shakaPlayer.getMediaElement() !== activeElement)) {
             return false;
         }
@@ -1044,7 +1046,7 @@ export class Player {
             }
             const shakaMimeType = streamInfo.playbackType?.includes('cenc')
                 ? streamInfo.mimeType || null
-                : this.isNativeAmazonHlsDecryptionUrl(streamUrl)
+                : this.isNativeLegacyHlsDecryptionUrl(streamUrl)
                   ? 'application/vnd.apple.mpegurl'
                   : null;
             handoffPromise =
@@ -1219,6 +1221,7 @@ export class Player {
     }
 
     async playVideo(video) {
+        if (!PLAYBACK_AVAILABLE) return;
         if (!video) return;
         const videoTrack = {
             ...video,
@@ -1231,6 +1234,11 @@ export class Player {
     }
 
     async playTrackFromQueue(startTime = 0, recursiveCount = 0, isRetry = false, options = {}) {
+        if (!PLAYBACK_AVAILABLE) {
+            this.audio.pause();
+            this.video.pause();
+            return;
+        }
         await this.shakaReady;
         const { preserveGestureToken = false, preparedPlayback = null } = options;
         if (!isRetry) {
@@ -1605,7 +1613,7 @@ export class Player {
 
                 const rescuedStreamUrl = preparedPlayback
                     ? null
-                    : this.getNativeAmazonDecryptionUrl(resolvedStreamInfo, resolvedStreamInfo.url);
+                    : this.getNativeLegacyDecryptionUrl(resolvedStreamInfo, resolvedStreamInfo.url);
                 if (rescuedStreamUrl) {
                     resolvedStreamInfo = {
                         ...resolvedStreamInfo,
@@ -1629,12 +1637,12 @@ export class Player {
                     channels: resolvedStreamInfo.channels,
                     channelLayout: resolvedStreamInfo.channelLayout,
                 };
-                if (resolvedStreamInfo.provider === 'amazon' && resolvedStreamInfo.quality) {
-                    track.amazonMusicQualitySelected = resolvedStreamInfo.quality;
-                    track.amazonMusicQualityDisplay = resolvedStreamInfo.qualityDisplay;
+                if (resolvedStreamInfo.provider === 'legacy' && resolvedStreamInfo.quality) {
+                    track.legacyQualitySelected = resolvedStreamInfo.quality;
+                    track.legacyQualityDisplay = resolvedStreamInfo.qualityDisplay;
                     if (this.currentTrack?.id === track.id) {
-                        this.currentTrack.amazonMusicQualitySelected = resolvedStreamInfo.quality;
-                        this.currentTrack.amazonMusicQualityDisplay = resolvedStreamInfo.qualityDisplay;
+                        this.currentTrack.legacyQualitySelected = resolvedStreamInfo.quality;
+                        this.currentTrack.legacyQualityDisplay = resolvedStreamInfo.qualityDisplay;
                     }
                     this.updateNowPlayingTitle(track);
                 }
@@ -1692,7 +1700,7 @@ export class Player {
                     (isDashManifest ||
                         resolvedStreamInfo.playbackType?.includes('cenc') ||
                         (isHlsManifest && !isSafari && !isIos) ||
-                        (this.isNativeAmazonHlsDecryptionUrl(streamUrl) && !isSafari) ||
+                        (this.isNativeLegacyHlsDecryptionUrl(streamUrl) && !isSafari) ||
                         (streamUrl.startsWith('blob:') &&
                             resolvedStreamInfo.playbackType !== 'direct' &&
                             resolvedStreamInfo.playbackType !== 'hls'));
@@ -1727,7 +1735,7 @@ export class Player {
                     }
                     const shakaMimeType = resolvedStreamInfo.playbackType?.includes('cenc')
                         ? resolvedStreamInfo.mimeType || null
-                        : this.isNativeAmazonHlsDecryptionUrl(streamUrl)
+                        : this.isNativeLegacyHlsDecryptionUrl(streamUrl)
                           ? 'application/vnd.apple.mpegurl'
                           : null;
 
@@ -1748,7 +1756,7 @@ export class Player {
                         } catch (fallbackError) {
                             if (!cachedStreamInfo) throw fallbackError;
 
-                            // Cached Amazon URLs can expire or be invalidated by
+                            // Cached protected URLs can expire or be invalidated by
                             // preload. Evict the whole handoff state before the
                             // retry so getStreamUrl obtains a new signed URL.
                             await this.discardCachedPreload(track.id, cachedStreamInfo);
@@ -1908,7 +1916,7 @@ export class Player {
     }
 
     getCrossfadeStreamInfo(streamInfo) {
-        if (!streamInfo || streamInfo.provider !== 'amazon' || !streamInfo.decryptionKey) return streamInfo;
+        if (!streamInfo || streamInfo.provider !== 'legacy' || !streamInfo.decryptionKey) return streamInfo;
         // Chrome can overlap the original DASH/CENC stream with a second Shaka
         // player. Converting it to a service-worker URL here leaves a plain
         // <audio> element trying to decode fragmented encrypted MP4 instead.
@@ -1931,7 +1939,7 @@ export class Player {
         const params = new URLSearchParams();
         params.set('url', sourceUrl);
         params.set('key', streamInfo.decryptionKey);
-        const targetCodec = this.getAmazonNativeDecrypterCodec(streamInfo);
+        const targetCodec = this.getLegacyNativeDecrypterCodec(streamInfo);
         params.set('codec', targetCodec);
 
         return {
@@ -2623,6 +2631,11 @@ export class Player {
     }
 
     async handlePlayPause() {
+        if (!PLAYBACK_AVAILABLE) {
+            this.audio.pause();
+            this.video.pause();
+            return;
+        }
         const el = this.activeElement;
         const hasSource = el.src || el.currentSrc || el.srcObject || this.shakaInitialized;
 

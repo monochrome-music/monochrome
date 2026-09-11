@@ -1,5 +1,5 @@
-self.__AMAZON_SW_DECRYPTER_VERSION__ = '2026-08-09-atmos-v11';
-console.log(`[SW Decrypter] Loaded ${self.__AMAZON_SW_DECRYPTER_VERSION__}`);
+self.__SW_DECRYPTER_VERSION__ = '2026-08-09-atmos-v11';
+console.log(`[SW Decrypter] Loaded ${self.__SW_DECRYPTER_VERSION__}`);
 
 // A native HLS media element asks for the playlist more than once while it is
 // preparing. Keep the parsed MP4 index in this worker so preloading the handoff
@@ -810,7 +810,7 @@ class Mp4DecryptTransformer {
         const flags = view.getUint32(8) & 0xffffff;
         const sampleCount = view.getUint32(12);
 
-        const ivSize = 8; // Amazon Music usually uses 8-byte IVs for CENC
+        const ivSize = 8;
 
         let offset = 16;
         this.sampleIVs = [];
