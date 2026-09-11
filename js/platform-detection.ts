@@ -32,7 +32,7 @@ export const isWebKitGtk =
     lowerCaseOriginalUserAgent.includes('mozilla') &&
     lowerCaseOriginalUserAgent.includes('linux');
 
-type AmazonDecrypterBrowser = {
+type LegacyDecrypterBrowser = {
     isFirefox: boolean;
     isSafari: boolean;
     isWebKitGtk: boolean;
@@ -45,16 +45,16 @@ type NavigatorWithUserAgentData = Navigator & {
 };
 
 /**
- * Choose the container emitted by the service-worker Amazon decrypter.
+ * Choose the container emitted by the legacy service-worker decrypter.
  *
  * Firefox cannot reliably consume the progressively rewritten fragmented MP4:
  * after enough playback it may request a sample past the bytes it has buffered
  * and abort with MediaResult/SampleIterator decoding errors. Segmented HLS
  * avoids that progressive-resource path while retaining seekable time ranges.
  */
-export function getAmazonDecrypterCodec(
+export function getLegacyDecrypterCodec(
     quality: string,
-    browser: AmazonDecrypterBrowser = { isFirefox, isSafari, isWebKitGtk }
+    browser: LegacyDecrypterBrowser = { isFirefox, isSafari, isWebKitGtk }
 ): 'opus' | 'mp4a' | 'eac3' | 'ac4' | 'flac-hls' | 'flac-raw' | 'flac' {
     const normalizedQuality = quality.toUpperCase();
     if (normalizedQuality.startsWith('DOLBY_ATMOS_AC4_')) return 'ac4';
@@ -93,8 +93,8 @@ export function canBrowserStreamAtmosQuality(quality: string, mediaElement: HTML
 const chromiumBrandPattern = /chromium|chrome|edge|opera|brave/i;
 const userAgentBrands = (navigator as NavigatorWithUserAgentData).userAgentData?.brands ?? [];
 
-/** If this browser has Chromium's native ClearKey/CENC behavior we rely on for Amazon streams. */
-export const canUseNativeAmazonCenc =
+/** Whether this browser supports the required native ClearKey/CENC behavior. */
+export const canUseNativeLegacyCenc =
     !isIos &&
     !isSafari &&
     (userAgentBrands.some((brand) => chromiumBrandPattern.test(brand.brand)) || 'chrome' in globalThis);

@@ -52,8 +52,8 @@ vi.mock('../platform-detection.js', () => ({
     isIos: false,
     isSafari: false,
     isChrome: true,
-    canUseNativeAmazonCenc: true,
-    getAmazonDecrypterCodec: vi.fn(() => 'flac'),
+    canUseNativeLegacyCenc: true,
+    getLegacyDecrypterCodec: vi.fn(() => 'flac'),
     canBrowserStreamAtmosQuality: vi.fn(() => true),
 }));
 vi.mock('../container-classes.js', () => ({
@@ -108,8 +108,8 @@ describe('LosslessAPI HiFi streaming fallback', () => {
 
     test('uses Unified Playback before Deezer when it resolves a stream URL', async () => {
         api.getUnifiedPlaybackStreamUrl.mockResolvedValue({
-            url: 'blob:https://app.example/amazon',
-            provider: 'amazon',
+            url: 'blob:https://app.example/protected',
+            provider: 'legacy',
             playbackType: 'direct',
             quality: 'HD_44',
             rgInfo: {
@@ -123,8 +123,8 @@ describe('LosslessAPI HiFi streaming fallback', () => {
         const result = await api.getStreamUrl('123', 'LOSSLESS');
 
         expect(result).toEqual({
-            url: 'blob:https://app.example/amazon',
-            provider: 'amazon',
+            url: 'blob:https://app.example/protected',
+            provider: 'legacy',
             playbackType: 'direct',
             quality: 'HD_44',
             rgInfo: {

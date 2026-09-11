@@ -16,7 +16,6 @@ import {
     pwaUpdateSettings,
     modalSettings,
     keyboardShortcuts,
-    unifiedPlaybackSettings,
 } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
@@ -59,7 +58,7 @@ import {
 } from './icons.js';
 import { HiFiClient } from './HiFi.js';
 
-const AMAZON_DECRYPTER_SW_VERSION = '2026-08-09-atmos-v11';
+const LEGACY_DECRYPTER_SW_VERSION = '2026-08-09-atmos-v11';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
@@ -337,13 +336,13 @@ async function clearDevPwaRuntimeCaches() {
     }
 }
 
-function getAmazonDecrypterServiceWorkerUrl() {
+function getLegacyDecrypterServiceWorkerUrl() {
     const baseUrl =
-        import.meta.env.DEV && isSafari ? '/sw-amazon.js' : import.meta.env.DEV ? '/dev-dist/sw.js' : '/sw.js';
-    return `${baseUrl}?amazon-sw=${AMAZON_DECRYPTER_SW_VERSION}`;
+        import.meta.env.DEV && isSafari ? '/sw-decrypter.js' : import.meta.env.DEV ? '/dev-dist/sw.js' : '/sw.js';
+    return `${baseUrl}?decrypter-sw=${LEGACY_DECRYPTER_SW_VERSION}`;
 }
 
-async function registerAmazonDecrypterServiceWorkerFallback() {
+async function registerLegacyDecrypterServiceWorkerFallback() {
     const diagnostic = {
         origin: window.location.origin,
         protocol: window.location.protocol,
@@ -354,19 +353,19 @@ async function registerAmazonDecrypterServiceWorkerFallback() {
         safari: isSafari,
     };
 
-    console.log('[Amazon SW Decrypter] SW registration probe', diagnostic);
+    console.log('[SW Decrypter] SW registration probe', diagnostic);
 
     if (!('serviceWorker' in navigator)) {
-        console.warn('[Amazon SW Decrypter] Service Worker API unavailable.', diagnostic);
+        console.warn('[SW Decrypter] Service Worker API unavailable.', diagnostic);
         return null;
     }
 
     if (!window.isSecureContext) {
-        console.warn('[Amazon SW Decrypter] Service Worker blocked because this is not a secure context.', diagnostic);
+        console.warn('[SW Decrypter] Service Worker blocked because this is not a secure context.', diagnostic);
         return null;
     }
 
-    const swUrl = getAmazonDecrypterServiceWorkerUrl();
+    const swUrl = getLegacyDecrypterServiceWorkerUrl();
 
     try {
         const registration = await navigator.serviceWorker.register(swUrl, {
@@ -375,10 +374,10 @@ async function registerAmazonDecrypterServiceWorkerFallback() {
         });
 
         await registration.update().catch((error) => {
-            console.warn('[Amazon SW Decrypter] Manual SW update failed:', error);
+            console.warn('[SW Decrypter] Manual SW update failed:', error);
         });
 
-        console.log('[Amazon SW Decrypter] Manual SW registration succeeded', {
+        console.log('[SW Decrypter] Manual SW registration succeeded', {
             swUrl,
             scope: registration.scope,
             active: !!registration.active,
@@ -389,16 +388,16 @@ async function registerAmazonDecrypterServiceWorkerFallback() {
 
         if (!navigator.serviceWorker.controller) {
             console.info(
-                '[Amazon SW Decrypter] SW registered but this page is not controlled yet; reload manually if playback is not intercepted.',
+                '[SW Decrypter] SW registered but this page is not controlled yet; reload manually if playback is not intercepted.',
                 {
-                    swVersion: AMAZON_DECRYPTER_SW_VERSION,
+                    swVersion: LEGACY_DECRYPTER_SW_VERSION,
                 }
             );
         }
 
         return registration;
     } catch (error) {
-        console.warn('[Amazon SW Decrypter] Manual SW registration failed', {
+        console.warn('[SW Decrypter] Manual SW registration failed', {
             swUrl,
             errorName: error?.name,
             errorMessage: error?.message,
@@ -497,10 +496,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await MusicAPI.initialize(apiSettings);
-
-    if (unifiedPlaybackSettings.isEnabled() && unifiedPlaybackSettings.getApiToken().trim()) {
-        MusicAPI.instance.tidalAPI.getUnifiedTurnstileJwt().catch(() => null);
-    }
 
     const audioPlayer = document.getElementById('audio-player');
 
@@ -2706,20 +2701,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch {}
 
     if (isNativeApp) {
-        console.log('[Amazon SW Decrypter] PWA disabled for native app shell');
+        console.log('[SW Decrypter] PWA disabled for native app shell');
         await disablePwaForAuthGate().catch(console.error);
     } else if (window.__AUTH_GATE__) {
-        console.log('[Amazon SW Decrypter] PWA disabled for auth gate');
+        console.log('[SW Decrypter] PWA disabled for auth gate');
         await disablePwaForAuthGate().catch(console.error);
     } else {
         await clearDevPwaRuntimeCaches();
 
         if (import.meta.env.DEV && isSafari) {
-            await registerAmazonDecrypterServiceWorkerFallback();
+            await registerLegacyDecrypterServiceWorkerFallback();
         }
 
         if (import.meta.env.DEV && isSafari) {
-            console.log('[Amazon SW Decrypter] Using dedicated root-scope SW in Safari dev mode');
+            console.log('[SW Decrypter] Using dedicated root-scope SW in Safari dev mode');
         } else {
             const updateSW = registerSW({
                 onRegisteredSW(swScriptUrl, registration) {

@@ -35,7 +35,6 @@ import {
     pwaUpdateSettings,
     contentBlockingSettings,
     musicProviderSettings,
-    unifiedPlaybackSettings,
     deezerFallbackSettings,
     gaplessPlaybackSettings,
     analyticsSettings,
@@ -842,42 +841,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             musicProviderSettings.setProvider(e.target.value);
             // Reload page to apply changes
             window.location.reload();
-        });
-    }
-
-    const unifiedPlaybackToggle = document.getElementById('unified-playback-toggle');
-    if (unifiedPlaybackToggle) {
-        unifiedPlaybackToggle.checked = unifiedPlaybackSettings.isEnabled();
-        unifiedPlaybackToggle.addEventListener('change', (e) => {
-            unifiedPlaybackSettings.setEnabled(e.target.checked);
-            api?.clearUnifiedTurnstileJwt?.();
-            api?.clearCache?.();
-            if (e.target.checked && unifiedPlaybackSettings.getApiToken().trim()) {
-                api?.getUnifiedTurnstileJwt?.().catch(() => null);
-            }
-        });
-    }
-
-    const unifiedApiBaseUrlInput = document.getElementById('unified-playback-api-base-url');
-    if (unifiedApiBaseUrlInput) {
-        unifiedApiBaseUrlInput.value = unifiedPlaybackSettings.getApiBaseUrl();
-        unifiedApiBaseUrlInput.addEventListener('change', (e) => {
-            unifiedPlaybackSettings.setApiBaseUrl(e.target.value.trim());
-            api?.clearUnifiedTurnstileJwt?.();
-            api?.clearCache?.();
-        });
-    }
-
-    const unifiedApiTokenInput = document.getElementById('unified-playback-api-token');
-    if (unifiedApiTokenInput) {
-        unifiedApiTokenInput.value = unifiedPlaybackSettings.getApiToken();
-        unifiedApiTokenInput.addEventListener('change', (e) => {
-            unifiedPlaybackSettings.setApiToken(e.target.value.trim());
-            api?.clearUnifiedTurnstileJwt?.();
-            api?.clearCache?.();
-            if (e.target.value.trim() && unifiedPlaybackSettings.isEnabled()) {
-                api?.getUnifiedTurnstileJwt?.().catch(() => null);
-            }
         });
     }
 
