@@ -2749,10 +2749,10 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                         clearSelection();
                         break;
                     case 'toggle-like':
-                        selectedTracks.forEach(async (t) => {
+                        for (const t of selectedTracks) {
                             const added = await db.toggleFavorite('track', t);
                             await syncManager.syncLibraryItem('track', t, added);
-                        });
+                        }
                         showNotification(`Liked ${selectedTracks.length} tracks`);
                         clearSelection();
                         break;
