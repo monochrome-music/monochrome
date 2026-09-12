@@ -106,29 +106,94 @@ import {
     SVG_CHECKBOX,
 } from './icons.js';
 
-const AOTY_BASE = 'https://aoty.prigoana.pw';
+const AOTY_BASE = 'https://aoty.edideaur.works';
 const AOTY_CACHE_TTL = 86_400_000; // 24 hours
+const AOTY_CACHE_PREFIX = 'aoty_cache_v2_'; // bumped when base moved to aoty.edideaur.works
+const AOTY_FETCH_TIMEOUT_MS = 15_000;
+// openapi.json declares scores/counts as integer|null, but the live API also
+// emits numeric strings ("80"), comma counts ("3,087") and the "NR" sentinel.
+function aotyScore(v) {
+    if (v == null) return null;
+    if (typeof v === 'number') return Number.isFinite(v) ? Math.trunc(v) : null;
+    const s = String(v).trim();
+    if (!s || s.toUpperCase() === 'NR') return null;
+    const n = Number(s.replace(/,/g, ''));
+    return Number.isFinite(n) ? Math.trunc(n) : null;
+}
+
+function aotyCount(v) {
+    return aotyScore(v);
+}
+
+// ListDetailItem rank is integer|null per spec, string per live API.
+function aotyRank(v) {
+    if (v == null || v === '') return '';
+    if (typeof v === 'number' && Number.isFinite(v)) return String(Math.trunc(v));
+    return String(v).trim();
+}
+
+// Live /list/{slug} items use a combined "Artist - Title" string while the
+// spec documents separate artist/album/title fields. Support both.
+function aotySplitArtistTitle(combined) {
+    const s = String(combined || '');
+    const sep = s.indexOf(' - ');
+    if (sep > 0) return { artist: s.slice(0, sep).trim(), title: s.slice(sep + 3).trim() };
+    return { artist: '', title: s.trim() };
+}
+
+function aotyListItemParts(item) {
+    const artist = item?.artist || aotySplitArtistTitle(item?.album || item?.title).artist;
+    const title = item?.album || aotySplitArtistTitle(item?.title).title || item?.title || '';
+    return { artist: artist || '', title: title || '', rank: aotyRank(item?.rank) };
+}
 
 function aotyCoverUrl(url) {
     if (!url) return url;
     return String(url).replace(/(https?:\/\/cdn2\.albumoftheyear\.org\/)\d+x0\//, '$15000x0/');
 }
 
-async function fetchAOTY(path) {
-    const key = `aoty_cache_${path}`;
+async function fetchAOTY(path, { timeoutMs = AOTY_FETCH_TIMEOUT_MS, skipCache = false } = {}) {
+    if (!path || !path.startsWith('/')) throw new Error(`AOTY: path must start with "/": ${path}`);
+    const key = `${AOTY_CACHE_PREFIX}${path}`;
+    if (!skipCache) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (raw) {
+                const { ts, data } = JSON.parse(raw);
+                if (Date.now() - ts < AOTY_CACHE_TTL) return data;
+            }
+        } catch {}
+    }
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    let res;
     try {
-        const raw = localStorage.getItem(key);
-        if (raw) {
-            const { ts, data } = JSON.parse(raw);
-            if (Date.now() - ts < AOTY_CACHE_TTL) return data;
-        }
-    } catch {}
-    const res = await fetch(`${AOTY_BASE}${path}`);
-    if (!res.ok) throw new Error(`AOTY request failed: ${res.status}`);
+        res = await fetch(`${AOTY_BASE}${path}`, {
+            headers: { Accept: 'application/json' },
+            signal: ctrl.signal,
+        });
+    } catch (e) {
+        if (e?.name === 'AbortError') throw new Error(`AOTY request timed out: ${path}`);
+        throw e;
+    } finally {
+        clearTimeout(timer);
+    }
+    if (!res.ok) {
+        let detail = '';
+        try {
+            const body = await res.json();
+            detail = body?.detail ? `, ${body.detail}` : '';
+        } catch {}
+        const err = new Error(`AOTY request failed: ${res.status} ${path}${detail}`);
+        err.status = res.status;
+        throw err;
+    }
     const data = await res.json();
-    try {
-        localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
-    } catch {}
+    if (!skipCache) {
+        try {
+            localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
+        } catch {}
+    }
     return data;
 }
 
@@ -3166,8 +3231,13 @@ export class UIRenderer {
             { id: 'discover', label: 'Discover' },
             { id: 'releases', label: 'New Releases' },
             { id: 'musthear', label: 'Must Hear' },
+            { id: 'charts', label: 'Charts' },
+            { id: 'genres', label: 'Genres' },
+            { id: 'songs', label: 'Songs' },
+            { id: 'search', label: 'Search' },
             { id: 'news', label: 'News' },
             { id: 'lists', label: 'Critic Lists' },
+            { id: 'shuffle', label: 'Shuffle' },
         ];
 
         const pill = (active) =>
@@ -3175,7 +3245,7 @@ export class UIRenderer {
 
         container.innerHTML = `
             <div style="font-size:0.72rem;color:var(--muted-foreground);margin-bottom:0.9rem;">
-                Powered by <a href="https://aoty.prigoana.pw/" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:none;">aoty-api</a>
+                Powered by <a href="https://aoty.edideaur.works/" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:none;">aoty-api</a>
                 &nbsp;·&nbsp;
                 <a href="https://ko-fi.com/edideaur" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:none;">consider donating</a>
             </div>
@@ -3215,8 +3285,13 @@ export class UIRenderer {
             discover: () => this.renderAOTYDiscover(view),
             releases: () => this.renderAOTYReleases(view),
             musthear: () => this.renderAOTYMustHear(view),
+            charts: () => this.renderAOTYCharts(view),
+            genres: () => this.renderAOTYGenres(view),
+            songs: () => this.renderAOTYSongs(view),
+            search: () => this.renderAOTYSearch(view),
             news: () => this.renderAOTYNews(view),
             lists: () => this.renderAOTYLists(view),
+            shuffle: () => this.renderAOTYShuffle(view),
         };
         if (handlers[tabId]) await handlers[tabId]();
     }
@@ -3251,13 +3326,22 @@ export class UIRenderer {
     async renderAOTYReleases(container) {
         container.innerHTML = `<div class="card-grid">${this.createSkeletonCards(12)}</div>`;
         try {
-            const [albums, singles] = await Promise.all([
+            const [albums, singles, thisWeek, thisWeekSingles, upcoming] = await Promise.all([
                 fetchAOTY('/releases').catch(() => null),
                 fetchAOTY('/releases/singles').catch(() => null),
+                fetchAOTY('/releases/this-week').catch(() => null),
+                fetchAOTY('/releases/this-week/singles').catch(() => null),
+                fetchAOTY('/upcoming').catch(() => null),
             ]);
             container.innerHTML = '';
+            updateAOTYMustHearIndex([...(albums?.albums || []), ...(thisWeek?.albums || [])]);
+            if (thisWeek?.albums?.length) this.renderAOTYSection(container, 'This Week', thisWeek.albums);
+            if (thisWeekSingles?.albums?.length)
+                this.renderAOTYSection(container, 'This Week, Singles', thisWeekSingles.albums);
             if (albums?.albums?.length) this.renderAOTYSection(container, 'New Albums', albums.albums);
             if (singles?.albums?.length) this.renderAOTYSection(container, 'New Singles', singles.albums);
+            if (upcoming?.albums?.length)
+                this.renderAOTYSection(container, 'Upcoming', upcoming.albums, { isUpcoming: true });
             if (!container.children.length) container.innerHTML = createPlaceholder('No new releases.');
         } catch (e) {
             console.error(e);
@@ -3267,7 +3351,8 @@ export class UIRenderer {
 
     async renderAOTYMustHear(container) {
         const currentYear = new Date().getFullYear();
-        const currentDecadeStart = Math.floor(currentYear / 10) * 10;
+        // openapi.json only allows 1950s..2020s for `decade`.
+        const currentDecadeStart = Math.min(Math.floor(currentYear / 10) * 10, 2020);
 
         const DECADES = [];
         for (let d = currentDecadeStart; d >= 1950; d -= 10) DECADES.push(d);
@@ -3333,7 +3418,7 @@ export class UIRenderer {
                 contentDiv.innerHTML = '';
                 if (data.albums?.length) {
                     updateAOTYMustHearIndex(data.albums);
-                    this.renderAOTYSection(contentDiv, `Must Hear — ${d}s`, data.albums);
+                    this.renderAOTYSection(contentDiv, `Must Hear, ${d}s`, data.albums);
                 } else {
                     contentDiv.innerHTML = createPlaceholder('No must-hear albums found.');
                 }
@@ -3511,6 +3596,375 @@ export class UIRenderer {
         await loadLists(currentYear);
     }
 
+    renderAOTYRankedRows(container, title, items) {
+        if (!items?.length) return;
+        const section = document.createElement('section');
+        section.className = 'content-section';
+        section.innerHTML = `<h2 class="section-title">${escapeHtml(title)}</h2>`;
+        const list = document.createElement('div');
+        for (const item of items) {
+            const rank = aotyRank(item.rank);
+            const artist = item.artist || '';
+            const name = item.album || item.title || '';
+            const url = item.albumUrl || item.url || '';
+            const aotyUrl = url.startsWith('http') ? url : `https://www.albumoftheyear.org${url}`;
+            const score = aotyScore(item.score ?? item.scoreExact ?? item.exactScore);
+            const points = aotyCount(item.points);
+            const badge = score != null ? String(score) : points != null ? `${points} pts` : '';
+            const metaParts = [
+                artist,
+                item.date,
+                ...(item.genres?.slice(0, 2) || []),
+                item.ratingCount != null ? `${item.ratingCount} ratings` : '',
+                item.listsCount != null ? `${item.listsCount} lists` : '',
+                item.album && item.title && item.album !== item.title ? item.title : '',
+            ].filter(Boolean);
+
+            const row = document.createElement('div');
+            row.style.cssText =
+                'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);cursor:pointer;';
+            row.innerHTML = `
+                ${rank ? `<span style="font-size:0.8rem;font-weight:700;color:var(--primary);min-width:2rem;text-align:right;flex-shrink:0;">#${escapeHtml(rank)}</span>` : ''}
+                <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${aotyCoverUrl(item.cover || item.artistImage) || 'images/monochrome_logo.svg'}" width="48" height="48"
+                    style="border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);"
+                    loading="lazy" onerror="this.src='images/monochrome_logo.svg';this.onerror=null;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:500;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" class="row-title"></div>
+                    <div style="font-size:0.75rem;color:var(--muted-foreground);margin-top:2px;" class="row-meta"></div>
+                </div>
+                ${badge ? `<div style="font-size:0.8rem;font-weight:700;color:var(--primary-foreground);background:var(--primary);padding:2px 7px;border-radius:5px;flex-shrink:0;">${escapeHtml(badge)}</div>` : ''}`;
+            row.querySelector('.row-title').textContent = name;
+            row.querySelector('.row-meta').textContent = metaParts.join(' · ');
+            row.addEventListener('click', async () => {
+                row.style.opacity = '0.5';
+                row.style.pointerEvents = 'none';
+                try {
+                    const found = await this.findAOTYAlbumInLibrary(artist, name);
+                    if (found) navigate(`/album/${found.id}`);
+                    else if (aotyUrl) window.open(aotyUrl, '_blank', 'noopener');
+                } finally {
+                    row.style.opacity = '';
+                    row.style.pointerEvents = '';
+                }
+            });
+            list.appendChild(row);
+        }
+        section.appendChild(list);
+        container.appendChild(section);
+    }
+
+    async renderAOTYCharts(container) {
+        const currentYear = new Date().getFullYear();
+        const years = Array.from({ length: currentYear - 1970 + 1 }, (_, i) => currentYear - i);
+        container.innerHTML = `
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;">
+                <select id="aoty-charts-year" style="padding:0.3rem 0.6rem;border-radius:6px;border:1px solid var(--border);background:var(--background);color:var(--foreground);font-size:0.85rem;cursor:pointer;">
+                    ${years.map((y) => `<option value="${y}">${y}</option>`).join('')}
+                </select>
+            </div>
+            <div id="aoty-charts-content"></div>
+        `;
+        const contentDiv = container.querySelector('#aoty-charts-content');
+        const loadCharts = async (year) => {
+            contentDiv.innerHTML = `<div class="card-grid">${this.createSkeletonCards(6)}</div>`;
+            try {
+                const [criticAgg, communityAgg, topRated] = await Promise.all([
+                    fetchAOTY(`/list/summary?year=${year}`).catch(() => null),
+                    fetchAOTY(`/year-end?year=${year}`).catch(() => null),
+                    fetchAOTY(`/ratings?period=${year}`).catch(() => null),
+                ]);
+                contentDiv.innerHTML = '';
+                if (criticAgg?.items?.length)
+                    this.renderAOTYRankedRows(
+                        contentDiv,
+                        `Critic Aggregate ${year}${criticAgg.totalLists ? ` · ${criticAgg.totalLists} lists` : ''}`,
+                        criticAgg.items
+                    );
+                if (communityAgg?.items?.length)
+                    this.renderAOTYRankedRows(
+                        contentDiv,
+                        `Community Year-End ${year}${communityAgg.totalLists ? ` · ${communityAgg.totalLists} lists` : ''}`,
+                        communityAgg.items
+                    );
+                if (topRated?.items?.length)
+                    this.renderAOTYRankedRows(contentDiv, `Top Rated ${year}`, topRated.items);
+                if (!contentDiv.children.length)
+                    contentDiv.innerHTML = createPlaceholder('No chart data found.');
+            } catch (e) {
+                console.error(e);
+                contentDiv.innerHTML = createPlaceholder('Failed to load charts.');
+            }
+        };
+        container.querySelector('#aoty-charts-year').addEventListener('change', (e) => loadCharts(e.target.value));
+        await loadCharts(currentYear);
+    }
+
+    async renderAOTYGenres(container) {
+        container.innerHTML = `<div class="card-grid">${this.createSkeletonCards(12)}</div>`;
+        const loadIndex = async () => {
+            container.innerHTML = `<div class="card-grid">${this.createSkeletonCards(12)}</div>`;
+            try {
+                const data = await fetchAOTY('/genres');
+                container.innerHTML = '';
+                if (!data.genres?.length) {
+                    container.innerHTML = createPlaceholder('No genres found.');
+                    return;
+                }
+                const chips = document.createElement('div');
+                chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1.5rem;';
+                for (const g of data.genres) {
+                    const slug = (g.url || '').split('/').filter(Boolean).pop() || '';
+                    if (!slug) continue;
+                    const btn = document.createElement('button');
+                    btn.textContent = g.name || slug;
+                    btn.style.cssText =
+                        'padding:0.32rem 0.9rem;border-radius:2rem;border:1px solid var(--border);background:transparent;color:var(--muted-foreground);cursor:pointer;font-size:0.82rem;font-weight:500;white-space:nowrap;';
+                    btn.addEventListener('click', () => loadGenre(slug, g.name || slug));
+                    chips.appendChild(btn);
+                }
+                container.appendChild(chips);
+                for (const g of data.genres) {
+                    if (g.albums?.length) this.renderAOTYSection(container, g.name || 'Genre', g.albums);
+                }
+                if (!container.children.length) container.innerHTML = createPlaceholder('No genres found.');
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = createPlaceholder('Failed to load genres.');
+            }
+        };
+        const loadGenre = async (slug, name) => {
+            container.innerHTML = `<div class="card-grid">${this.createSkeletonCards(12)}</div>`;
+            try {
+                const data = await fetchAOTY(`/genre?slug=${encodeURIComponent(slug)}`);
+                container.innerHTML = '';
+                const back = document.createElement('button');
+                back.textContent = '← All genres';
+                back.style.cssText =
+                    'padding:0.32rem 0.9rem;border-radius:2rem;border:1px solid var(--border);background:transparent;color:var(--muted-foreground);cursor:pointer;font-size:0.82rem;font-weight:500;margin-bottom:1rem;';
+                back.addEventListener('click', loadIndex);
+                container.appendChild(back);
+                const title = document.createElement('h2');
+                title.className = 'section-title';
+                title.textContent = data.name || name || 'Genre';
+                container.appendChild(title);
+                if (data.childGenres?.length) {
+                    const chips = document.createElement('div');
+                    chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1.5rem;';
+                    for (const c of data.childGenres) {
+                        const cSlug = (c.url || '').split('/').filter(Boolean).pop() || '';
+                        if (!cSlug) continue;
+                        const btn = document.createElement('button');
+                        btn.textContent = c.name || cSlug;
+                        btn.style.cssText =
+                            'padding:0.28rem 0.7rem;border-radius:2rem;border:1px solid var(--border);background:transparent;color:var(--muted-foreground);cursor:pointer;font-size:0.78rem;font-weight:500;';
+                        btn.addEventListener('click', () => loadGenre(cSlug, c.name || cSlug));
+                        chips.appendChild(btn);
+                    }
+                    container.appendChild(chips);
+                }
+                for (const s of data.sections || []) {
+                    if (s.albums?.length) this.renderAOTYSection(container, s.title || 'Albums', s.albums);
+                }
+                if (data.items?.length) this.renderAOTYRankedRows(container, 'Top Albums', data.items);
+                if (!container.children.length) container.innerHTML = createPlaceholder('No genre data found.');
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = createPlaceholder('Failed to load genre.');
+            }
+        };
+        await loadIndex();
+    }
+
+    async renderAOTYSongs(container) {
+        const currentYear = new Date().getFullYear();
+        const years = Array.from({ length: currentYear - 1970 + 1 }, (_, i) => currentYear - i);
+        const pill = (active) =>
+            `padding:0.32rem 0.9rem;border-radius:2rem;border:1px solid ${active ? 'var(--primary)' : 'var(--border)'};background:${active ? 'var(--primary)' : 'transparent'};color:${active ? 'var(--primary-foreground)' : 'var(--muted-foreground)'};cursor:pointer;font-size:0.82rem;font-weight:500;white-space:nowrap;`;
+        container.innerHTML = `
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+                <select id="aoty-songs-year" style="padding:0.3rem 0.6rem;border-radius:6px;border:1px solid var(--border);background:var(--background);color:var(--foreground);font-size:0.85rem;cursor:pointer;">
+                    ${years.map((y) => `<option value="${y}">${y}</option>`).join('')}
+                </select>
+                <button class="aoty-songs-mode" data-mode="community" style="${pill(true)}">Community</button>
+                <button class="aoty-songs-mode" data-mode="critics" style="${pill(false)}">Critics</button>
+            </div>
+            <div id="aoty-songs-content"></div>
+        `;
+        const contentDiv = container.querySelector('#aoty-songs-content');
+        let mode = 'community';
+        const setMode = (m) => {
+            mode = m;
+            for (const btn of container.querySelectorAll('.aoty-songs-mode')) {
+                const on = btn.dataset.mode === mode;
+                btn.style.background = on ? 'var(--primary)' : 'transparent';
+                btn.style.color = on ? 'var(--primary-foreground)' : 'var(--muted-foreground)';
+                btn.style.borderColor = on ? 'var(--primary)' : 'var(--border)';
+            }
+        };
+        const loadSongs = async (year) => {
+            contentDiv.innerHTML = `<div class="card-grid">${this.createSkeletonCards(6)}</div>`;
+            try {
+                const data =
+                    mode === 'critics'
+                        ? await fetchAOTY(`/songs/best?year=${year}`)
+                        : await fetchAOTY(`/songs/top?year=${year}`);
+                contentDiv.innerHTML = '';
+                if (data.songs?.length) {
+                    this.renderAOTYRankedRows(
+                        contentDiv,
+                        mode === 'critics' ? `Critics' Best Songs ${year}` : `Community Top Songs ${year}`,
+                        data.songs.map((s) => ({
+                            ...s,
+                            album: s.album || '',
+                            title: s.title || '',
+                        }))
+                    );
+                } else {
+                    contentDiv.innerHTML = createPlaceholder('No songs found.');
+                }
+            } catch (e) {
+                console.error(e);
+                contentDiv.innerHTML = createPlaceholder('Failed to load songs.');
+            }
+        };
+        for (const btn of container.querySelectorAll('.aoty-songs-mode')) {
+            btn.addEventListener('click', async () => {
+                setMode(btn.dataset.mode);
+                await loadSongs(container.querySelector('#aoty-songs-year').value);
+            });
+        }
+        container.querySelector('#aoty-songs-year').addEventListener('change', (e) => loadSongs(e.target.value));
+        await loadSongs(currentYear);
+    }
+
+    async renderAOTYSearch(container) {
+        container.innerHTML = `
+            <form id="aoty-search-form" style="display:flex;gap:0.5rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+                <input id="aoty-search-q" type="search" placeholder="Search AOTY…" autocomplete="off"
+                    style="flex:1;min-width:200px;padding:0.45rem 0.8rem;border-radius:6px;border:1px solid var(--border);background:var(--background);color:var(--foreground);font-size:0.85rem;outline:none;">
+                <select id="aoty-search-scope" style="padding:0.3rem 0.6rem;border-radius:6px;border:1px solid var(--border);background:var(--background);color:var(--foreground);font-size:0.85rem;cursor:pointer;">
+                    <option value="albums">Albums</option>
+                    <option value="artists">Artists</option>
+                    <option value="labels">Labels</option>
+                    <option value="lists">Lists</option>
+                    <option value="news">News</option>
+                    <option value="tags">Tags</option>
+                    <option value="users">Users</option>
+                </select>
+                <button type="submit" style="padding:0.45rem 1.1rem;border-radius:6px;border:1px solid var(--primary);background:var(--primary);color:var(--primary-foreground);font-size:0.85rem;font-weight:600;cursor:pointer;">Search</button>
+            </form>
+            <div id="aoty-search-content"><div style="color:var(--muted-foreground);font-size:0.85rem;">Type above to search albumoftheyear.org.</div></div>
+        `;
+        const contentDiv = container.querySelector('#aoty-search-content');
+        const runSearch = async (q, scope) => {
+            if (!q.trim()) return;
+            contentDiv.innerHTML = `<div class="card-grid">${this.createSkeletonCards(8)}</div>`;
+            try {
+                const data = await fetchAOTY(`/search/${scope}?q=${encodeURIComponent(q.trim())}`);
+                contentDiv.innerHTML = '';
+                if (data.albums?.length) {
+                    updateAOTYMustHearIndex(data.albums);
+                    this.renderAOTYSection(contentDiv, `Albums matching “${q.trim()}”`, data.albums);
+                    return;
+                }
+                const rows = data.artists || data.labels || data.lists || data.items || data.news || data.tags || data.users || [];
+                if (!rows.length) {
+                    contentDiv.innerHTML = createPlaceholder('No results found.');
+                    return;
+                }
+                const section = document.createElement('section');
+                section.className = 'content-section';
+                section.innerHTML = `<h2 class="section-title">Results for “${escapeHtml(q.trim())}”</h2>`;
+                const list = document.createElement('div');
+                for (const r of rows) {
+                    const name = r.name || r.title || r.username || r.tag || '';
+                    const sub = r.publication || r.artist || r.source || r.date || '';
+                    const img = r.image || r.cover || r.artistImage || '';
+                    const url = r.url || '';
+                    const aotyUrl = url.startsWith('http') ? url : `https://www.albumoftheyear.org${url}`;
+                    const el = document.createElement('div');
+                    el.style.cssText =
+                        'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);cursor:pointer;';
+                    el.innerHTML = `
+                        <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${aotyCoverUrl(img) || 'images/monochrome_logo.svg'}" width="44" height="44"
+                            style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);"
+                            loading="lazy" onerror="this.src='images/monochrome_logo.svg';this.onerror=null;">
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:500;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" class="row-title"></div>
+                            <div style="font-size:0.75rem;color:var(--muted-foreground);margin-top:2px;" class="row-meta"></div>
+                        </div>`;
+                    el.querySelector('.row-title').textContent = name;
+                    el.querySelector('.row-meta').textContent = sub;
+                    el.addEventListener('click', () => {
+                        if (scope === 'lists') {
+                            const slug = (url || '').split('/').filter(Boolean).pop() || '';
+                            if (slug) void this.showAOTYListModal(slug, name);
+                            else if (aotyUrl) window.open(aotyUrl, '_blank', 'noopener');
+                        } else if (aotyUrl) {
+                            window.open(aotyUrl, '_blank', 'noopener');
+                        }
+                    });
+                    list.appendChild(el);
+                }
+                section.appendChild(list);
+                contentDiv.appendChild(section);
+            } catch (e) {
+                console.error(e);
+                contentDiv.innerHTML = createPlaceholder('Search failed.');
+            }
+        };
+        container.querySelector('#aoty-search-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            void runSearch(container.querySelector('#aoty-search-q').value, container.querySelector('#aoty-search-scope').value);
+        });
+    }
+
+    async renderAOTYShuffle(container) {
+        container.innerHTML = `
+            <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+                <button data-shuffle="musthear" style="padding:0.45rem 1.1rem;border-radius:2rem;border:1px solid var(--primary);background:var(--primary);color:var(--primary-foreground);font-size:0.85rem;font-weight:600;cursor:pointer;">Must-hear gem</button>
+                <button data-shuffle="album" style="padding:0.45rem 1.1rem;border-radius:2rem;border:1px solid var(--border);background:transparent;color:var(--muted-foreground);font-size:0.85rem;font-weight:600;cursor:pointer;">Random album</button>
+                <button data-shuffle="song" style="padding:0.45rem 1.1rem;border-radius:2rem;border:1px solid var(--border);background:transparent;color:var(--muted-foreground);font-size:0.85rem;font-weight:600;cursor:pointer;">Random song</button>
+            </div>
+            <div id="aoty-shuffle-content"><div style="color:var(--muted-foreground);font-size:0.85rem;">Feeling lucky? Pull a random pick from AOTY.</div></div>
+        `;
+        const contentDiv = container.querySelector('#aoty-shuffle-content');
+        const surprise = async (kind) => {
+            contentDiv.innerHTML = `<div class="card-grid">${this.createSkeletonCards(4)}</div>`;
+            try {
+                const path =
+                    kind === 'musthear' ? '/random/must-hear' : kind === 'song' ? '/random/song' : '/random/album';
+                // Random endpoints are never cached server-side, skip the client cache too.
+                const data = await fetchAOTY(path, { skipCache: true });
+                const isSong = kind === 'song' || data.song;
+                const pick = data.album || data.song || data;
+                contentDiv.innerHTML = '';
+                if (pick?.title || pick?.album) {
+                    if (isSong) {
+                        this.renderAOTYRankedRows(contentDiv, 'Your random pick', [
+                            { ...pick, album: pick.album || '', title: pick.title || '' },
+                        ]);
+                    } else if (pick.artist && (pick.title || pick.album)) {
+                        const album = { ...pick, title: pick.title || pick.album };
+                        updateAOTYMustHearIndex([album]);
+                        this.renderAOTYSection(contentDiv, 'Your random pick', [album]);
+                    } else {
+                        contentDiv.innerHTML = createPlaceholder('No pick returned.');
+                    }
+                } else {
+                    contentDiv.innerHTML = createPlaceholder('No pick returned.');
+                }
+            } catch (e) {
+                console.error(e);
+                contentDiv.innerHTML = createPlaceholder('Shuffle failed, try again.');
+            }
+        };
+        for (const btn of container.querySelectorAll('[data-shuffle]')) {
+            btn.addEventListener('click', () => surprise(btn.dataset.shuffle));
+        }
+        await surprise('musthear');
+    }
+
     async showAOTYListModal(slug, listTitle) {
         const body = document.createElement('div');
         body.innerHTML = `<div style="display:flex;flex-direction:column;gap:0;">
@@ -3530,7 +3984,7 @@ export class UIRenderer {
         const { modal } = createModal({ title: listTitle, content: body, className: 'extra-wide' });
 
         try {
-            const data = await fetchAOTY(`/list/${slug}`);
+            const data = await fetchAOTY(`/list/${encodeURIComponent(slug)}`);
             const items = data.items || [];
             const modalBody = modal.querySelector('.modal-body');
             modalBody.innerHTML = '';
@@ -3543,9 +3997,10 @@ export class UIRenderer {
             const list = document.createElement('div');
             list.style.cssText = 'display:flex;flex-direction:column;gap:0;';
 
-            const scoreTargets = []; // { item, scoreEl } — collected during loop for lazy fetch
+            const scoreTargets = []; // { item, scoreEl }, collected during loop for lazy fetch
 
             for (const item of items) {
+                const { artist: itemArtist, title: itemTitle, rank: itemRank } = aotyListItemParts(item);
                 const row = document.createElement('div');
                 row.style.cssText =
                     'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);cursor:pointer;';
@@ -3553,9 +4008,15 @@ export class UIRenderer {
                 const scoreEl = document.createElement('div');
                 scoreEl.style.cssText =
                     'font-size:0.8rem;font-weight:700;color:var(--primary-foreground);background:var(--primary);padding:2px 7px;border-radius:5px;flex-shrink:0;display:none;';
+                // Prefer the score already embedded by the API (spec shape); lazy-fetch only as fallback.
+                const embeddedScore = aotyScore(item.score ?? item.scoreExact);
+                if (embeddedScore != null) {
+                    scoreEl.textContent = String(embeddedScore);
+                    scoreEl.style.display = '';
+                }
 
                 row.innerHTML = `
-                    <span style="font-size:0.8rem;font-weight:700;color:var(--primary);min-width:2rem;text-align:right;flex-shrink:0;">#${escapeHtml(item.rank || '')}</span>
+                    <span style="font-size:0.8rem;font-weight:700;color:var(--primary);min-width:2rem;text-align:right;flex-shrink:0;">#${escapeHtml(itemRank)}</span>
                     <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${aotyCoverUrl(item.cover) || 'images/monochrome_logo.svg'}" width="48" height="48"
                         style="border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--secondary);"
                         loading="lazy" onerror="this.src='images/monochrome_logo.svg';this.onerror=null;">
@@ -3564,11 +4025,15 @@ export class UIRenderer {
                         <div style="font-size:0.75rem;color:var(--muted-foreground);margin-top:2px;" class="row-meta"></div>
                     </div>`;
 
-                row.querySelector('.row-title').textContent = item.title || '';
-                const metaParts = [item.date, ...(item.genres?.slice(0, 2) || [])].filter(Boolean);
+                row.querySelector('.row-title').textContent = itemTitle || item.title || '';
+                const metaParts = [
+                    itemArtist,
+                    item.date,
+                    ...(item.genres?.slice(0, 2) || []),
+                ].filter(Boolean);
                 row.querySelector('.row-meta').textContent = metaParts.join(' · ');
                 row.appendChild(scoreEl);
-                scoreTargets.push({ item, scoreEl });
+                if (embeddedScore == null) scoreTargets.push({ item, scoreEl });
 
                 const aotyItemUrl = item.url?.startsWith('http')
                     ? item.url
@@ -3578,7 +4043,7 @@ export class UIRenderer {
                     row.style.opacity = '0.5';
                     row.style.pointerEvents = 'none';
                     try {
-                        const found = await this.findAOTYAlbumInLibrary('', item.title || '');
+                        const found = await this.findAOTYAlbumInLibrary(itemArtist, itemTitle);
                         if (found) {
                             modal.remove();
                             navigate(`/album/${found.id}`);
@@ -3596,13 +4061,19 @@ export class UIRenderer {
 
             modalBody.appendChild(list);
 
-            // Lazy-load scores — uses direct element refs collected above, no DOM querying
+            // Lazy-load scores via the cheap summary endpoint, /album requires
+            // artist+name per openapi.json, so split the combined list title.
+            // Uses direct element refs collected above, no DOM querying
             for (const { item, scoreEl } of scoreTargets) {
-                if (!item.title) continue;
-                fetchAOTY(`/album?name=${encodeURIComponent(item.title)}&minimal=true`)
+                const { artist: lazyArtist, title: lazyTitle } = aotyListItemParts(item);
+                if (!lazyTitle || !lazyArtist) continue;
+                fetchAOTY(
+                    `/album/summary?artist=${encodeURIComponent(lazyArtist)}&name=${encodeURIComponent(lazyTitle)}&minimal=true`
+                )
                     .then((d) => {
-                        if (d.criticScore && d.criticScore !== 'NR') {
-                            scoreEl.textContent = d.criticScore;
+                        const s = aotyScore(d?.criticScore);
+                        if (s != null) {
+                            scoreEl.textContent = String(s);
                             scoreEl.style.display = '';
                         }
                     })
@@ -3688,9 +4159,11 @@ export class UIRenderer {
         const artist = escapeHtml(album.artist || '');
         const cover = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${aotyCoverUrl(album.cover) || 'images/monochrome_logo.svg'}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='images/monochrome_logo.svg'">`;
 
+        const critic = aotyScore(album.criticScore);
+        const user = aotyScore(album.userScore);
         const scoreParts = [];
-        if (album.criticScore) scoreParts.push(`${album.criticScore} critic`);
-        if (album.userScore) scoreParts.push(`${album.userScore} user`);
+        if (critic != null) scoreParts.push(`${critic} critic`);
+        if (user != null) scoreParts.push(`${user} user`);
         const scores = scoreParts.join(' · ');
 
         const subtitleParts = [artist, scores].filter(Boolean);
@@ -5117,7 +5590,7 @@ export class UIRenderer {
                         titleEl.appendChild(badge);
                     }
 
-                    // Label — append to producer line
+                    // Label, append to producer line
                     if (data.label) {
                         const labelUrl = data.labelUrl
                             ? data.labelUrl.startsWith('http')
@@ -5130,14 +5603,14 @@ export class UIRenderer {
                         prodEl.innerHTML += ` · ${labelLink}`;
                     }
 
-                    // Critic score
-                    const critScore = data.criticScore;
-                    const critCount = data.criticCount;
+                    // Critic score, spec: integer|null, live: "82" | "NR" | null
+                    const critScore = aotyScore(data.criticScore);
+                    const critCount = aotyCount(data.criticCount);
                     const reviews = data.reviews || [];
-                    if (!critScore || critScore === 'NR') {
+                    if (critScore == null) {
                         rateCriticsEl.innerHTML = `<span style="color:var(--muted-foreground);">Critic Score: NR</span>`;
                     } else {
-                        rateCriticsEl.innerHTML = `<a href="javascript:void(0)" style="color:var(--muted-foreground);cursor:pointer;">Critic Score: ${critScore}${critCount ? ` · <span style="text-decoration:underline;">${critCount} reviews</span>` : ''}</a>`;
+                        rateCriticsEl.innerHTML = `<a href="javascript:void(0)" style="color:var(--muted-foreground);cursor:pointer;">Critic Score: ${critScore}${critCount != null ? ` · <span style="text-decoration:underline;">${critCount} reviews</span>` : ''}</a>`;
                         rateCriticsEl.querySelector('a').onclick = () => {
                             const con = document.createElement('div');
                             con.style.cssText = 'display:flex;flex-direction:column;gap:1.5rem;';
@@ -5158,7 +5631,7 @@ export class UIRenderer {
                                 <div style="flex:1;">
                                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.25rem;">
                                         <div class="pub-name" style="font-weight:600;color:var(--foreground);"></div>
-                                        <div style="font-weight:bold;color:var(--primary-foreground);background:var(--primary);padding:2px 10px;border-radius:6px;font-size:0.85rem;">${review.score || ''}</div>
+                                        <div style="font-weight:bold;color:var(--primary-foreground);background:var(--primary);padding:2px 10px;border-radius:6px;font-size:0.85rem;">${aotyScore(review.score) ?? ''}</div>
                                     </div>
                                     <div class="author-name" style="font-size:0.8rem;color:var(--muted-foreground);margin-bottom:0.5rem;"></div>
                                     <div class="quote-text" style="font-size:0.95rem;line-height:1.5;color:var(--muted-foreground);font-style:italic;"></div>
@@ -5177,14 +5650,14 @@ export class UIRenderer {
                         };
                     }
 
-                    // User score
-                    const userScore = data.userScore;
-                    const userCount = data.userCount;
-                    if (!userScore || userScore === 'NR') {
+                    // User score, spec: integer|null, live: "80" | "NR" | null
+                    const userScore = aotyScore(data.userScore);
+                    const userCount = aotyCount(data.userCount);
+                    if (userScore == null) {
                         rateUsersEl.innerHTML = `<span style="color:var(--muted-foreground);">User Score: NR</span>`;
                     } else {
                         const userLink = aotyUrl ? `href="${aotyUrl}" target="_blank" rel="noopener"` : '';
-                        rateUsersEl.innerHTML = `<a ${userLink} style="color:var(--muted-foreground);">User Score: <span style="text-decoration:underline;">${userScore}</span>${userCount ? ` · ${userCount} ratings` : ''}</a>`;
+                        rateUsersEl.innerHTML = `<a ${userLink} style="color:var(--muted-foreground);">User Score: <span style="text-decoration:underline;">${userScore}</span>${userCount != null ? ` · ${userCount} ratings` : ''}</a>`;
                     }
                 })
                 .catch(() => {
