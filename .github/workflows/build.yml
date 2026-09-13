@@ -16,7 +16,7 @@ jobs:
       image: oven/bun:latest
     steps:
       - name: Install git and rsync
-        run: apt-get update && apt-get install -y git rsync
+        run: apt-get update && apt-get install -y git rsync curl
 
       - name: Checkout
         uses: actions/checkout@v4
