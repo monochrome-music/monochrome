@@ -155,6 +155,9 @@ export class Visualizer {
     async start() {
         if (this.isActive) return true;
 
+        const preset = this.activePreset;
+        if (!preset) return false;
+
         if (!this.ctx) {
             this.initContext();
         }
@@ -162,7 +165,7 @@ export class Visualizer {
             await this.init();
         }
 
-        const canRunWithoutAnalyser = !!this.activePreset?.managesOwnContext;
+        const canRunWithoutAnalyser = !!preset.managesOwnContext;
         if (!this.analyser && !canRunWithoutAnalyser) {
             return false;
         }
@@ -181,13 +184,13 @@ export class Visualizer {
         this.canvas.style.display = 'block';
 
         // Initialize presets that need lazy init (Butterchurn, Kawarp)
-        if (this.activePreset.lazyInit) {
+        if (preset.lazyInit) {
             const sourceNode = audioContextManager.getSourceNode();
-            await this.activePreset.lazyInit(this.canvas, this.audioContext, sourceNode);
+            await preset.lazyInit(this.canvas, this.audioContext, sourceNode);
             this.resize();
         }
 
-        if (this.activePreset.managesOwnContext && this.activePreset.isInitialized === false) {
+        if (preset.managesOwnContext && preset.isInitialized === false) {
             this.isActive = false;
             this.canvas.style.display = 'none';
             window.removeEventListener('resize', this._resizeBound);
