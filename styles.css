@@ -10535,6 +10535,26 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
         padding: 1rem;
     }
 
+    .party-content-layout {
+        gap: 1rem;
+    }
+
+    .party-sidebar-section {
+        min-width: 0;
+    }
+
+    .party-chat-container {
+        height: min(600px, 60dvh) !important;
+    }
+
+    .chat-input-container {
+        padding: 0.75rem !important;
+    }
+
+    #party-chat-input {
+        min-width: 0;
+    }
+
     .party-now-playing {
         padding: 1.25rem;
         gap: 1rem;
