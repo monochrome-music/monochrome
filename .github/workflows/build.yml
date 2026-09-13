@@ -3,7 +3,8 @@ name: Build and Deploy dist
 on:
   push:
     branches:
-      - main 
+      - main
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -14,7 +15,7 @@ jobs:
     container:
       image: oven/bun:latest
     steps:
-      - name: Install git (needed for checkout/deploy inside the container)
+      - name: Install git
         run: apt-get update && apt-get install -y git
 
       - name: Checkout
@@ -32,3 +33,6 @@ jobs:
           folder: dist
           branch: dist
           single-commit: true
+
+      - name: Call deploy hook
+        run: curl -fsSL -X POST "${{ secrets.DEPLOY_HOOK_URL }}"
