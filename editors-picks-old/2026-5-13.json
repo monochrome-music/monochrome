@@ -1,0 +1,322 @@
+[
+    {
+        "type": "album",
+        "id": 324660713,
+        "title": "JOECHILLWORLD",
+        "artist": {
+            "id": 40978758,
+            "name": "Devon Hendryx"
+        },
+        "releaseDate": "2010-07-10",
+        "cover": "25d45544-3e82-4184-b8c2-2c2c6f0f152a",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 15427733,
+        "title": "Mysterious Phonk: The Chronicles of SpaceGhostPurrp",
+        "artist": {
+            "id": 4611745,
+            "name": "Spaceghostpurrp"
+        },
+        "releaseDate": "2012-06-12",
+        "cover": "c78b7543-1cd8-4921-9155-e81d421353a0",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 464178301,
+        "title": "Never Forget",
+        "artist": {
+            "id": 5516508,
+            "name": "Chris Travis"
+        },
+        "releaseDate": "2014-05-14",
+        "cover": "4ab11f0d-0768-4cce-8de5-1894134d5994",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 75115890,
+        "title": "Blood Shore Season 2",
+        "artist": {
+            "id": 6332342,
+            "name": "Xavier Wulf"
+        },
+        "releaseDate": "2014-10-30",
+        "cover": "517303e5-d541-4704-b552-026427e05fcb",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 410197513,
+        "title": "THE PEAK",
+        "artist": {
+            "id": 33481052,
+            "name": "smokedope2016"
+        },
+        "releaseDate": "2025-01-17",
+        "cover": "ea18084d-36ec-4cea-98a7-fe4684246986",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 418729278,
+        "title": "I LAY DOWN MY LIFE FOR YOU: DIRECTOR'S CUT",
+        "artist": {
+            "id": 7958797,
+            "name": "JPEGMAFIA"
+        },
+        "releaseDate": "2025-02-03",
+        "cover": "9c84302b-2584-4c0a-9db7-e648542f459f",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 504004321,
+        "title": "Half Blood (BloodLuxe)",
+        "artist": {
+            "id": 50799233,
+            "name": "slayr"
+        },
+        "releaseDate": "2025-11-05",
+        "cover": "2767cc63-7e92-4a48-aa4b-806a3ea7ec1c",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 510893864,
+        "title": "BULLY",
+        "artist": {
+            "id": 25022,
+            "name": "Kanye West"
+        },
+        "releaseDate": "2026-03-28",
+        "cover": "cf2f2c9c-ff67-44f6-83aa-a7622f8c6b64",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 325723583,
+        "title": "Replica",
+        "artist": {
+            "id": 3715530,
+            "name": "Oneohtrix Point Never"
+        },
+        "releaseDate": "2011-11-05",
+        "cover": "95ceeae9-cac7-42dc-ae37-7c93c223f809",
+        "explicit": false,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 336178142,
+        "title": "Pirate This Album",
+        "artist": {
+            "id": 8622751,
+            "name": "Shamana"
+        },
+        "releaseDate": "2023-12-25",
+        "cover": "a8a647be-0331-4779-9a6e-31645a9abdab",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 106369871,
+        "title": "Organic Thoughts from the Synthetic Mind",
+        "artist": {
+            "id": 6436013,
+            "name": "Shinjuku Mad"
+        },
+        "releaseDate": "2009-07-01",
+        "cover": "3acc888e-35da-40a8-a4b7-7ffd00576cc9",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 423471869,
+        "title": "pain",
+        "artist": {
+            "id": 44257324,
+            "name": "bleood"
+        },
+        "releaseDate": "2025-03-11",
+        "cover": "711b23ba-c473-44e6-a2f0-010fefa9c5b8",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 250986538,
+        "title": "Revolutionary, Vol. 1 (Bonus Edition)",
+        "artist": {
+            "id": 3604583,
+            "name": "Immortal Technique"
+        },
+        "releaseDate": "2001-09-14",
+        "cover": "e510dd6d-dcdf-4272-9c68-f4580f2fbd14",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 509761344,
+        "title": "EMOTIONS",
+        "artist": {
+            "id": 49124576,
+            "name": "Nine Vicious"
+        },
+        "releaseDate": "2026-04-03",
+        "cover": "f29b18d3-b19f-45b1-968a-0ad360647130",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 15621057,
+        "title": "Triple F Life: Friends, Fans & Family (Deluxe Version)",
+        "artist": {
+            "id": 3654061,
+            "name": "Waka Flocka Flame"
+        },
+        "releaseDate": "2012-06-12",
+        "cover": "3199b7de-5e3d-486c-acf1-870ff4c60572",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 103897783,
+        "title": "Freewave 3",
+        "artist": {
+            "id": 7923685,
+            "name": "Lucki"
+        },
+        "releaseDate": "2019-02-15",
+        "cover": "1d481a33-8b20-4ee3-b04b-5ac6e0fc5e78",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 151728406,
+        "title": "Niagara",
+        "artist": {
+            "id": 7607680,
+            "name": "redveil"
+        },
+        "releaseDate": "2020-08-25",
+        "cover": "14690142-7fc8-4557-8a61-0721b7884822",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 199412873,
+        "title": "Tha Carter III",
+        "artist": {
+            "id": 27518,
+            "name": "Lil Wayne"
+        },
+        "releaseDate": "2008-06-10",
+        "cover": "797a90ea-3860-4d02-ac85-39b34ca8ee25",
+        "explicit": true,
+        "audioQuality": "LOW",
+        "mediaMetadata": {
+            "tags": ["DOLBY_ATMOS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 3280432,
+        "title": "We Are Young Money",
+        "artist": {
+            "id": 3654487,
+            "name": "Young Money"
+        },
+        "releaseDate": "2009-12-21",
+        "cover": "5b1456e5-1bba-415b-8276-8bc9cd211687",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 37927851,
+        "title": "The DeAndre Way (Deluxe)",
+        "artist": {
+            "id": 3820209,
+            "name": "Soulja Boy"
+        },
+        "releaseDate": "2010-11-30",
+        "cover": "6ca0217d-4f74-47d2-b449-30144d91e41f",
+        "explicit": false,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    }
+]
