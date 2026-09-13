@@ -2749,12 +2749,27 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                         clearSelection();
                         break;
                     case 'toggle-like':
-                        selectedTracks.forEach(async (t) => {
-                            const added = await db.toggleFavorite('track', t);
-                            await syncManager.syncLibraryItem('track', t, added);
-                        });
-                        showNotification(`Liked ${selectedTracks.length} tracks`);
-                        clearSelection();
+                        try {
+                            let succeeded = 0;
+                            let failed = 0;
+                            for (const t of selectedTracks) {
+                                try {
+                                    const added = await db.toggleFavorite('track', t);
+                                    await syncManager.syncLibraryItem('track', t, added);
+                                    succeeded++;
+                                } catch (error) {
+                                    failed++;
+                                    console.error('Failed to toggle like for track:', t, error);
+                                }
+                            }
+                            showNotification(
+                                failed
+                                    ? `Liked ${succeeded} tracks. Failed to update ${failed}.`
+                                    : `Liked ${succeeded} tracks`
+                            );
+                        } finally {
+                            clearSelection();
+                        }
                         break;
                     case 'add-to-playlist':
                         await showMultiSelectPlaylistModal(selectedTracks);
