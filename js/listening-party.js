@@ -106,6 +106,7 @@ export class ListeningPartyManager {
         this.socket = null;
         this.socketUnsubscribe = null;
         this._suppressSocketClose = false;
+        this.activeMobileTab = 'overview';
 
         this.setupEventListeners();
     }
@@ -121,6 +122,13 @@ export class ListeningPartyManager {
         });
         chatInput?.addEventListener('input', () => this._pingTyping());
         chatInput?.addEventListener('blur', () => this._clearTyping());
+
+        document.querySelectorAll('.party-mobile-tab').forEach((tabBtn) => {
+            tabBtn.addEventListener('click', (e) => {
+                const tab = e.currentTarget.dataset.tab;
+                if (tab) this.switchMobileTab(tab);
+            });
+        });
 
         if (LISTENING_PARTIES_DISABLED) {
             this.maintenanceMode = true;
@@ -612,12 +620,37 @@ export class ListeningPartyManager {
         this.renderMembers();
         this.renderRequests();
         this.showPartyIndicator();
+        this.switchMobileTab(this.activeMobileTab || 'overview');
         if (this.isHost) {
             this.unlockControls();
             this.setupHostPlayerSync();
         } else {
             this.lockControls();
             this.setupGuestPlayerInterferenceCheck();
+        }
+    }
+
+    switchMobileTab(tab) {
+        this.activeMobileTab = tab;
+        const layout = document.querySelector('.party-content-layout');
+        if (layout) {
+            layout.dataset.activeTab = tab;
+        }
+
+        document.querySelectorAll('.party-mobile-tab').forEach((btn) => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+
+        if (tab === 'chat') {
+            const chatBadge = document.getElementById('party-chat-badge');
+            if (chatBadge) chatBadge.hidden = true;
+
+            const container = document.getElementById('party-chat-messages');
+            if (container) {
+                setTimeout(() => {
+                    container.scrollTop = container.scrollHeight;
+                }, 50);
+            }
         }
     }
 
@@ -641,6 +674,18 @@ export class ListeningPartyManager {
         }
 
         const track = this.currentParty.current_track;
+        const miniTrack = document.getElementById('chat-mini-track');
+        if (miniTrack) {
+            if (track) {
+                const artists = getTrackArtists(track);
+                miniTrack.textContent = `🎵 ${track.title || ''}${artists ? ' • ' + artists : ''}`;
+                miniTrack.hidden = false;
+            } else {
+                miniTrack.textContent = '';
+                miniTrack.hidden = true;
+            }
+        }
+
         const display = document.getElementById('party-current-track-display');
         if (display) {
             if (track) {
@@ -676,16 +721,23 @@ export class ListeningPartyManager {
         list.innerHTML = this.members
             .map(
                 (m) =>
-                    `<div class="member-item" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--background-secondary); border-radius: var(--radius); border: 1px solid var(--border)"><img crossorigin="anonymous" referrerpolicy="no-referrer" src="${m.avatar_url}" style="width: 40px; height: 40px; border-radius: 50%; background: var(--background-modifier-accent)"><div style="flex: 1; overflow: hidden"><div style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">${m.name}</div>${m.is_host ? '<div style="color: var(--primary); font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Host</div>' : '<div style="color: var(--muted-foreground); font-size: 0.7rem">Listening</div>'}</div></div>`
+                    `<div class="member-item party-member-item"><img crossorigin="anonymous" referrerpolicy="no-referrer" src="${m.avatar_url}" class="party-member-avatar" alt=""><div class="party-member-info"><div class="party-member-name">${escapeHtml(m.name || 'Member')}</div>${m.is_host ? '<div class="party-member-role host">Host</div>' : '<div class="party-member-role">Listening</div>'}</div></div>`
             )
             .join('');
     }
 
     renderRequests() {
         const list = document.getElementById('party-requests-list');
+        const badge = document.getElementById('party-requests-badge');
+        if (badge) {
+            const count = this.requests.length;
+            badge.textContent = count;
+            badge.hidden = count === 0;
+        }
+
         if (!list) return;
         if (this.requests.length === 0) {
-            list.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--muted-foreground); font-size: 0.9rem">No requests yet. Right-click a song to request!</div>`;
+            list.innerHTML = `<div class="party-request-empty">No requests yet. Right-click a song to request!</div>`;
             return;
         }
 
@@ -695,13 +747,13 @@ export class ListeningPartyManager {
                     const api = Player.instance.api;
                     const artists = getTrackArtists(r.track);
                     const coverUrl = api.getCoverUrl(r.track.artwork || r.track.cover || r.track.album?.cover);
-                    return `<div class="track-item" style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-bottom: 1px solid var(--border)">
-                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${coverUrl}" style="width: 48px; height: 48px; border-radius: 4px; object-fit: cover; flex-shrink: 0;">
-                    <div class="track-info" style="flex: 1; min-width: 0;">
-                        <div class="track-title" style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${r.track.title || 'Unknown Title'}</div>
-                        <div class="track-artist" style="font-size: 0.8rem; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${artists} • Requested By ${r.requested_by || 'Member'}</div>
+                    return `<div class="track-item party-request-item">
+                    <img crossorigin="anonymous" referrerpolicy="no-referrer" src="${coverUrl}" class="party-request-cover" alt="">
+                    <div class="track-info party-request-info">
+                        <div class="track-title party-request-title">${escapeHtml(r.track.title || 'Unknown Title')}</div>
+                        <div class="track-artist party-request-artist">${escapeHtml(artists || '')} • Requested By ${escapeHtml(r.requested_by || 'Member')}</div>
                     </div>
-                    ${this.isHost ? `<button class="btn-primary btn-sm add-request-btn" data-req-id="${r.id}" style="padding: 0.4rem 1rem; font-size: 0.8rem; flex-shrink: 0; white-space: nowrap;">Add to Queue</button>` : ''}
+                    ${this.isHost ? `<button class="btn-primary btn-sm add-request-btn" data-req-id="${r.id}">Add to Queue</button>` : ''}
                 </div>`;
                 } catch (_e) {
                     return '';
@@ -727,6 +779,12 @@ export class ListeningPartyManager {
     addChatMessage(msg) {
         const container = document.getElementById('party-chat-messages');
         if (!container) return;
+
+        if (this.activeMobileTab !== 'chat') {
+            const chatBadge = document.getElementById('party-chat-badge');
+            if (chatBadge) chatBadge.hidden = false;
+        }
+
         const div = document.createElement('div');
         div.className = 'chat-msg';
 
@@ -983,6 +1041,17 @@ export class ListeningPartyManager {
             this.currentParty = null;
             this.isHost = false;
             this.memberId = null;
+            this.activeMobileTab = 'overview';
+            this.switchMobileTab('overview');
+            const chatBadge = document.getElementById('party-chat-badge');
+            if (chatBadge) chatBadge.hidden = true;
+            const requestsBadge = document.getElementById('party-requests-badge');
+            if (requestsBadge) requestsBadge.hidden = true;
+            const miniTrack = document.getElementById('chat-mini-track');
+            if (miniTrack) {
+                miniTrack.textContent = '';
+                miniTrack.hidden = true;
+            }
             this.hidePartyIndicator();
             this.isLeaving = false;
             navigate('/parties');

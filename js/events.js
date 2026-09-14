@@ -1420,7 +1420,7 @@ export async function handleTrackAction(
             const data = await api.getAlbum(item.id);
             tracks = data.tracks;
         } else if (type === 'playlist') {
-            const data = await api.getPlaylist(item.uuid);
+            const data = await api.getPlaylist(item.id || item.uuid);
             tracks = data.tracks;
         } else if (type === 'user-playlist') {
             const playlist = await db.getPlaylist(item.id);
@@ -1445,16 +1445,16 @@ export async function handleTrackAction(
         return;
     }
 
-    // Collection Actions (Album, Playlist, Mix)
-    const isCollection = ['album', 'playlist', 'user-playlist', 'mix'].includes(type);
+    // Collection Actions (Album, Playlist, Mix, Artist)
+    const isCollection = ['album', 'playlist', 'user-playlist', 'mix', 'artist'].includes(type);
     const collectionActions = ['play-card', 'shuffle-play-card', 'add-to-queue', 'play-next', 'download', 'start-mix'];
 
     if (isCollection && collectionActions.includes(action)) {
         try {
             // Check if album/artist is blocked
             const { contentBlockingSettings } = await import('./storage.js');
-            if (type === 'album' && contentBlockingSettings.shouldHideAlbum(item)) {
-                showNotification('This album is blocked');
+            if ((type === 'album' || type === 'artist') && contentBlockingSettings.shouldHideAlbum(item)) {
+                showNotification(`This ${type} is blocked`);
                 return;
             }
 
@@ -1466,9 +1466,13 @@ export async function handleTrackAction(
                 tracks = data.tracks;
                 collectionItem = data.album || item;
             } else if (type === 'playlist') {
-                const data = await api.getPlaylist(item.uuid);
+                const data = await api.getPlaylist(item.id || item.uuid);
                 tracks = data.tracks;
                 collectionItem = data.playlist || item;
+            } else if (type === 'artist') {
+                const data = await api.getArtist(item.id);
+                tracks = data.tracks || [];
+                collectionItem = data || item;
             } else if (type === 'user-playlist') {
                 let playlist = await db.getPlaylist(item.id);
                 if (!playlist) {

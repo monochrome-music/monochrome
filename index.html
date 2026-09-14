@@ -2100,17 +2100,26 @@
                             </div>
                         </header>
 
-                        <div
-                            class="party-content-layout"
-                            style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; margin-top: 2rem"
-                        >
+                        <div class="party-mobile-tabs mobile-only search-tabs">
+                            <button class="search-tab party-mobile-tab active" data-tab="overview">Party</button>
+                            <button class="search-tab party-mobile-tab" data-tab="chat">
+                                Chat
+                                <span id="party-chat-badge" class="party-tab-badge" hidden></span>
+                            </button>
+                            <button class="search-tab party-mobile-tab" data-tab="requests">
+                                Requests
+                                <span id="party-requests-badge" class="party-tab-badge" hidden>0</span>
+                            </button>
+                        </div>
+
+                        <div class="party-content-layout" data-active-tab="overview">
                             <div class="party-main-section">
-                                <section class="content-section">
+                                <section class="content-section" id="party-now-playing-section">
                                     <h2 class="section-title">Currently Playing</h2>
                                     <div id="party-current-track-display"></div>
                                 </section>
 
-                                <section class="content-section">
+                                <section class="content-section" id="party-members-section">
                                     <h2 class="section-title">Participants (<span id="party-member-count">0</span>)</h2>
                                     <div id="party-members-list" class="card-grid compact"></div>
                                 </section>
@@ -2122,35 +2131,12 @@
                             </div>
 
                             <div class="party-sidebar-section">
-                                <div
-                                    class="party-chat-container"
-                                    style="
-                                        display: flex;
-                                        flex-direction: column;
-                                        height: 600px;
-                                        background: var(--background-secondary);
-                                        border-radius: var(--radius);
-                                        border: 1px solid var(--border);
-                                    "
-                                >
-                                    <div
-                                        class="chat-header"
-                                        style="padding: 1rem; border-bottom: 1px solid var(--border); font-weight: 600"
-                                    >
-                                        Chat
+                                <div class="party-chat-container">
+                                    <div class="chat-header">
+                                        <span>Chat</span>
+                                        <span id="chat-mini-track" class="chat-mini-track" hidden></span>
                                     </div>
-                                    <div
-                                        id="party-chat-messages"
-                                        style="
-                                            flex: 1;
-                                            overflow-y: auto;
-                                            padding: 1rem;
-                                            display: flex;
-                                            flex-direction: column;
-                                            gap: 0.5rem;
-                                            min-height: 0;
-                                        "
-                                    ></div>
+                                    <div id="party-chat-messages"></div>
                                     <div
                                         id="party-typing-indicator"
                                         class="party-typing-indicator"
@@ -2162,23 +2148,14 @@
                                         ></span>
                                         <span class="party-typing-text"></span>
                                     </div>
-                                    <div
-                                        class="chat-input-container"
-                                        style="
-                                            padding: 1rem;
-                                            border-top: 1px solid var(--border);
-                                            display: flex;
-                                            gap: 0.5rem;
-                                        "
-                                    >
+                                    <div class="chat-input-container">
                                         <input
                                             type="text"
                                             id="party-chat-input"
                                             class="template-input"
                                             placeholder="Say something..."
-                                            style="flex: 1"
                                         />
-                                        <button id="party-chat-send-btn" class="btn-primary" style="padding: 0 1rem">
+                                        <button id="party-chat-send-btn" class="btn-primary">
                                             Send
                                         </button>
                                     </div>

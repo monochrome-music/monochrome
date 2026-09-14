@@ -33,7 +33,7 @@ jobs:
                       ${{ runner.os }}-bun-
 
             - name: Install dependencies
-              run: bun install --frozen-lockfile
+              run: bun install
 
             - name: Install playwright dependencies
               run: bun run install:playwright
