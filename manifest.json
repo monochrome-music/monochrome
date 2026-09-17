@@ -1,0 +1,71 @@
+{
+    "name": "Monochrome Music",
+    "short_name": "Monochrome",
+    "description": "A minimalist music streaming application",
+    "start_url": "./",
+    "display": "standalone",
+    "display_override": ["window-controls-overlay"],
+    "background_color": "#000000",
+    "theme_color": "#000000",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "assets/icons/icon-48.webp",
+            "type": "image/png",
+            "sizes": "48x48",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "assets/icons/icon-72.webp",
+            "type": "image/png",
+            "sizes": "72x72",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "assets/icons/icon-96.webp",
+            "type": "image/png",
+            "sizes": "96x96",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "assets/icons/icon-128.webp",
+            "type": "image/png",
+            "sizes": "128x128",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "assets/icons/icon-192.webp",
+            "type": "image/png",
+            "sizes": "192x192",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "assets/icons/icon-256.webp",
+            "type": "image/png",
+            "sizes": "256x256",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "assets/icons/icon-512.webp",
+            "type": "image/png",
+            "sizes": "512x512",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["music", "entertainment"],
+    "shortcuts": [
+        {
+            "name": "Search",
+            "short_name": "Search",
+            "description": "Search for music",
+            "url": "./#search",
+            "icons": [
+                {
+                    "src": "assets/96.png",
+                    "sizes": "96x96",
+                    "type": "image/png"
+                }
+            ]
+        }
+    ]
+}
