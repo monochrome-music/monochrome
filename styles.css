@@ -10459,11 +10459,192 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     display: grid;
     grid-template-columns: 1fr 350px;
     gap: 2rem;
+    margin-top: 2rem;
 }
 
-@media (max-width: 1024px) {
+.party-mobile-tabs {
+    display: none;
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.party-tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: var(--radius-full);
+    background: var(--primary);
+    color: var(--primary-foreground, #fff);
+    font-size: 0.7rem;
+    font-weight: var(--font-bold);
+    line-height: 1;
+    margin-left: 0.35rem;
+}
+
+.party-tab-badge[hidden] {
+    display: none;
+}
+
+.party-chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 600px;
+    background: var(--background-secondary);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.party-chat-container .chat-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.chat-mini-track {
+    font-size: 0.8rem;
+    font-weight: normal;
+    color: var(--muted-foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 220px;
+}
+
+.chat-mini-track[hidden] {
+    display: none;
+}
+
+#party-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+.party-chat-container .chat-input-container {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 0.5rem;
+    background: var(--background-secondary);
+}
+
+.party-chat-container #party-chat-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.party-chat-container #party-chat-send-btn {
+    padding: 0 1.25rem;
+    flex-shrink: 0;
+}
+
+.party-member-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--background-secondary);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    min-width: 0;
+}
+
+.party-member-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--background-modifier-accent);
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+.party-member-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.party-member-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.party-member-role {
+    color: var(--muted-foreground);
+    font-size: 0.7rem;
+}
+
+.party-member-role.host {
+    color: var(--primary);
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.party-request-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    min-width: 0;
+}
+
+.party-request-cover {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.party-request-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.party-request-title {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.party-request-artist {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.party-request-empty {
+    padding: 2rem;
+    text-align: center;
+    color: var(--muted-foreground);
+    font-size: 0.9rem;
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
     .party-content-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 300px;
+        gap: 1.5rem;
     }
 }
 
@@ -10532,7 +10713,87 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
 @media (max-width: 768px) {
     .party-container {
-        padding: 1rem;
+        padding: 1rem 0.5rem;
+    }
+
+    #page-party-detail .detail-header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        width: 100%;
+        margin-top: 0.75rem;
+    }
+
+    #page-party-detail .detail-header-actions .btn-primary,
+    #page-party-detail .detail-header-actions .btn-secondary {
+        flex: 1;
+        min-width: 120px;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .party-mobile-tabs {
+        display: flex !important;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+        overflow-x: auto;
+    }
+
+    .party-content-layout {
+        display: block;
+        margin-top: 1rem;
+    }
+
+    /* Tab switching on mobile */
+    .party-content-layout[data-active-tab='overview'] .party-main-section {
+        display: block;
+    }
+
+    .party-content-layout[data-active-tab='overview'] #party-now-playing-section,
+    .party-content-layout[data-active-tab='overview'] #party-members-section {
+        display: block;
+    }
+
+    .party-content-layout[data-active-tab='overview'] #party-requests-section {
+        display: none;
+    }
+
+    .party-content-layout[data-active-tab='overview'] .party-sidebar-section {
+        display: none;
+    }
+
+    .party-content-layout[data-active-tab='chat'] .party-main-section {
+        display: none;
+    }
+
+    .party-content-layout[data-active-tab='chat'] .party-sidebar-section {
+        display: block;
+        width: 100%;
+    }
+
+    .party-content-layout[data-active-tab='chat'] .party-chat-container {
+        height: calc(100vh - 280px);
+        min-height: 380px;
+        max-height: 75vh;
+    }
+
+    .party-content-layout[data-active-tab='requests'] .party-main-section {
+        display: block;
+    }
+
+    .party-content-layout[data-active-tab='requests'] #party-now-playing-section,
+    .party-content-layout[data-active-tab='requests'] #party-members-section {
+        display: none;
+    }
+
+    .party-content-layout[data-active-tab='requests'] #party-requests-section {
+        display: block;
+        width: 100%;
+    }
+
+    .party-content-layout[data-active-tab='requests'] .party-sidebar-section {
+        display: none;
     }
 
     .party-content-layout {
@@ -10563,6 +10824,20 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     .party-now-playing-empty {
         padding: 2.5rem 1rem;
         font-size: 1rem;
+    }
+
+    .party-request-item {
+        gap: 0.75rem;
+        padding: 0.6rem 0;
+    }
+
+    .party-request-item .track-title {
+        font-size: 0.9rem;
+    }
+
+    .party-request-item .add-request-btn {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.75rem;
     }
 }
 

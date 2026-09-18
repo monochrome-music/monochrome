@@ -2437,12 +2437,20 @@ export class LosslessAPI {
         if (duration) params.set('duration', String(Math.round(duration)));
         if (intent) params.set('intent', intent);
 
+        if (track?.explicit === true || track?.explicitLyrics === true) {
+            params.set('explicit', 'true');
+        } else if (track?.explicit === false || track?.explicitLyrics === false) {
+            params.set('explicit', 'false');
+        }
+
         const canonicalQuality = normalizeQualityToken(quality) || quality;
         if (canonicalQuality && canonicalQuality !== 'auto' && canonicalQuality !== 'ADAPTIVE') {
             params.set('quality', canonicalQuality);
         } else {
             params.set('quality', 'HI_RES_LOSSLESS');
         }
+
+        params.set('customerId', 'anonymous');
 
         return params;
     }
@@ -2871,11 +2879,19 @@ export class LosslessAPI {
                 this.unifiedPlaybackFailures.get(String(track?.id || id)) || null
             )
         );
-        throw new Error(
-            track?.isrc
-                ? 'Could not resolve stream URL from Unified Playback or Deezer'
-                : 'Could not resolve stream URL: Unified Playback failed and the track has no ISRC for Deezer lookup'
-        );
+        const unifiedFailure = this.unifiedPlaybackFailures.get(String(track?.id || id));
+        let errorMessage = track?.isrc
+            ? 'Could not resolve stream URL from Unified Playback or Deezer'
+            : 'Could not resolve stream URL: Unified Playback failed and the track has no ISRC for Deezer lookup';
+
+        if (unifiedFailure?.response?.error?.message === 'Every playback source failed.') {
+            const amazonError = unifiedFailure.response.sources?.find(s => s.source === 'amazon')?.error;
+            if (amazonError?.message?.includes('customerId')) {
+                errorMessage = 'Playback failed: The upstream unified playback server is experiencing Amazon API errors (missing customerId). Please wait for a backend update, or configure a Deezer fallback in settings.';
+            }
+        }
+
+        throw new Error(errorMessage);
     }
 
     async getVideoStreamUrl(id) {
@@ -3208,19 +3224,21 @@ export class LosslessAPI {
                         ? findValue(lookup, 'manifest') || findValue(lookup, 'Manifest')
                         : lookup.info?.manifest;
 
-                    if (!manifest) {
-                        throw new Error('Could not resolve manifest');
-                    }
-
                     if (preferDolbyAtmosSettings.isEnabled() && enrichedTrack.audioModes?.includes('DOLBY_ATMOS')) {
                         try {
-                            const stream = await this.getStreamUrl(id, 'DOLBY_ATMOS_EAC3_HIGH');
-                            const manifestRes = await fetch(stream.url, { signal: options.signal });
-                            const manifestText = await manifestRes.text();
-                            streamUrl = this.extractStreamUrlFromManifest(btoa(manifestText));
+                            const stream = await this.getStreamUrl(id, 'DOLBY_ATMOS_EAC3_HIGH', {
+                                track: inputTrackObj || enrichedTrack,
+                                intent: 'download',
+                                signal: options.signal
+                            });
+                            if (stream && stream.url) {
+                                const manifestRes = await fetch(stream.url, { signal: options.signal });
+                                const manifestText = await manifestRes.text();
+                                streamUrl = this.extractStreamUrlFromManifest(btoa(manifestText));
 
-                            if (streamUrl) {
-                                postProcessingQuality = 'DOLBY_ATMOS_EAC3_HIGH';
+                                if (streamUrl) {
+                                    postProcessingQuality = 'DOLBY_ATMOS_EAC3_HIGH';
+                                }
                             }
                         } catch (err) {
                             console.error('Failed to extract Dolby Atmos stream URL:', err);
@@ -3228,6 +3246,9 @@ export class LosslessAPI {
                     }
 
                     if (!streamUrl) {
+                        if (!manifest) {
+                            throw new Error('Could not resolve manifest');
+                        }
                         streamUrl = this.extractStreamUrlFromManifest(manifest);
                         if (!streamUrl) {
                             throw new Error('Could not resolve stream URL');
