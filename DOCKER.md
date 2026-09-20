@@ -99,6 +99,7 @@ The application is configured via environment variables. Copy `.env.example` to 
 ### Authentication (Better Auth)
 
 Monochrome uses Better Auth for user authentication (defaulting to `https://auth.monochrome.st`). You can configure a custom auth instance using:
+
 - `AUTH_URL`: Your Better Auth endpoint (e.g., `https://auth.monochrome.st`).
 
 ### Database (PocketBase)

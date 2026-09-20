@@ -33,16 +33,9 @@ export function normalizeTracksTrack(item) {
     const trackId = String(item.trackId || item.id || '');
     const id = trackId;
 
-    const artistId =
-        item.artistIds?.[0] ||
-        item.artists?.[0]?.artistId ||
-        item.artists?.[0]?.id ||
-        '';
+    const artistId = item.artistIds?.[0] || item.artists?.[0]?.artistId || item.artists?.[0]?.id || '';
     const artistName =
-        item.artistNames?.[0] ||
-        item.artists?.[0]?.name ||
-        item.artists?.[0]?.displayName ||
-        'Unknown Artist';
+        item.artistNames?.[0] || item.artists?.[0]?.name || item.artists?.[0]?.displayName || 'Unknown Artist';
 
     const primaryArtist = {
         id: artistId ? String(artistId) : '',
@@ -86,11 +79,7 @@ export function normalizeTracksTrack(item) {
 
     const releaseId = item.releaseId ? String(item.releaseId) : '';
     const artwork = item.artwork || item.cover || '';
-    const albumTitle =
-        item.albumTitle ||
-        item.releaseTitle ||
-        (item.release && item.release.title) ||
-        '';
+    const albumTitle = item.albumTitle || item.releaseTitle || (item.release && item.release.title) || '';
 
     const album = {
         id: releaseId,
@@ -148,16 +137,9 @@ export function normalizeTracksRelease(item) {
     const releaseId = String(item.releaseId || item.id || '');
     const id = releaseId;
 
-    const artistId =
-        item.artistIds?.[0] ||
-        item.artists?.[0]?.artistId ||
-        item.artists?.[0]?.id ||
-        '';
+    const artistId = item.artistIds?.[0] || item.artists?.[0]?.artistId || item.artists?.[0]?.id || '';
     const artistName =
-        item.artistNames?.[0] ||
-        item.artists?.[0]?.name ||
-        item.artists?.[0]?.displayName ||
-        'Unknown Artist';
+        item.artistNames?.[0] || item.artists?.[0]?.name || item.artists?.[0]?.displayName || 'Unknown Artist';
 
     const primaryArtist = {
         id: artistId ? String(artistId) : '',
@@ -186,9 +168,7 @@ export function normalizeTracksRelease(item) {
             : [primaryArtist];
 
     const artwork = item.artwork || item.cover || '';
-    const trackCount =
-        item.trackCount ||
-        (Array.isArray(item.tracks) ? item.tracks.length : 0);
+    const trackCount = item.trackCount || (Array.isArray(item.tracks) ? item.tracks.length : 0);
 
     return {
         id,
@@ -251,10 +231,7 @@ export function normalizeTracksPlaylist(item) {
     if (!item) return null;
     const playlistId = String(item.playlistId || item.id || '');
     const id = playlistId;
-    const image =
-        typeof item.thumbnail === 'string' && item.thumbnail.startsWith('http')
-            ? item.thumbnail
-            : '';
+    const image = typeof item.thumbnail === 'string' && item.thumbnail.startsWith('http') ? item.thumbnail : '';
 
     return {
         id,
@@ -336,9 +313,7 @@ export function extractTracksSuggestions(results, query) {
         seen.add(normalizedQuery);
     }
 
-    const rawTracks = Array.isArray(results)
-        ? results
-        : results?.tracks?.items || results?.tracks || [];
+    const rawTracks = Array.isArray(results) ? results : results?.tracks?.items || results?.tracks || [];
 
     for (const raw of rawTracks) {
         if (!raw) continue;
@@ -387,24 +362,18 @@ export function scoreTrackCandidate(candidate, target) {
     if (targetTitleClean && candidateTitleClean) {
         if (targetTitleClean === candidateTitleClean) {
             score += 100;
-        } else if (
-            targetTitleClean.includes(candidateTitleClean) ||
-            candidateTitleClean.includes(targetTitleClean)
-        ) {
+        } else if (targetTitleClean.includes(candidateTitleClean) || candidateTitleClean.includes(targetTitleClean)) {
             score += 65;
         }
     }
 
-    const targetArtistName = cleanString(
-        target.artist?.name || target.artists?.[0]?.name || target.artist || ''
-    );
-    const candidateArtistNames = (
-        candidate.artistNames || [candidate.artist?.name || '']
-    ).map(cleanString);
+    const targetArtistName = cleanString(target.artist?.name || target.artists?.[0]?.name || target.artist || '');
+    const candidateArtistNames = (candidate.artistNames || [candidate.artist?.name || '']).map(cleanString);
 
     if (targetArtistName) {
         const hasArtistMatch = candidateArtistNames.some(
-            (cName) => cName === targetArtistName || cName.includes(targetArtistName) || targetArtistName.includes(cName)
+            (cName) =>
+                cName === targetArtistName || cName.includes(targetArtistName) || targetArtistName.includes(cName)
         );
         if (hasArtistMatch) {
             score += 50;
@@ -412,14 +381,9 @@ export function scoreTrackCandidate(candidate, target) {
     }
 
     // Check duration similarity (within 6 seconds)
-    const targetDur =
-        target.duration > 1000
-            ? Math.round(target.duration / 1000)
-            : Math.round(target.duration || 0);
+    const targetDur = target.duration > 1000 ? Math.round(target.duration / 1000) : Math.round(target.duration || 0);
     const candDur =
-        candidate.duration > 1000
-            ? Math.round(candidate.duration / 1000)
-            : Math.round(candidate.duration || 0);
+        candidate.duration > 1000 ? Math.round(candidate.duration / 1000) : Math.round(candidate.duration || 0);
 
     if (targetDur > 0 && candDur > 0) {
         const diff = Math.abs(targetDur - candDur);
@@ -460,9 +424,7 @@ export class TracksStreamerAPI {
                 });
 
                 if (
-                    (response.status === 502 ||
-                        response.status === 503 ||
-                        response.status === 504) &&
+                    (response.status === 502 || response.status === 503 || response.status === 504) &&
                     attempt < retries
                 ) {
                     await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
@@ -854,12 +816,8 @@ export class TracksStreamerAPI {
      * @returns {Promise<Object|null>} Stream info or null if unresolved
      */
     async resolveTrackStream(idOrTrack, quality = 'LOSSLESS', options = {}) {
-        const inputTrack =
-            options.track || (typeof idOrTrack === 'object' ? idOrTrack : null);
-        const id =
-            typeof idOrTrack === 'string'
-                ? idOrTrack
-                : String(inputTrack?.id || '');
+        const inputTrack = options.track || (typeof idOrTrack === 'object' ? idOrTrack : null);
+        const id = typeof idOrTrack === 'string' ? idOrTrack : String(inputTrack?.id || '');
 
         // 1. Direct match: Already a tracks.monochrome.st track
         if (inputTrack?.tracksTrackId || inputTrack?.recordingId) {

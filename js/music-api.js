@@ -9,11 +9,7 @@ import {
     normalizeAppleArtist,
     normalizeAppleSearchResults,
 } from './apple-music-api.js';
-import {
-    TracksStreamerAPI,
-    tracksStreamerAPI,
-    normalizeTracksSearchResults,
-} from './tracks-api.js';
+import { TracksStreamerAPI, tracksStreamerAPI, normalizeTracksSearchResults } from './tracks-api.js';
 import { getCommunityPlaylist } from './community-playlists.js';
 
 /**
@@ -169,7 +165,8 @@ export class MusicAPI {
             }
         } catch (error) {
             if (error.name === 'AbortError') throw error;
-            if (import.meta.env.DEV) console.warn('[searchTracks] Tracks Streamer unavailable, trying fallbacks', error);
+            if (import.meta.env.DEV)
+                console.warn('[searchTracks] Tracks Streamer unavailable, trying fallbacks', error);
         }
         return this.searchSection('tracks', 'songs', query, options, () => this.getAPI().searchTracks(query, options));
     }
@@ -185,7 +182,8 @@ export class MusicAPI {
             }
         } catch (error) {
             if (error.name === 'AbortError') throw error;
-            if (import.meta.env.DEV) console.warn('[searchArtists] Tracks Streamer unavailable, trying fallbacks', error);
+            if (import.meta.env.DEV)
+                console.warn('[searchArtists] Tracks Streamer unavailable, trying fallbacks', error);
         }
         return this.searchSection('artists', 'artists', query, options, () =>
             this.getAPI().searchArtists(query, options)
@@ -203,7 +201,8 @@ export class MusicAPI {
             }
         } catch (error) {
             if (error.name === 'AbortError') throw error;
-            if (import.meta.env.DEV) console.warn('[searchAlbums] Tracks Streamer unavailable, trying fallbacks', error);
+            if (import.meta.env.DEV)
+                console.warn('[searchAlbums] Tracks Streamer unavailable, trying fallbacks', error);
         }
         return this.searchSection('albums', 'albums', query, options, () => this.getAPI().searchAlbums(query, options));
     }
@@ -488,10 +487,7 @@ export class MusicAPI {
 
     // Stream methods
     async getStreamUrl(id, quality, options = {}) {
-        let track =
-            options?.track ||
-            this.getCachedTracksTrack(id) ||
-            this.getCachedAppleTrack(id);
+        let track = options?.track || this.getCachedTracksTrack(id) || this.getCachedAppleTrack(id);
 
         if (!track && (this.isTracksId(id) || this.isAppleId(id) || /^\d{17,20}$/.test(String(id)))) {
             track = await this.getTrackMetadata(id).catch(() => null);
@@ -660,11 +656,7 @@ export class MusicAPI {
             if (type === 'artist' && this.tracksArtistIds.has(id)) return true;
             if (type === 'track' && this.tracksTrackCache.has(id)) return true;
             if (!type) {
-                return (
-                    this.tracksTrackCache.has(id) ||
-                    this.tracksAlbumIds.has(id) ||
-                    this.tracksArtistIds.has(id)
-                );
+                return this.tracksTrackCache.has(id) || this.tracksAlbumIds.has(id) || this.tracksArtistIds.has(id);
             }
         }
         return false;

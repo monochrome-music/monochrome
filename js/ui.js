@@ -3691,10 +3691,8 @@ export class UIRenderer {
                         `Community Year-End ${year}${communityAgg.totalLists ? ` · ${communityAgg.totalLists} lists` : ''}`,
                         communityAgg.items
                     );
-                if (topRated?.items?.length)
-                    this.renderAOTYRankedRows(contentDiv, `Top Rated ${year}`, topRated.items);
-                if (!contentDiv.children.length)
-                    contentDiv.innerHTML = createPlaceholder('No chart data found.');
+                if (topRated?.items?.length) this.renderAOTYRankedRows(contentDiv, `Top Rated ${year}`, topRated.items);
+                if (!contentDiv.children.length) contentDiv.innerHTML = createPlaceholder('No chart data found.');
             } catch (e) {
                 console.error(e);
                 contentDiv.innerHTML = createPlaceholder('Failed to load charts.');
@@ -3872,7 +3870,15 @@ export class UIRenderer {
                     this.renderAOTYSection(contentDiv, `Albums matching “${q.trim()}”`, data.albums);
                     return;
                 }
-                const rows = data.artists || data.labels || data.lists || data.items || data.news || data.tags || data.users || [];
+                const rows =
+                    data.artists ||
+                    data.labels ||
+                    data.lists ||
+                    data.items ||
+                    data.news ||
+                    data.tags ||
+                    data.users ||
+                    [];
                 if (!rows.length) {
                     contentDiv.innerHTML = createPlaceholder('No results found.');
                     return;
@@ -3920,7 +3926,10 @@ export class UIRenderer {
         };
         container.querySelector('#aoty-search-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            void runSearch(container.querySelector('#aoty-search-q').value, container.querySelector('#aoty-search-scope').value);
+            void runSearch(
+                container.querySelector('#aoty-search-q').value,
+                container.querySelector('#aoty-search-scope').value
+            );
         });
     }
 
@@ -4031,11 +4040,7 @@ export class UIRenderer {
                     </div>`;
 
                 row.querySelector('.row-title').textContent = itemTitle || item.title || '';
-                const metaParts = [
-                    itemArtist,
-                    item.date,
-                    ...(item.genres?.slice(0, 2) || []),
-                ].filter(Boolean);
+                const metaParts = [itemArtist, item.date, ...(item.genres?.slice(0, 2) || [])].filter(Boolean);
                 row.querySelector('.row-meta').textContent = metaParts.join(' · ');
                 row.appendChild(scoreEl);
                 if (embeddedScore == null) scoreTargets.push({ item, scoreEl });
