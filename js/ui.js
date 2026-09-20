@@ -2686,20 +2686,21 @@ export class UIRenderer {
         try {
             const response = await fetch('https://tracks.monochrome.st/goal');
             const data = await response.json();
-            if (data && data.goal) {
-                const current = data.goal.current_amount || 0;
-                const target = data.goal.target_amount || 1000;
-                const percentage = Math.min(100, Math.max(0, (current / target) * 100));
+            let percentage = 0;
+            
+            if (data && data.percentage) {
+                // New format: {"percentage":"76%"}
+                percentage = parseFloat(data.percentage.replace('%', ''));
+            }
 
-                if (goalPercent) goalPercent.textContent = `${percentage.toFixed(1)}%`;
-                if (goalProgress) goalProgress.style.width = `${percentage}%`;
+            if (goalPercent) goalPercent.textContent = `${percentage.toFixed(1)}%`;
+            if (goalProgress) goalProgress.style.width = `${percentage}%`;
 
-                if (sidebarText) {
-                    sidebarText.textContent = `${percentage.toFixed(0)}%`;
-                }
-                if (sidebarProgress) {
-                    sidebarProgress.style.width = `${percentage}%`;
-                }
+            if (sidebarText) {
+                sidebarText.textContent = `${percentage.toFixed(0)}%`;
+            }
+            if (sidebarProgress) {
+                sidebarProgress.style.width = `${percentage}%`;
             }
         } catch (error) {
             // lowk wrapping it in the try-catch for the larp
