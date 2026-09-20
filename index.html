@@ -143,7 +143,7 @@
                 }
             })();
         </script>
-      <script type="module" crossorigin src="./assets/index-CGBobNbB.js"></script>
+      <script type="module" crossorigin src="./assets/index-CDLhBc65.js"></script>
       <link rel="stylesheet" crossorigin href="./assets/index-BLyeEyMI.css">
     </head>
 
@@ -1279,24 +1279,20 @@
                 </p>
                 <div style="margin-bottom: 1rem">
                     <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">PocketBase URL</label>
-                    <input type="url" id="custom-pb-url" class="template-input" placeholder="https://data.monochrome.st" />
+                    <input
+                        type="url"
+                        id="custom-pb-url"
+                        class="template-input"
+                        placeholder="https://data.monochrome.st"
+                    />
                 </div>
                 <div style="margin-bottom: 1rem">
-                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Auth Endpoint</label>
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Auth URL (Better Auth)</label>
                     <input
                         type="url"
                         id="custom-appwrite-endpoint"
                         class="template-input"
                         placeholder="https://auth.monochrome.st"
-                    />
-                </div>
-                <div style="margin-bottom: 1rem">
-                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Appwrite Project ID</label>
-                    <input
-                        type="text"
-                        id="custom-appwrite-project"
-                        class="template-input"
-                        placeholder="auth-for-monochrome"
                     />
                 </div>
                 <div class="modal-actions">
@@ -4215,24 +4211,12 @@
                                     </div>
                                     <select id="streaming-quality-setting">
                                         <option value="auto">Auto (Adaptive)</option>
-                                        <option value="DOLBY_ATMOS_EAC3_HIGH">
-                                            Dolby Atmos — E-AC-3 High
-                                        </option>
-                                        <option value="DOLBY_ATMOS_EAC3_LOW">
-                                            Dolby Atmos — E-AC-3 Low
-                                        </option>
-                                        <option value="DOLBY_ATMOS_AC4_HIGH">
-                                            Dolby Atmos — AC-4 High
-                                        </option>
-                                        <option value="DOLBY_ATMOS_AC4_LOW">
-                                            Dolby Atmos — AC-4 Low
-                                        </option>
-                                        <option value="HI_RES_LOSSLESS">
-                                            Hi-Res Lossless (24-bit)
-                                        </option>
-                                        <option value="LOSSLESS">
-                                            Lossless (16-bit)
-                                        </option>
+                                        <option value="DOLBY_ATMOS_EAC3_HIGH">Dolby Atmos — E-AC-3 High</option>
+                                        <option value="DOLBY_ATMOS_EAC3_LOW">Dolby Atmos — E-AC-3 Low</option>
+                                        <option value="DOLBY_ATMOS_AC4_HIGH">Dolby Atmos — AC-4 High</option>
+                                        <option value="DOLBY_ATMOS_AC4_LOW">Dolby Atmos — AC-4 Low</option>
+                                        <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
+                                        <option value="LOSSLESS">Lossless (16-bit)</option>
                                         <option value="HIGH">High</option>
                                         <option value="LOW">Low</option>
                                     </select>
@@ -5523,24 +5507,12 @@
                                             >
                                         </div>
                                         <select id="download-quality-setting">
-                                            <option value="DOLBY_ATMOS_EAC3_HIGH">
-                                                Dolby Atmos — E-AC-3 High
-                                            </option>
-                                            <option value="DOLBY_ATMOS_EAC3_LOW">
-                                                Dolby Atmos — E-AC-3 Low
-                                            </option>
-                                            <option value="DOLBY_ATMOS_AC4_HIGH">
-                                                Dolby Atmos — AC-4 High
-                                            </option>
-                                            <option value="DOLBY_ATMOS_AC4_LOW">
-                                                Dolby Atmos — AC-4 Low
-                                            </option>
-                                            <option value="HI_RES_LOSSLESS">
-                                                Hi-Res Lossless (24-bit)
-                                            </option>
-                                            <option value="LOSSLESS">
-                                                Lossless (16-bit)
-                                            </option>
+                                            <option value="DOLBY_ATMOS_EAC3_HIGH">Dolby Atmos — E-AC-3 High</option>
+                                            <option value="DOLBY_ATMOS_EAC3_LOW">Dolby Atmos — E-AC-3 Low</option>
+                                            <option value="DOLBY_ATMOS_AC4_HIGH">Dolby Atmos — AC-4 High</option>
+                                            <option value="DOLBY_ATMOS_AC4_LOW">Dolby Atmos — AC-4 Low</option>
+                                            <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
+                                            <option value="LOSSLESS">Lossless (16-bit)</option>
                                             <option value="HIGH">High</option>
                                             <option value="LOW">Low</option>
                                         </select>
@@ -5848,7 +5820,7 @@
                                     <div class="info">
                                         <span class="label">ADVANCED: Custom Database/Auth</span>
                                         <span class="description"
-                                            >Configure custom PocketBase and Appwrite instances</span
+                                            >Configure custom PocketBase and Auth instances</span
                                         >
                                     </div>
                                     <button id="custom-db-btn" class="btn-secondary">Configure</button>
@@ -6171,8 +6143,8 @@
                             <p class="version">Version 2.5.0</p>
                             <p class="version" id="about-commit-info"></p>
                             <p class="disclaimer">
-                                This is an independent client and is not affiliated with or endorsed by any
-                                music streaming service.
+                                This is an independent client and is not affiliated with or endorsed by any music
+                                streaming service.
                             </p>
                             <p class="disclaimer">
                                 This application does not host, store, or distribute any media files. <br />
