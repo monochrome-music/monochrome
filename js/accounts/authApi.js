@@ -1,9 +1,12 @@
 import { AUTH_BASE_URL } from './config.js';
 import { getAuthToken } from './auth.js';
 
-export async function authApi(path, options = {}) {
+const DATA_BASE_URL =
+    window.__POCKETBASE_URL__ || localStorage.getItem('monochrome-pocketbase-url') || 'https://data.monochrome.st';
+
+function buildApi(baseUrl, path, options = {}) {
     const token = getAuthToken();
-    const response = await fetch(`${AUTH_BASE_URL}${path}`, {
+    return fetch(`${baseUrl}${path}`, {
         credentials: 'include',
         ...options,
         headers: {
@@ -12,7 +15,9 @@ export async function authApi(path, options = {}) {
             ...(options.headers || {}),
         },
     });
+}
 
+async function handleResponse(response) {
     if (!response.ok) {
         const text = await response.text();
         let data = text;
@@ -33,3 +38,15 @@ export async function authApi(path, options = {}) {
 
     return response.status === 204 ? null : response.json();
 }
+
+export async function authApi(path, options = {}) {
+    const response = await buildApi(AUTH_BASE_URL, path, options);
+    return handleResponse(response);
+}
+
+export async function dataApi(path, options = {}) {
+    const response = await buildApi(DATA_BASE_URL, path, options);
+    return handleResponse(response);
+}
+
+export { DATA_BASE_URL };
