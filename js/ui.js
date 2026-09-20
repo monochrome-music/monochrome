@@ -2687,7 +2687,7 @@ export class UIRenderer {
             const response = await fetch('https://tracks.monochrome.st/goal');
             const data = await response.json();
             let percentage = 0;
-            
+
             if (data && data.percentage) {
                 // New format: {"percentage":"76%"}
                 percentage = parseFloat(data.percentage.replace('%', ''));
