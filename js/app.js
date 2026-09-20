@@ -112,7 +112,7 @@ async function fetchcontributors() {
     if (contributorsLoaded) return;
     contributorsLoaded = true;
     try {
-        const response = await fetch('https://api.samidy.com/api/contributors');
+        const response = await fetch('https://tracks.monochrome.st/contributors');
         if (!response.ok) {
             contributorsLoaded = false;
             return;

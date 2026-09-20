@@ -2684,15 +2684,13 @@ export class UIRenderer {
         const sidebarText = document.getElementById('sidebar-donate-goal-text');
 
         try {
-            const response = await fetch('https://goal.samidy.xyz/index.json');
+            const response = await fetch('https://tracks.monochrome.st/goal');
             const data = await response.json();
             if (data && data.goal) {
                 const current = data.goal.current_amount || 0;
                 const target = data.goal.target_amount || 1000;
                 const percentage = Math.min(100, Math.max(0, (current / target) * 100));
 
-                if (goal)
-                    goal.textContent = `$${current.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 if (goalPercent) goalPercent.textContent = `${percentage.toFixed(1)}%`;
                 if (goalProgress) goalProgress.style.width = `${percentage}%`;
 
