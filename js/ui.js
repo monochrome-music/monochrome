@@ -2675,7 +2675,6 @@ export class UIRenderer {
     async loadDonateGoal() {
         this.setupCryptoCopy();
 
-        const goal = document.getElementById('donate-goal');
         const goalPercent = document.getElementById('donate-goal-percent');
         const goalProgress = document.getElementById('donate-goal-progress');
         const donateBtn = document.querySelector('#page-donate a.btn-primary');
