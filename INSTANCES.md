@@ -14,7 +14,6 @@ The official Monochrome instance maintained by the core team:
 | URL                                                       | Status   | Notes            |
 | --------------------------------------------------------- | -------- | ---------------- |
 | [monochrome.tf](https://monochrome.tf)                    | Official | Primary instance |
-| [monochrome.samidy.com](https://monochrome.samidy.com)    | Official | Secondary mirror |
 | [lossless.wtf](https://lossless.wtf)                      | Official | Failover mirror  |
 | [if-it-runs-ship-it.lol](https://if-it-runs-ship-it.lol/) | Official | Failover mirror  |
 
@@ -30,8 +29,7 @@ PLEASE do not use any rehost of monochrome and complain to us about features not
 
 | Provider          | URL                                 | Notes                                                                   |
 | ----------------- | ----------------------------------- | ----------------------------------------------------------------------- |
-| **Monochrome**    | `https://monochrome-api.samidy.com` | Official API                                                            |
-|                   | `https://api.monochrome.tf`         | Official API                                                            |
+| **Monochrome**    | `https://api.monochrome.tf`         | Official API                                                            |
 | **Lucida (QQDL)** | `https://wolf.qqdl.site`            | Community hosted                                                        |
 |                   | `https://maus.qqdl.site`            | Community hosted                                                        |
 |                   | `https://vogel.qqdl.site`           | Community hosted                                                        |

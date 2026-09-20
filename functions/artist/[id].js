@@ -144,7 +144,7 @@ export async function onRequest(context) {
                 const description = `Listen to ${name} on Monochrome`;
                 const imageUrl = artist.picture
                     ? api.getArtistPictureUrl(artist.picture, '750')
-                    : 'https://monochrome.samidy.com/assets/appicon.png';
+                    : 'https://monochrome.st/assets/appicon.png';
                 const pageUrl = new URL(request.url).href;
 
                 const metaHtml = `

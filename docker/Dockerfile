@@ -9,6 +9,7 @@ RUN apk add --no-cache wget curl bash
 # Accept build arguments for environment variables
 ARG AUTH_ENABLED
 ARG AUTH_SECRET
+ARG AUTH_URL
 ARG APPWRITE_ENDPOINT
 ARG APPWRITE_PROJECT_ID
 ARG POCKETBASE_URL

@@ -81,7 +81,7 @@ export const apiSettings = {
             if (!data) {
                 console.error('Failed to load instances from all uptime APIs:', fetchError);
                 this.defaultInstances = {
-                    api: [{ url: 'https://lol.samidy.workers.dev', version: '2.10' }],
+                    api: [{ url: 'https://tracks.monochrome.st', version: '2.10' }],
                     streaming: [],
                 };
                 this.instancesLoaded = true;
@@ -107,7 +107,7 @@ export const apiSettings = {
             }
 
             if (groupedInstances.api.length === 0) {
-                groupedInstances.api = [{ url: 'https://lol.samidy.workers.dev', version: '2.10' }];
+                groupedInstances.api = [{ url: 'https://tracks.monochrome.st', version: '2.10' }];
             }
 
             this.defaultInstances = groupedInstances;

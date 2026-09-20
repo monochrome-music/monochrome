@@ -35,8 +35,6 @@ import { SVG_CLOCK, SVG_ATMOS, SVG_TRIANGLE_ALERT, SVG_PLAY, SVG_PAUSE } from '.
 import { UIRenderer } from './ui.js';
 import { MediaSession } from '@capgo/capacitor-media-session';
 
-const PLAYBACK_AVAILABLE = false;
-
 export class Player {
     static #instance = null;
 
@@ -1127,7 +1125,6 @@ export class Player {
     }
 
     async playVideo(video) {
-        if (!PLAYBACK_AVAILABLE) return;
         if (!video) return;
         const videoTrack = {
             ...video,
@@ -1140,11 +1137,6 @@ export class Player {
     }
 
     async playTrackFromQueue(startTime = 0, recursiveCount = 0, isRetry = false, options = {}) {
-        if (!PLAYBACK_AVAILABLE) {
-            this.audio.pause();
-            this.video.pause();
-            return;
-        }
         await this.shakaReady;
         const { preserveGestureToken = false, preparedPlayback = null } = options;
         if (!isRetry) {
@@ -1654,7 +1646,7 @@ export class Player {
                     await this.safePlay(activeElement);
                 } else {
                     await this.prepareNativePlayback(activeElement, streamUrl, {
-                        singleUse: resolvedStreamInfo.provider === 'monochrome',
+                        singleUse: Boolean(resolvedStreamInfo.singleUse),
                     });
                     if (this.playbackSequence !== currentSequence) return;
                     this.applyAudioEffects();
@@ -2462,11 +2454,6 @@ export class Player {
     }
 
     async handlePlayPause() {
-        if (!PLAYBACK_AVAILABLE) {
-            this.audio.pause();
-            this.video.pause();
-            return;
-        }
         const el = this.activeElement;
         const hasSource = el.src || el.currentSrc || el.srcObject || this.shakaInitialized;
 

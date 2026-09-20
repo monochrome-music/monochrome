@@ -153,7 +153,7 @@ export async function onRequest(context) {
                 const imageId = playlist.squareImage || playlist.image;
                 const imageUrl = imageId
                     ? api.getCoverUrl(imageId, '1080')
-                    : 'https://monochrome.samidy.com/assets/appicon.png';
+                    : 'https://monochrome.st/assets/appicon.png';
                 const pageUrl = new URL(request.url).href;
 
                 const metaHtml = `

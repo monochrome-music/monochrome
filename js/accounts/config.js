@@ -8,10 +8,15 @@ const getBaseURL = () => {
     if (window.__AUTH_URL__) return window.__AUTH_URL__;
 
     const hostname = window.location.hostname;
-    if (hostname.endsWith('monochrome.tf') || hostname === 'monochrome.tf') {
-        return 'https://auth.monochrome.tf';
+    if (
+        hostname.endsWith('monochrome.st') ||
+        hostname === 'monochrome.st' ||
+        hostname.endsWith('monochrome.tf') ||
+        hostname === 'monochrome.tf'
+    ) {
+        return 'https://auth.monochrome.st';
     }
-    return 'https://auth.samidy.com';
+    return 'https://auth.monochrome.st';
 };
 
 export const AUTH_BASE_URL = getBaseURL();

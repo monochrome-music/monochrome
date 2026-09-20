@@ -34,7 +34,11 @@ export default defineConfig(({ mode }) => {
             // https://vitest.dev/guide/browser/
             browser: {
                 enabled: true,
-                provider: playwright(),
+                provider: playwright({
+                    launchOptions: {
+                        args: ['--disable-web-security'],
+                    },
+                }),
                 headless: !!process.env.HEADLESS,
                 instances: [{ browser: 'chromium' }],
             },
@@ -132,12 +136,12 @@ export default defineConfig(({ mode }) => {
                         },
                         {
                             urlPattern: ({ request }) => request.destination === 'image',
-                            handler: 'CacheFirst',
+                            handler: 'StaleWhileRevalidate',
                             options: {
                                 cacheName: 'images',
                                 expiration: {
-                                    maxEntries: 100,
-                                    maxAgeSeconds: 60 * 24 * 60 * 60, // 60 Days
+                                    maxEntries: 500,
+                                    maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
                                 },
                             },
                         },

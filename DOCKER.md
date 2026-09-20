@@ -96,19 +96,14 @@ Override files can extend existing services (add labels, env vars, networks) and
 
 The application is configured via environment variables. Copy `.env.example` to `.env` and edit it to match your setup.
 
-### Authentication (Appwrite)
+### Authentication (Better Auth)
 
-Monochrome uses Appwrite for user authentication. While it defaults to official instances, you can use your own self-hosted Appwrite instance:
-
-1. Create a project in Appwrite.
-2. Enable the **Google** or **Email/Password** providers in the Appwrite Console.
-3. Set these variables in your `.env`:
-    - `APPWRITE_ENDPOINT`: Your Appwrite API endpoint (e.g., `https://auth.yourdomain.com/v1`).
-    - `APPWRITE_PROJECT_ID`: Your Appwrite project ID (e.g., `auth-for-monochrome`).
+Monochrome uses Better Auth for user authentication (defaulting to `https://auth.monochrome.st`). You can configure a custom auth instance using:
+- `AUTH_URL`: Your Better Auth endpoint (e.g., `https://auth.monochrome.st`).
 
 ### Database (PocketBase)
 
-Monochrome uses PocketBase to store user data (playlists, favorites, profiles, etc.). You can run it alongside Monochrome using the `pocketbase` profile:
+Monochrome uses PocketBase to store user data (playlists, favorites, profiles, etc.), defaulting to `https://data.monochrome.st`. You can configure a custom database URL via `POCKETBASE_URL` or run your own instance alongside Monochrome using the `pocketbase` profile:
 
 ```bash
 docker compose --profile pocketbase up -d

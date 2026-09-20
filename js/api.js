@@ -29,6 +29,7 @@ import { isCustomFormat } from './ffmpegFormats.ts';
 import { DownloadProgress } from './progressEvents.js';
 import { resolveDownloadTotalBytes } from './downloadProgressUtils.js';
 import { readableStreamIterator } from './readableStreamIterator.js';
+import { tracksStreamerAPI } from './tracks-api.js';
 import { HiFiClient, TidalResponse } from './HiFi.ts';
 import { canBrowserStreamAtmosQuality } from './platform-detection.js';
 import {
@@ -261,7 +262,8 @@ export class LosslessAPI {
             return response;
         }
 
-        const shouldTryNative = type !== 'streaming';
+        const shouldTryNative =
+            type !== 'streaming' || relativePath.startsWith('/trackManifests') || relativePath.startsWith('/track');
         let nativeError = null;
 
         if (shouldTryNative) {
@@ -297,6 +299,9 @@ export class LosslessAPI {
         try {
             return await tryInstances(await getInstances(false));
         } catch (error) {
+            if (nativeError && (type === 'streaming' || options.userInstancesOnly)) {
+                throw nativeError;
+            }
             if (type === 'streaming' || options.userInstancesOnly) {
                 throw error;
             }
@@ -1864,9 +1869,27 @@ export class LosslessAPI {
             params.append('formats', format);
         }
 
-        const response = await this.fetchWithRetry(`/trackManifests/?${params.toString()}`, { type: 'streaming' });
-        const jsonResponse = await response.json();
-        const result = this.parseTrackLookup(await this.normalizeTrackManifestResponse(jsonResponse, quality));
+        let response;
+        let jsonResponse;
+        let result;
+
+        try {
+            response = await this.fetchWithRetry(`/trackManifests/?${params.toString()}`, { type: 'streaming' });
+            jsonResponse = await response.json();
+            result = this.parseTrackLookup(await this.normalizeTrackManifestResponse(jsonResponse, quality));
+        } catch (_manifestErr) {
+            const trackParams = new URLSearchParams({
+                id: String(id),
+                quality: requestedQuality,
+            });
+            if (quality === 'DOLBY_ATMOS' || preferDolbyAtmosSettings.isEnabled()) {
+                trackParams.set('immersiveAudio', 'true');
+            }
+            response = await this.fetchWithRetry(`/track/?${trackParams.toString()}`, { type: 'streaming' });
+            jsonResponse = await response.json();
+            const playbackInfo = jsonResponse.data || jsonResponse;
+            result = this.parseTrackLookup([{ id: Number(id), duration: 0 }, playbackInfo]);
+        }
 
         if (!(response instanceof TidalResponse)) {
             await this.cache.set('track', cacheKey, result);
@@ -2802,80 +2825,24 @@ export class LosslessAPI {
         const isApple = inputTrack?.provider === 'apple' || String(id || '').startsWith('apple:');
         const track = inputTrack || (id && !isApple ? await this.getTrackMetadata(id).catch(() => null) : null);
 
-        let actualQuality = quality;
-
-        const exactAtmosQuality = isAtmosQuality(quality) ? quality : null;
-        const preferredAtmosQuality = preferDolbyAtmosSettings.isEnabled() ? 'DOLBY_ATMOS_EAC3_HIGH' : null;
-        const atmosQuality = exactAtmosQuality || preferredAtmosQuality;
-
-        let unifiedResult = null;
-
-        if (atmosQuality) {
-            try {
-                unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, atmosQuality, {
-                    preferAdaptiveAuto: true,
-                    track,
-                    intent: 'stream',
-                });
-            } catch (err) {
-                console.debug('Unified Playback Dolby Atmos lookup failed:', err);
-            }
+        let streamResult = null;
+        try {
+            streamResult = await tracksStreamerAPI.resolveTrackStream(id, quality, { track });
+        } catch (err) {
+            console.debug('tracks.monochrome.st stream lookup failed in LosslessAPI:', err);
         }
 
-        if (!unifiedResult?.url && exactAtmosQuality) {
-            const error = new Error(
-                `The requested ${exactAtmosQuality.replaceAll('_', ' ')} tier is unavailable. Atmos requests are strict, so no stereo fallback was used.`
-            );
-            error.code = STRICT_QUALITY_UNAVAILABLE_CODE;
-            throw error;
+        if (!streamResult?.url) {
+            const cleanId = String(id).replace(/^(?:tracks|mono):(?:track:)?/, '');
+            streamResult = tracksStreamerAPI.getStreamUrl(cleanId, quality, { track });
         }
 
-        if (!unifiedResult?.url) {
-            unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, quality, {
-                preferAdaptiveAuto: true,
-                track,
-                intent: 'stream',
-            });
+        if (streamResult?.url) {
+            this.streamCache.set(cacheKey, streamResult);
+            return streamResult;
         }
 
-        if (unifiedResult?.url) {
-            // The unified endpoint is no-store and may return a single-use Mono URL.
-            return unifiedResult;
-        }
-
-        const deezerResult = track?.isrc ? await this.getDeezerStreamUrl(track.isrc, quality) : null;
-
-        if (deezerResult?.url) {
-            const result = {
-                url: deezerResult.url,
-                rgInfo: {
-                    trackReplayGain: 0,
-                    trackPeakAmplitude: 1,
-                    albumReplayGain: 0,
-                    albumPeakAmplitude: 1,
-                },
-                provider: 'deezer',
-                deezerFormat: deezerResult.format,
-                deezerHiRes: deriveTrackQuality(track) === 'HI_RES_LOSSLESS',
-            };
-            this.streamCache.set(cacheKey, result);
-            return result;
-        }
-
-        notifyAudioSourceMissing(
-            createAudioSourceReportDetails(
-                track,
-                id,
-                quality,
-                'stream',
-                this.unifiedPlaybackFailures.get(String(track?.id || id)) || null
-            )
-        );
-        throw new Error(
-            track?.isrc
-                ? 'Could not resolve stream URL from Unified Playback or Deezer'
-                : 'Could not resolve stream URL: Unified Playback failed and the track has no ISRC for Deezer lookup'
-        );
+        throw new Error(`Could not resolve stream URL for track ID: ${id}`);
     }
 
     async getVideoStreamUrl(id) {
@@ -2951,109 +2918,38 @@ export class LosslessAPI {
 
         if (isVideo) {
             lookup = await this.getVideo(id);
-        } else if (devModeSettings.isEnabled()) {
-            lookup = new PlaybackInfo(await this.getTrackFromDevMode(id, cleanQuality));
         } else {
-            let unifiedResult = null;
-            let deezerResult = null;
-
-            const exactAtmosQuality = isAtmosQuality(cleanQuality) ? cleanQuality : null;
-            const preferredAtmosQuality =
-                !exactAtmosQuality && preferDolbyAtmosSettings.isEnabled() && track?.audioModes?.includes('DOLBY_ATMOS')
-                    ? 'DOLBY_ATMOS_EAC3_HIGH'
-                    : null;
-            const atmosQuality = exactAtmosQuality || preferredAtmosQuality;
-
-            if (atmosQuality) {
-                try {
-                    unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, atmosQuality, {
-                        track,
-                        intent: 'download',
-                    });
-                } catch (error) {
-                    console.debug('Unified Playback Atmos lookup failed during download enrichment:', error);
-                }
+            let streamResult = null;
+            try {
+                streamResult = await tracksStreamerAPI.resolveTrackStream(id, cleanQuality, { track });
+            } catch (error) {
+                console.debug('tracks.monochrome.st lookup failed during download enrichment:', error);
             }
 
-            if (!unifiedResult?.url && exactAtmosQuality) {
-                const error = new Error(
-                    `The requested ${exactAtmosQuality.replaceAll('_', ' ')} tier is unavailable. Atmos downloads are strict, so no stereo fallback was used.`
-                );
-                error.code = STRICT_QUALITY_UNAVAILABLE_CODE;
-                throw error;
+            if (!streamResult?.url) {
+                const cleanId = String(id).replace(/^(?:tracks|mono):(?:track:)?/, '');
+                streamResult = tracksStreamerAPI.getStreamUrl(cleanId, cleanQuality, { track });
             }
 
-            if (!unifiedResult?.url) {
-                try {
-                    unifiedResult = await this.getUnifiedPlaybackStreamUrl(id, cleanQuality, {
-                        track,
-                        intent: 'download',
-                    });
-                } catch (error) {
-                    console.debug('Unified Playback lookup failed during download enrichment:', error);
-                }
-            }
-
-            if (!unifiedResult?.url) {
-                if (track?.isrc) {
-                    deezerResult = await this.getDeezerStreamUrl(track.isrc, cleanQuality);
-                }
-            }
-
-            const externalResult = unifiedResult?.url ? unifiedResult : deezerResult;
-            if (externalResult?.url) {
-                externalStreamUrl = externalResult.url;
-                externalRgInfo = externalResult.rgInfo;
-                externalStreamType = externalResult.playbackType || null;
-                externalProvider = externalResult.provider || (unifiedResult?.url ? 'unified' : 'deezer');
-                externalMimeType = externalResult.mimeType || null;
-                externalMediaMimeType = externalResult.mediaMimeType || externalMimeType;
-                externalSourceUrl = externalResult.sourceUrl || externalStreamUrl;
+            if (streamResult?.url) {
+                externalStreamUrl = streamResult.url;
+                externalRgInfo = streamResult.rgInfo;
+                externalStreamType = streamResult.playbackType || 'direct';
+                externalProvider = 'monochrome';
+                externalMimeType = streamResult.mimeType || 'audio/flac';
+                externalMediaMimeType = streamResult.mediaMimeType || externalMimeType;
+                externalSourceUrl = streamResult.sourceUrl || externalStreamUrl;
                 lookup = {
                     info: {
                         audioQuality: cleanQuality,
-                        trackReplayGain: externalRgInfo?.trackReplayGain ?? 0,
-                        trackPeakAmplitude: externalRgInfo?.trackPeakAmplitude ?? 1,
-                        albumReplayGain: externalRgInfo?.albumReplayGain ?? 0,
-                        albumPeakAmplitude: externalRgInfo?.albumPeakAmplitude ?? 1,
+                        trackReplayGain: 0,
+                        trackPeakAmplitude: 1,
+                        albumReplayGain: 0,
+                        albumPeakAmplitude: 1,
                     },
                 };
             } else {
-                const requestedDeezerFormat = this.getDeezerStreamFormat(cleanQuality);
-                const losslessDeezerFormat = this.getDeezerStreamFormat('LOSSLESS');
-                deezerResult =
-                    track?.isrc && requestedDeezerFormat !== losslessDeezerFormat
-                        ? await this.getDeezerStreamUrl(track.isrc, 'LOSSLESS')
-                        : null;
-                if (deezerResult?.url) {
-                    externalProvider = 'deezer';
-                    externalStreamUrl = deezerResult.url;
-                    externalSourceUrl = deezerResult.url;
-                    lookup = {
-                        info: {
-                            audioQuality: cleanQuality,
-                            trackReplayGain: 0,
-                            trackPeakAmplitude: 1,
-                            albumReplayGain: 0,
-                            albumPeakAmplitude: 1,
-                        },
-                    };
-                } else {
-                    notifyAudioSourceMissing(
-                        createAudioSourceReportDetails(
-                            track,
-                            id,
-                            cleanQuality,
-                            'download',
-                            this.unifiedPlaybackFailures.get(String(track?.id || id)) || null
-                        )
-                    );
-                    throw new Error(
-                        track?.isrc
-                            ? 'Could not resolve audio stream from Unified Playback or Deezer'
-                            : 'Cannot resolve audio stream: Unified Playback failed and track has no ISRC for Deezer lookup'
-                    );
-                }
+                throw new Error(`Could not resolve audio stream for track ID: ${id}`);
             }
         }
 
@@ -3399,7 +3295,7 @@ export class LosslessAPI {
 
     getCoverUrl(id, size = '320') {
         if (!id) {
-            return `https://picsum.photos/seed/${Math.random()}/${size}`;
+            return 'images/monochrome_logo.svg';
         }
 
         if (typeof id === 'string' && (id.startsWith('http') || id.startsWith('blob:') || id.startsWith('assets/'))) {
@@ -3425,10 +3321,10 @@ export class LosslessAPI {
 
     getArtistPictureUrl(id, size = '320') {
         if (!id) {
-            return `https://picsum.photos/seed/${Math.random()}/${size}`;
+            return 'images/monochrome_logo.svg';
         }
 
-        if (typeof id === 'string' && (id.startsWith('blob:') || id.startsWith('assets/'))) {
+        if (typeof id === 'string' && (id.startsWith('http') || id.startsWith('blob:') || id.startsWith('assets/'))) {
             return id;
         }
 

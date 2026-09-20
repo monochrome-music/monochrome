@@ -12004,15 +12004,3 @@ body.sidebar-collapsed #sidebar-nav-donate {
     line-height: 1.45;
     color: var(--muted-foreground);
 }
-
-.playback-maintenance-notice {
-    position: sticky;
-    top: 0;
-    z-index: 10001;
-    width: 100%;
-    padding: 0.75rem 1rem;
-    background: #f59e0b;
-    color: #111;
-    font-weight: 700;
-    text-align: center;
-}

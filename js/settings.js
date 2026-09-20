@@ -6843,7 +6843,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
         customDbBtn.addEventListener('click', () => {
             const pbUrl = localStorage.getItem('monochrome-pocketbase-url') || '';
-            const appwriteEndpoint = localStorage.getItem('monochrome-appwrite-endpoint') || '';
+            const appwriteEndpoint =
+                localStorage.getItem('monochrome-auth-url') ||
+                localStorage.getItem('monochrome-appwrite-endpoint') ||
+                '';
             const appwriteProject = localStorage.getItem('monochrome-appwrite-project') || '';
 
             if (!pbFromEnv && customPbUrlInput) customPbUrlInput.value = pbUrl;
@@ -6877,8 +6880,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 const project = customAppwriteProjectInput?.value.trim();
 
                 if (endpoint) {
+                    localStorage.setItem('monochrome-auth-url', endpoint);
                     localStorage.setItem('monochrome-appwrite-endpoint', endpoint);
                 } else {
+                    localStorage.removeItem('monochrome-auth-url');
                     localStorage.removeItem('monochrome-appwrite-endpoint');
                 }
 
@@ -6896,6 +6901,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         customDbResetBtn.addEventListener('click', () => {
             if (confirm('Reset custom database settings to default?')) {
                 localStorage.removeItem('monochrome-pocketbase-url');
+                localStorage.removeItem('monochrome-auth-url');
                 localStorage.removeItem('monochrome-appwrite-endpoint');
                 localStorage.removeItem('monochrome-appwrite-project');
                 alert('Settings reset. Reloading...');

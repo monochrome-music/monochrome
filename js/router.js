@@ -39,6 +39,15 @@ export function createRouter(ui) {
             if (p.startsWith('apple/')) {
                 return { provider: 'apple', id: p.slice(6) };
             }
+            if (p.startsWith('tracks/')) {
+                return { provider: 'tracks', id: p.slice(7) };
+            }
+            if (p.startsWith('mono/')) {
+                return { provider: 'tracks', id: p.slice(5) };
+            }
+            if (p.startsWith('monochrome/')) {
+                return { provider: 'tracks', id: p.slice(11) };
+            }
             return { provider: null, id: p };
         };
 

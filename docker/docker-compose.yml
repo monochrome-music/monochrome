@@ -7,6 +7,7 @@ services:
             args:
                 - AUTH_ENABLED=${AUTH_ENABLED}
                 - AUTH_SECRET=${AUTH_SECRET}
+                - AUTH_URL=${AUTH_URL}
                 - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT}
                 - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID}
                 - POCKETBASE_URL=${POCKETBASE_URL}

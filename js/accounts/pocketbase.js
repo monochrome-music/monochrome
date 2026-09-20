@@ -4,7 +4,7 @@ import { db } from '../db.js';
 import { authManager } from './auth.js';
 import { authApi } from './authApi.js';
 
-const DEFAULT_POCKETBASE_URL = 'https://data.samidy.xyz';
+const DEFAULT_POCKETBASE_URL = 'https://data.monochrome.st';
 const POCKETBASE_URL =
     window.__POCKETBASE_URL__ || localStorage.getItem('monochrome-pocketbase-url') || DEFAULT_POCKETBASE_URL;
 

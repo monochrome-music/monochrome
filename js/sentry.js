@@ -125,7 +125,7 @@ const IGNORE_ERRORS = [
     /Failed to fetch \(lyrics/i,
     /lyricsplus|lyrics-api\.binimum|lyrics-storage\.binimum|unison\.boidu\.dev/,
     // Third-party CDN/proxy fetch failures outside our control.
-    /Failed to fetch \((resources\.tidal\.com|dzr\.|tabs-vs-spaces\.wtf|canine\.tools|trends\.artistgrid\.cx|tidal-proxy\.monochrome\.tf|panora-api|aoty\.|127\.0\.0\.1)/i,
+    /Failed to fetch \((tracks\.monochrome\.st|resources\.tidal\.com|dzr\.|tabs-vs-spaces\.wtf|canine\.tools|trends\.artistgrid\.cx|tidal-proxy\.monochrome\.tf|panora-api|aoty\.|127\.0\.0\.1)/i,
     /^Failed to fetch\([^)]*\)$/,
     /^TypeError: Failed to fetch$/,
     /^TypeError: Load failed$/,

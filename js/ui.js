@@ -586,14 +586,14 @@ export class UIRenderer {
             if (isVideo && this.currentPage === 'playlist') {
                 const videoCoverUrl = this.api.getVideoCoverUrl(track.imageId);
                 if (videoCoverUrl) {
-                    trackImageHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${videoCoverUrl}" alt="" class="track-item-cover" loading="lazy">`;
+                    trackImageHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${videoCoverUrl}" alt="" class="track-item-cover" loading="eager" onerror="this.src='images/monochrome_logo.svg';this.onerror=null;">`;
                 } else {
                     trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);">${SVG_VIDEO(20, { style: 'opacity: 0.7;' })}</div>`;
                 }
             } else if (isVideo && (this.currentPage === 'search' || this.currentPage === 'library')) {
                 const videoCoverUrl = this.api.getVideoCoverUrl(track.imageId);
                 if (videoCoverUrl) {
-                    trackImageHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${videoCoverUrl}" alt="" class="track-item-cover" loading="lazy">`;
+                    trackImageHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${videoCoverUrl}" alt="" class="track-item-cover" loading="eager" onerror="this.src='images/monochrome_logo.svg';this.onerror=null;">`;
                 } else {
                     trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);">${SVG_PLAY(16, { style: 'opacity: 0.7;' })}</div>`;
                 }
@@ -602,7 +602,7 @@ export class UIRenderer {
                     track.image || track.cover || track.album?.cover,
                     'Track Cover',
                     'track-item-cover',
-                    'lazy'
+                    'eager'
                 );
             }
         }
@@ -704,7 +704,7 @@ export class UIRenderer {
         cover,
         alt,
         className = 'card-image',
-        loading = 'lazy',
+        loading = 'eager',
         videoCoverUrl = null,
         isEditorsPick = false,
         type = 'album'
@@ -716,8 +716,11 @@ export class UIRenderer {
             size = '160';
         }
 
-        const imageUrl =
+        let imageUrl =
             type === 'artist' ? this.api.getArtistPictureUrl(cover, size) : this.api.getCoverUrl(cover, size);
+        if (!imageUrl) {
+            imageUrl = 'images/monochrome_logo.svg';
+        }
 
         if (videoCoverUrl) {
             return `<video src="${videoCoverUrl}" poster="${imageUrl}" class="${className}" alt="${alt}" preload="metadata" playsinline muted></video>`;
@@ -735,10 +738,12 @@ export class UIRenderer {
             const tidalUrl = `https://resources.tidal.com/images/${formattedId}/320x320.jpg`;
             const wsrvUrl = `https://wsrv.nl/?url=${encodeURIComponent(tidalUrl)}&w=250&h=250&output=webp`;
             const fetchPriorityAttr = loading === 'eager' ? ' fetchpriority="high"' : '';
-            return `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${wsrvUrl}" class="${className}" alt="${alt}" loading="${loading}"${fetchPriorityAttr}>`;
+            return `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${wsrvUrl}" class="${className}" alt="${alt}" loading="${loading}"${fetchPriorityAttr} onerror="this.src='images/monochrome_logo.svg';this.onerror=null;">`;
         }
 
-        return `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${imageUrl}" class="${className}" alt="${alt}" loading="${loading}">`;
+        const loadingAttr = loading && loading !== 'eager' ? ` loading="${loading}"` : '';
+        const fetchPriorityAttr = loading === 'eager' ? ' fetchpriority="high"' : '';
+        return `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${imageUrl}" class="${className}" alt="${alt}"${loadingAttr}${fetchPriorityAttr} onerror="this.src='images/monochrome_logo.svg';this.onerror=null;">`;
     }
 
     createBaseCardHTML({

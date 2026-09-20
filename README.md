@@ -37,10 +37,6 @@
 
 **Monochrome** is an open-source, privacy-respecting, ad-free web music player. It provides a beautiful, minimalist interface for streaming high-quality music without the clutter of traditional streaming platforms.
 
-[![Monochrome UI: NASIR by Nas](https://i.samidy.xyz/NASIR.png)](https://monochrome.tf/album/90502209)
-
-## [![Monochrome UI: Jump Out by Osamason](https://i.samidy.xyz/jumpout.png)](https://monochrome.tf/album/413189044)
-
 ## Features
 
 ### Audio Quality
@@ -100,7 +96,7 @@
 
 Our Recommended way to use monochrome is through our official instance:
 
-**[monochrome.tf](https://monochrome.tf)** / **[monochrome.samidy.com](https://monochrome.samidy.com)**
+**[monochrome.tf](https://monochrome.tf)**
 
 For alternative instances, check [INSTANCES.md](INSTANCES.md).
 
@@ -268,12 +264,6 @@ We welcome contributions from the community! Please see our [Contributing Guide]
 <p align="center">
   <a href="https://fmhy.net/audio#streaming-sites">
     <img src="https://raw.githubusercontent.com/monochrome-music/monochrome/refs/heads/main/public/assets/asseenonfmhy880x310.png" alt="As seen on FMHY" height="50">
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://notbyai.fyi">
-    <img src="https://i.samidy.xyz/Developed-By-Humans-Not-By-AI-Badge-black%402x.png" alt="Developed by Humans" height="50">
   </a>
 </p>
 
