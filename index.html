@@ -114,6 +114,10 @@
         <script>
             (() => {
                 try {
+                    if (localStorage.getItem('disable-blur-effects') === 'true') {
+                        document.documentElement.classList.add('disable-blur-effects');
+                    }
+
                     const theme = localStorage.getItem('monochrome-theme');
                     const css = localStorage.getItem('custom_theme_css');
                     const palette = localStorage.getItem('monochrome-custom-theme');
@@ -3208,6 +3212,16 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="album-background-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Disable Blur Effects</span>
+                                        <span class="description">Turn off visual blur effects throughout the app</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="disable-blur-effects-toggle" />
                                         <span class="slider"></span>
                                     </label>
                                 </div>

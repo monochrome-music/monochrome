@@ -12004,3 +12004,34 @@ body.sidebar-collapsed #sidebar-nav-donate {
     line-height: 1.45;
     color: var(--muted-foreground);
 }
+
+/* Disable Blur Effects preference */
+:root.disable-blur-effects,
+:root.disable-blur-effects *,
+:root.disable-blur-effects *::before,
+:root.disable-blur-effects *::after {
+    /* stylelint-disable-next-line property-no-vendor-prefix */
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+/* Keep the album background's existing color treatment while removing its blur. */
+:root.disable-blur-effects #page-background {
+    filter: brightness(0.4) !important;
+}
+
+:root.disable-blur-effects[data-theme='white'] #page-background {
+    filter: brightness(1.6) opacity(0.35) !important;
+}
+
+/* Preserve the visualizer's saturation and brightness when its CSS blur is disabled. */
+:root.disable-blur-effects #fullscreen-cover-overlay:not(.ui-hidden) #visualizer-container {
+    filter: saturate(0.9) brightness(0.8) !important;
+}
+
+:root.disable-blur-effects .synced-line,
+:root.disable-blur-effects .synced-line.active,
+:root.disable-blur-effects .synced-line.upcoming,
+:root.disable-blur-effects .synced-line.past {
+    filter: none !important;
+}
