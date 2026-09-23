@@ -564,6 +564,34 @@ export const backgroundSettings = {
     },
 };
 
+export const disableBlurEffectsSettings = {
+    STORAGE_KEY: 'disable-blur-effects',
+    ROOT_CLASS: 'disable-blur-effects',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    apply() {
+        const enabled = this.isEnabled();
+        const root = typeof document === 'undefined' ? null : document.documentElement;
+        root?.classList.toggle(this.ROOT_CLASS, enabled);
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('disable-blur-effects-changed', { detail: { enabled } }));
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+        this.apply();
+    },
+};
+
 export const dynamicColorSettings = {
     STORAGE_KEY: 'dynamic-color-enabled',
 
