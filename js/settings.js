@@ -6,6 +6,7 @@ import {
     fullscreenCoverClickSettings,
     lyricsSettings,
     backgroundSettings,
+    disableBlurEffectsSettings,
     dynamicColorSettings,
     cardSettings,
     artistBannerSettings,
@@ -5879,6 +5880,16 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         albumBackgroundToggle.checked = backgroundSettings.isEnabled();
         albumBackgroundToggle.addEventListener('change', (e) => {
             backgroundSettings.setEnabled(e.target.checked);
+        });
+    }
+
+    // Disable Blur Effects Toggle
+    disableBlurEffectsSettings.apply();
+    const disableBlurEffectsToggle = document.getElementById('disable-blur-effects-toggle');
+    if (disableBlurEffectsToggle) {
+        disableBlurEffectsToggle.checked = disableBlurEffectsSettings.isEnabled();
+        disableBlurEffectsToggle.addEventListener('change', (e) => {
+            disableBlurEffectsSettings.setEnabled(e.target.checked);
         });
     }
 

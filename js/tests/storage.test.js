@@ -5,6 +5,7 @@ import {
     lastFMStorage,
     nowPlayingSettings,
     gaplessPlaybackSettings,
+    disableBlurEffectsSettings,
     exponentialVolumeSettings,
     audioEffectsSettings,
     silenceRemovalSettings,
@@ -15,6 +16,7 @@ import {
 describe('storage.js', () => {
     beforeEach(() => {
         localStorage.clear();
+        document.documentElement.classList.remove(disableBlurEffectsSettings.ROOT_CLASS);
         vi.clearAllMocks();
     });
 
@@ -90,6 +92,41 @@ describe('storage.js', () => {
         test('sets enabled state', () => {
             gaplessPlaybackSettings.setEnabled(false);
             expect(gaplessPlaybackSettings.isEnabled()).toBe(false);
+        });
+    });
+
+    describe('disableBlurEffectsSettings', () => {
+        test('defaults to disabled and applies its persisted state to the document', () => {
+            expect(disableBlurEffectsSettings.isEnabled()).toBe(false);
+            expect(document.documentElement.classList.contains(disableBlurEffectsSettings.ROOT_CLASS)).toBe(false);
+
+            disableBlurEffectsSettings.setEnabled(true);
+            expect(localStorage.getItem(disableBlurEffectsSettings.STORAGE_KEY)).toBe('true');
+            expect(document.documentElement.classList.contains(disableBlurEffectsSettings.ROOT_CLASS)).toBe(true);
+
+            disableBlurEffectsSettings.setEnabled(false);
+            expect(localStorage.getItem(disableBlurEffectsSettings.STORAGE_KEY)).toBe('false');
+            expect(document.documentElement.classList.contains(disableBlurEffectsSettings.ROOT_CLASS)).toBe(false);
+        });
+
+        test('restores the document class from a persisted preference', () => {
+            localStorage.setItem(disableBlurEffectsSettings.STORAGE_KEY, 'true');
+            disableBlurEffectsSettings.apply();
+
+            expect(document.documentElement.classList.contains(disableBlurEffectsSettings.ROOT_CLASS)).toBe(true);
+        });
+
+        test('notifies blur consumers when the preference changes', () => {
+            let detail;
+            const onChange = (event) => {
+                detail = event.detail;
+            };
+            window.addEventListener('disable-blur-effects-changed', onChange);
+
+            disableBlurEffectsSettings.setEnabled(true);
+
+            expect(detail).toEqual({ enabled: true });
+            window.removeEventListener('disable-blur-effects-changed', onChange);
         });
     });
 
