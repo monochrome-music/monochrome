@@ -1,5 +1,5 @@
  <p align="center">
-  <a href="https://monochrome.tf">
+  <a href="https://monochrome.st">
     <img src="https://github.com/monochrome-music/monochrome/blob/main/public/assets/512.png?raw=true" alt="Monochrome Logo" width="150px">
   </a>
 </p>
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://monochrome.tf">Website</a> -
+  <a href="https://monochrome.st">Website</a> -
   <a href="https://ko-fi.com/monochrometf">Donate</a> -
   <a href="#features">Features</a> -
   <a href="#usage">Usage</a> -
@@ -96,7 +96,7 @@
 
 Our Recommended way to use monochrome is through our official instance:
 
-**[monochrome.tf](https://monochrome.tf)**
+**[monochrome.st](https://monochrome.st)**
 
 For alternative instances, check [INSTANCES.md](INSTANCES.md).
 
@@ -210,7 +210,7 @@ npm run build
 
 ### Basic Usage
 
-1. Visit the [Website](https://monochrome.tf) or your local development server
+1. Visit the [Website](https://monochrome.st) or your local development server
 2. Search for your favorite artists, albums, or tracks
 3. Click play to start streaming
 4. Use the media controls to manage playback, queue, and volume
