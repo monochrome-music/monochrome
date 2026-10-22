@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "home": "Home",
+    "hot_and_new": "Hot & New",
+    "editors_picks": "Editor's Picks",
+    "aoty": "AOTY",
+    "library": "Library",
+    "recent": "Recent",
+    "unreleased": "Unreleased",
+    "donate": "Donate",
+    "settings": "Settings",
+    "about": "About",
+    "download": "Download",
+    "parties": "Parties",
+    "github": "GitHub",
+    "discord": "Discord"
+  },
+  "search": {
+    "placeholder": "Search for tracks, artists...",
+    "settings_placeholder": "Search settings..."
+  },
+  "home": {
+    "welcome": "Welcome to Monochrome",
+    "empty_state": "You haven't listened to anything yet. Search for your favorite songs to get started!"
+  },
+  "artist": {
+    "popularity": "{{count}}% Popularity",
+    "out_now": "Out Now",
+    "popular_tracks": "Popular Tracks",
+    "albums": "Albums",
+    "singles": "Singles & EPs",
+    "compilations": "Compilations",
+    "appears_on": "Appears On"
+  },
+  "player": {
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next track",
+    "previous": "Previous track",
+    "shuffle": "Toggle shuffle",
+    "repeat": "Toggle repeat",
+    "queue": "Open queue",
+    "lyrics": "Toggle lyrics",
+    "visualizer": "Audio visualizer",
+    "volume": "Volume"
+  },
+  "settings": {
+    "tabs": {
+      "appearance": "Appearance",
+      "interface": "Interface",
+      "scrobbling": "Scrobbling",
+      "audio": "Audio",
+      "downloads": "Downloads",
+      "instances": "Instances",
+      "system": "System"
+    },
+    "appearance": {
+      "theme_title": "Theme",
+      "theme_desc": "Choose application visual theme",
+      "accent_color": "Accent Color",
+      "animated_covers": "Animated Album Covers",
+      "animated_covers_desc": "Enable animated covers from Apple Music",
+      "custom_css": "Custom CSS"
+    },
+    "interface": {
+      "language": "Language",
+      "language_desc": "Interface language selector",
+      "show_songs_title": "Show Recommended Songs",
+      "show_songs_desc": "Display recommended songs on the home page",
+      "show_albums_title": "Show Recommended Albums",
+      "show_albums_desc": "Display recommended albums on the home page",
+      "show_artists_title": "Show Recommended Artists",
+      "show_artists_desc": "Display recommended artists on the home page"
+    },
+    "audio": {
+      "quality_title": "Audio Quality",
+      "quality_desc": "Select audio streaming quality",
+      "crossfade": "Crossfade",
+      "equalizer": "Equalizer"
+    },
+    "scrobbling": {
+      "enable_lastfm": "Last.fm connection",
+      "enable_listenbrainz": "ListenBrainz connection",
+      "scrobble_desc": "Automatically scrobble your listening history to external accounts"
+    },
+    "downloads": {
+      "path": "Download directory",
+      "format": "Download audio format",
+      "embed_metadata": "Embed Metadata",
+      "embed_metadata_desc": "Automatically embed cover art and ID3 tags"
+    },
+    "system": {
+      "shortcuts_title": "Keyboard Shortcuts",
+      "shortcuts_desc": "View and customize keyboard shortcuts",
+      "customize": "Customize",
+      "cache_title": "Cache",
+      "cache_entries": "Cache: {{current}}/{{max}} entries",
+      "clear_cache": "Clear Cache",
+      "auto_update_title": "Auto-Update App",
+      "auto_update_desc": "Automatically reload when a new version is available",
+      "analytics_title": "Analytics",
+      "analytics_desc": "Send anonymous usage data to help improve the app",
+      "reset_data_title": "Reset Local Data",
+      "reset_data_desc": "Clear all local storage and cached data (does not affect cloud sync)",
+      "reset_button": "Reset"
+    }
+  }
+}
