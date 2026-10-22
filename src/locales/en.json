@@ -56,7 +56,7 @@
     },
     "appearance": {
       "theme_title": "Theme",
-      "theme_desc": "Choose application visual theme",
+      "theme_desc": "Choose the application's visual theme",
       "accent_color": "Accent Color",
       "animated_covers": "Animated Album Covers",
       "animated_covers_desc": "Enable animated covers from Apple Music",
