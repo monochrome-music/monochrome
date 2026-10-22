@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "hot_and_new": "Nouveautés",
+    "editors_picks": "Coups de cœur",
+    "aoty": "Albums de l'année",
+    "library": "Bibliothèque",
+    "recent": "Écoutés récemment",
+    "unreleased": "Inédits",
+    "donate": "Faire un don",
+    "settings": "Paramètres",
+    "about": "À propos",
+    "download": "Télécharger",
+    "parties": "Écoute à plusieurs",
+    "github": "GitHub",
+    "discord": "Discord"
+  },
+  "search": {
+    "placeholder": "Rechercher des titres, des artistes...",
+    "settings_placeholder": "Rechercher dans les paramètres..."
+  },
+  "home": {
+    "welcome": "Bienvenue sur Monochrome",
+    "empty_state": "Vous n'avez encore rien écouté. Recherchez vos chansons préférées pour commencer !"
+  },
+  "artist": {
+    "popularity": "{{count}} % de popularité",
+    "out_now": "Disponible dès maintenant",
+    "popular_tracks": "Titres populaires",
+    "albums": "Albums",
+    "singles": "Singles et EP",
+    "compilations": "Compilations",
+    "appears_on": "Apparaît sur"
+  },
+  "player": {
+    "play": "Lire",
+    "pause": "Pause",
+    "next": "Titre suivant",
+    "previous": "Titre précédent",
+    "shuffle": "Lecture aléatoire",
+    "repeat": "Répéter",
+    "queue": "File d'attente",
+    "lyrics": "Paroles",
+    "visualizer": "Visualiseur audio",
+    "volume": "Volume"
+  },
+  "settings": {
+    "tabs": {
+      "appearance": "Apparence",
+      "interface": "Interface",
+      "scrobbling": "Scrobbling",
+      "audio": "Audio",
+      "downloads": "Téléchargements",
+      "instances": "Instances",
+      "system": "Système"
+    },
+    "appearance": {
+      "theme_title": "Thème",
+      "theme_desc": "Choisir le thème visuel de l'application",
+      "accent_color": "Couleur d'accentuation",
+      "animated_covers": "Pochettes d'albums animées",
+      "animated_covers_desc": "Activer la lecture des pochettes animées issues d'Apple Music",
+      "custom_css": "CSS personnalisé"
+    },
+    "interface": {
+      "language": "Langue",
+      "language_desc": "Sélecteur de langue pour l'interface",
+      "show_songs_title": "Afficher les chansons recommandées",
+      "show_songs_desc": "Afficher les chansons recommandées sur la page d'accueil",
+      "show_albums_title": "Afficher les albums recommandés",
+      "show_albums_desc": "Afficher les albums recommandés sur la page d'accueil",
+      "show_artists_title": "Afficher les artistes recommandés",
+      "show_artists_desc": "Afficher les artistes recommandés sur la page d'accueil"
+    },
+    "audio": {
+      "quality_title": "Qualité d'écoute",
+      "quality_desc": "Sélectionner la qualité du flux audio (Lossless / Hi-Res / Élevée)",
+      "crossfade": "Fondu enchaîné",
+      "equalizer": "Égaliseur"
+    },
+    "scrobbling": {
+      "enable_lastfm": "Connexion Last.fm",
+      "enable_listenbrainz": "Connexion ListenBrainz",
+      "scrobble_desc": "Envoyer automatiquement votre historique d'écoute à vos comptes externes"
+    },
+    "downloads": {
+      "path": "Dossier de téléchargement",
+      "format": "Format audio des téléchargements",
+      "embed_metadata": "Intégrer les métadonnées",
+      "embed_metadata_desc": "Ajouter automatiquement les pochettes et tags ID3 dans les fichiers télécharges"
+    },
+    "system": {
+      "shortcuts_title": "Raccourcis clavier",
+      "shortcuts_desc": "Afficher et personnaliser les raccourcis clavier",
+      "customize": "Personnaliser",
+      "cache_title": "Cache",
+      "cache_entries": "Cache : {{current}}/{{max}} entrées",
+      "clear_cache": "Vider le cache",
+      "auto_update_title": "Mise à jour automatique",
+      "auto_update_desc": "Recharger automatiquement lorsqu'une nouvelle version est disponible",
+      "analytics_title": "Données d'utilisation",
+      "analytics_desc": "Envoyer des données d'utilisation anonymes pour aider à améliorer l'application",
+      "reset_data_title": "Réinitialiser les données locales",
+      "reset_data_desc": "Effacer le stockage local et le cache (n'affecte pas la synchronisation cloud)",
+      "reset_button": "Réinitialiser"
+    }
+  }
+}
