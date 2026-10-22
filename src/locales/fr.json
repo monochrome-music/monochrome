@@ -59,7 +59,7 @@
       "theme_desc": "Choisir le thème visuel de l'application",
       "accent_color": "Couleur d'accentuation",
       "animated_covers": "Pochettes d'albums animées",
-      "animated_covers_desc": "Activer la lecture des pochettes animées issues d'Apple Music",
+      "animated_covers_desc": "Activer l'animation des pochettes provenant d'Apple Music",
       "custom_css": "CSS personnalisé"
     },
     "interface": {
@@ -87,7 +87,7 @@
       "path": "Dossier de téléchargement",
       "format": "Format audio des téléchargements",
       "embed_metadata": "Intégrer les métadonnées",
-      "embed_metadata_desc": "Ajouter automatiquement les pochettes et tags ID3 dans les fichiers télécharges"
+      "embed_metadata_desc": "Ajouter automatiquement les pochettes et tags ID3 dans les fichiers téléchargés"
     },
     "system": {
       "shortcuts_title": "Raccourcis clavier",
