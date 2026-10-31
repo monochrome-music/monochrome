@@ -7,7 +7,15 @@ import { defineConfig } from 'eslint/config';
 
 export default defineConfig(
     {
-        ignores: ['**/dist/**', '**/node_modules/**', '**/legacy/**', '**/bin/**', '**/www/**', '**/public/lib/**'],
+        ignores: [
+            '**/dist/**',
+            '**/dev-dist/**',
+            '**/node_modules/**',
+            '**/legacy/**',
+            '**/bin/**',
+            '**/www/**',
+            '**/public/lib/**',
+        ],
     },
     js.configs.recommended,
     prettierConfig,
