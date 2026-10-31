@@ -10,6 +10,7 @@ import { addMetadataWithTagLib, getMetadataWithTagLib } from './taglib.ts';
 import { LyricsManager } from './lyrics.js';
 import { Mp4Stik } from './taglib.types.ts';
 import { modernSettings } from './ModernSettings.js';
+import { fetchDownloadLyrics, getDownloadLyricsOptions, recordDownloadLyrics } from './download-lyrics.js';
 
 /**
  * @typedef {import('./container-classes.ts').Track} Track
@@ -17,16 +18,20 @@ import { modernSettings } from './ModernSettings.js';
  * @typedef {import("./taglib.types.ts").TagLibMetadata} TagLibMetadata
  */
 
-export function prefetchMetadataObjects(track, api, coverBlob = null) {
+export function prefetchMetadataObjects(track, api, coverBlob = null, signal) {
     const coverId = getTrackCoverId(track);
     const coverFetch = coverBlob
         ? Promise.resolve(coverBlob)
         : coverId
           ? getCoverBlob(api, coverId).catch(console.error)
           : Promise.resolve(null);
-    const lyricsFetch = LyricsManager.instance.fetchLyrics?.(track.id, track)?.catch(console.error);
+    const lyricsOptions = getDownloadLyricsOptions();
+    const lyricsFetch = fetchDownloadLyrics(LyricsManager.instance, track, lyricsOptions, signal).catch((error) => {
+        console.warn('Lyrics fetch failed', error);
+        return null;
+    });
 
-    return { coverFetch, lyricsFetch };
+    return { coverFetch, lyricsFetch, lyricsOptions };
 }
 
 /**
@@ -38,7 +43,8 @@ export function prefetchMetadataObjects(track, api, coverBlob = null) {
  * @returns {Promise<Blob>} - Audio blob with embedded metadata
  */
 export async function addMetadataToAudio(audioBlob, track, _api, _quality, prefetchPromises) {
-    const { coverFetch, lyricsFetch } = prefetchPromises;
+    const { coverFetch, lyricsFetch, lyricsOptions = getDownloadLyricsOptions() } = prefetchPromises;
+    let selection = null;
 
     /**
      * @type {TagLibMetadata}
@@ -119,13 +125,16 @@ export async function addMetadataToAudio(audioBlob, track, _api, _quality, prefe
         }
 
         try {
-            const lyrics = await lyricsFetch;
-            data.lyrics = lyrics?.subtitles || lyrics?.plainLyrics;
+            selection = await lyricsFetch;
+            if (lyricsOptions.mode !== 'separate') {
+                if (selection?.format === 'ttml') data.lyricsTTML = selection.content;
+                else data.lyrics = selection?.embeddedText;
+            }
         } catch (e) {
             console.warn('Error setting lyrics metadata', track, e);
         }
 
-        return await addMetadataWithTagLib(
+        const result = await addMetadataWithTagLib(
             audioBlob,
             {
                 ...data,
@@ -134,10 +143,23 @@ export async function addMetadataToAudio(audioBlob, track, _api, _quality, prefe
             true,
             true
         );
+        let embedded = Boolean(data.lyrics);
+        if (data.lyricsTTML) {
+            // Only suppress the safety sidecar after verifying the saved XML verbatim.
+            try {
+                const saved = await getMetadataWithTagLib(result, undefined, true);
+                embedded = saved.lyricsTTML === data.lyricsTTML;
+            } catch {
+                embedded = false;
+            }
+        }
+        recordDownloadLyrics(result, selection, embedded, lyricsOptions);
+        return result;
     } catch (err) {
         console.error(err);
     }
 
+    recordDownloadLyrics(audioBlob, selection, false, lyricsOptions);
     return audioBlob;
 }
 
