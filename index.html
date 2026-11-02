@@ -5634,15 +5634,62 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Download Lyrics</span>
+                                        <span class="label">Separate Lyrics Files</span>
                                         <span class="description"
-                                            >Include .lrc files when downloading tracks/albums</span
+                                            >Include lyrics beside downloaded audio; synchronized with Lyrics Download
+                                            Mode</span
                                         >
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="download-lyrics-toggle" />
                                         <span class="slider"></span>
                                     </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <label class="label" for="download-lyrics-format"
+                                            >Preferred Download Lyrics Format</label
+                                        >
+                                        <span class="description" id="download-lyrics-format-description"
+                                            >LRC preserves line timing. TTML preserves the original word timing when
+                                            available. Auto prefers TTML and falls back to LRC.</span
+                                        >
+                                    </div>
+                                    <select
+                                        id="download-lyrics-format"
+                                        aria-describedby="download-lyrics-format-description"
+                                    >
+                                        <option value="lrc">LRC</option>
+                                        <option value="ttml">TTML</option>
+                                        <option value="auto">Auto</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <label class="label" for="download-lyrics-fallback">Fall Back to LRC</label>
+                                        <span class="description"
+                                            >When TTML is selected but unavailable or invalid. Auto always falls
+                                            back.</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="download-lyrics-fallback" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <label class="label" for="download-lyrics-mode">Lyrics Download Mode</label>
+                                        <span class="description"
+                                            >TTML uses custom tags in FLAC, MP3 and M4A/ALAC; player support varies. If
+                                            embedding fails or is unsupported, a separate file is saved.</span
+                                        >
+                                    </div>
+                                    <select id="download-lyrics-mode">
+                                        <option value="embedded">Embedded lyrics</option>
+                                        <option value="separate">Separate lyrics file</option>
+                                        <option value="both">Both embedded and separate lyrics</option>
+                                    </select>
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">

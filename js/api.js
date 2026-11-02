@@ -9,8 +9,6 @@ import {
     normalizeQualityToken,
     isAtmosQuality,
     isAc4AtmosQuality,
-    getTrackCoverId,
-    getCoverBlob,
 } from './utils.js';
 import {
     preferDolbyAtmosSettings,
@@ -3074,15 +3072,7 @@ export class LosslessAPI {
             let postProcessingQuality = lookup.info?.audioQuality ?? null;
             let blob;
 
-            if (streamUrl) {
-                const coverId = getTrackCoverId(enrichedTrack);
-                prefetchPromises = {
-                    coverFetch: coverId ? getCoverBlob(this, coverId).catch(() => null) : Promise.resolve(null),
-                    lyricsFetch: Promise.resolve(null),
-                };
-            } else {
-                prefetchPromises = prefetchMetadataObjects(enrichedTrack, this);
-            }
+            prefetchPromises = prefetchMetadataObjects(enrichedTrack, this, null, options.signal);
 
             if (!streamUrl) {
                 if (lookup.originalTrackUrl) {
