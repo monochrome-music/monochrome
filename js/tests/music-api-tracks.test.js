@@ -149,4 +149,33 @@ describe('MusicAPI primary search and streaming integration', () => {
         expect(getArtistSpy).toHaveBeenCalledWith('153542153123926016');
         expect(result.name).toBe('Daft Punk');
     });
+
+    it('delegates to LosslessAPI.getStreamUrl when tracksStreamerAPI cannot resolve a non-tracks ID', async () => {
+        vi.spyOn(api.tracksStreamerAPI, 'resolveTrackStream').mockResolvedValueOnce(null);
+        const tidalStreamSpy = vi
+            .spyOn(api.tidalAPI, 'getStreamUrl')
+            .mockResolvedValueOnce({ url: 'https://audio.example/fallback.flac', provider: 'deezer' });
+
+        const streamInfo = await api.getStreamUrl('apple:track:999', 'LOSSLESS', {
+            track: { id: 'apple:track:999', provider: 'apple', title: 'Rare Song', artist: { name: 'Indie Artist' } },
+        });
+
+        expect(tidalStreamSpy).toHaveBeenCalledWith(
+            'apple:track:999',
+            'LOSSLESS',
+            expect.objectContaining({ skipTracksResolve: true })
+        );
+        expect(streamInfo.url).toBe('https://audio.example/fallback.flac');
+    });
+
+    it('falls back to Apple Music suggestions when tracksStreamerAPI suggestions fail', async () => {
+        vi.spyOn(api.tracksStreamerAPI, 'searchTracks').mockRejectedValueOnce(new Error('Service unavailable'));
+        const appleSuggestionsSpy = vi
+            .spyOn(api.appleMusicSearchAPI, 'suggestions')
+            .mockResolvedValueOnce([{ kind: 'term', searchTerm: 'daft punk', displayTerm: 'daft punk' }]);
+
+        const suggestions = await api.searchSuggestions('daft punk');
+        expect(appleSuggestionsSpy).toHaveBeenCalledWith('daft punk', {});
+        expect(suggestions).toHaveLength(1);
+    });
 });

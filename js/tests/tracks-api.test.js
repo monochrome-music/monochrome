@@ -5,7 +5,6 @@ import {
     normalizeTracksTrack,
     normalizeTracksRelease,
     normalizeTracksArtist,
-    normalizeTracksPlaylist,
     normalizeTracksSearchResults,
     extractTracksSuggestions,
     scoreTrackCandidate,
@@ -19,6 +18,12 @@ describe('tracks-api module', () => {
             expect(cleanString('HUMBLE. [Explicit]')).toBe('humble');
             expect(cleanString('Beyoncé')).toBe('beyonce');
             expect(cleanString('Daft Punk - One More Time (12" Mix)')).toBe('daftpunkonemoretime');
+        });
+
+        it('preserves Cyrillic and non-Latin Unicode characters', () => {
+            expect(cleanString('Руки Вверх!')).toBe('рукивверх');
+            expect(cleanString('Алёшка (Live)')).toBe('алешка');
+            expect(cleanString('Седая ночь')).toBe('седаяночь');
         });
     });
 
@@ -179,6 +184,19 @@ describe('tracks-api module', () => {
             const candidate = { title: 'Karma Police', artistNames: ['Radiohead'], duration: 264000 };
             expect(scoreTrackCandidate(candidate, target)).toBe(0);
         });
+
+        it('scores Cyrillic tracks and prefers matching remix/version over original', () => {
+            const cyrillicTarget = { title: 'Алёшка', artist: { name: 'Руки Вверх!' }, duration: 242 };
+            const cyrillicCandidate = { title: 'Алешка', artistNames: ['Руки Вверх'], duration: 242000 };
+            expect(scoreTrackCandidate(cyrillicCandidate, cyrillicTarget)).toBeGreaterThanOrEqual(150);
+
+            const remixTarget = { title: 'Leave Me (Darco Remix)', artist: { name: 'Rivo' }, duration: 310 };
+            const originalCandidate = { title: 'Leave Me', artistNames: ['Rivo'], duration: 310000 };
+            const remixCandidate = { title: 'Leave Me (Darco Remix)', artistNames: ['Rivo'], duration: 310000 };
+            expect(scoreTrackCandidate(remixCandidate, remixTarget)).toBeGreaterThan(
+                scoreTrackCandidate(originalCandidate, remixTarget)
+            );
+        });
     });
 
     describe('extractTracksSuggestions', () => {
@@ -257,6 +275,28 @@ describe('tracks-api module', () => {
             expect(stream).toBeDefined();
             expect(stream.url).toBe('https://tracks.monochrome.st/track/157107766404747264');
             expect(externalTrack.tracksTrackId).toBe('157107766404747264');
+        });
+
+        it('opens circuit breaker after consecutive failures and resets on clearCache', async () => {
+            const fastApi = new TracksStreamerAPI(TRACKS_API_BASE_URL, {
+                requestTimeoutMs: 50,
+                circuitCooldownMs: 10000,
+                circuitFailureThreshold: 2,
+            });
+            const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Connection refused'));
+
+            await expect(fastApi.fetchWithRetry('https://tracks.monochrome.st/search?q=a', {}, 0)).rejects.toThrow();
+            await expect(fastApi.fetchWithRetry('https://tracks.monochrome.st/search?q=b', {}, 0)).rejects.toThrow();
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+            await expect(fastApi.fetchWithRetry('https://tracks.monochrome.st/search?q=c', {}, 0)).rejects.toThrow(
+                'circuit open'
+            );
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+            fastApi.clearCache();
+            expect(fastApi.circuitOpenUntil).toBe(0);
+            fetchSpy.mockRestore();
         });
     });
 });
