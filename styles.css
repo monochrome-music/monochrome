@@ -10695,7 +10695,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     font-size: 14px;
     line-height: 1.2;
     display: block;
-    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .about-contributors .contrib {
