@@ -40,6 +40,8 @@ export interface TagLibMetadata {
     isrc?: string;
     explicit?: boolean;
     lyrics?: string;
+    /** Original TTML in a dedicated custom tag; never the ordinary lyrics field. */
+    lyricsTTML?: string;
     upc?: string;
     stik?: Mp4Stik;
     extra?: Record<string, string>;

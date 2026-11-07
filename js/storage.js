@@ -533,17 +533,58 @@ export const fullscreenCoverClickSettings = {
 
 export const lyricsSettings = {
     DOWNLOAD_WITH_TRACKS: 'lyrics-download-with-tracks',
+    PREFERRED_FORMAT: 'lyrics-download-format',
+    FALLBACK_TO_LRC: 'lyrics-download-lrc-fallback',
+    DOWNLOAD_MODE: 'lyrics-download-mode',
 
-    shouldDownloadLyrics() {
+    getPreferredFormat() {
         try {
-            return localStorage.getItem(this.DOWNLOAD_WITH_TRACKS) === 'true';
+            const value = localStorage.getItem(this.PREFERRED_FORMAT);
+            return ['lrc', 'ttml', 'auto'].includes(value) ? value : 'lrc';
         } catch {
-            return false;
+            return 'lrc';
         }
     },
 
+    setPreferredFormat(value) {
+        if (['lrc', 'ttml', 'auto'].includes(value)) localStorage.setItem(this.PREFERRED_FORMAT, value);
+    },
+
+    shouldFallbackToLRC() {
+        try {
+            return localStorage.getItem(this.FALLBACK_TO_LRC) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setFallbackToLRC(enabled) {
+        localStorage.setItem(this.FALLBACK_TO_LRC, enabled ? 'true' : 'false');
+    },
+
+    getDownloadMode() {
+        try {
+            const value = localStorage.getItem(this.DOWNLOAD_MODE);
+            if (['embedded', 'separate', 'both'].includes(value)) return value;
+            // Previously lyrics were always embedded; the old toggle added sidecars.
+            return localStorage.getItem(this.DOWNLOAD_WITH_TRACKS) === 'true' ? 'both' : 'embedded';
+        } catch {
+            return 'embedded';
+        }
+    },
+
+    setDownloadMode(value) {
+        if (!['embedded', 'separate', 'both'].includes(value)) return;
+        localStorage.setItem(this.DOWNLOAD_MODE, value);
+        localStorage.setItem(this.DOWNLOAD_WITH_TRACKS, value === 'embedded' ? 'false' : 'true');
+    },
+
+    shouldDownloadLyrics() {
+        return this.getDownloadMode() !== 'embedded';
+    },
+
     setDownloadLyrics(enabled) {
-        localStorage.setItem(this.DOWNLOAD_WITH_TRACKS, enabled ? 'true' : 'false');
+        this.setDownloadMode(enabled ? 'both' : 'embedded');
     },
 };
 
