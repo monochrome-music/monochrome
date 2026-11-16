@@ -454,7 +454,7 @@ export class UIRenderer {
                             ? this.api.getArtistPictureUrl(item.cover)
                             : this.api.getCoverUrl(item.cover);
                     const coverClass = item.type === 'artist' ? 'artist' : '';
-                    iconHTML = `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${coverUrl}" class="pinned-item-cover ${coverClass}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='images/monochrome_logo.svg'">`;
+                    iconHTML = `<img referrerpolicy="no-referrer" src="${coverUrl}" class="pinned-item-cover ${coverClass}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='images/monochrome_logo.svg'">`;
                 }
 
                 return `
@@ -743,7 +743,7 @@ export class UIRenderer {
 
         const loadingAttr = loading && loading !== 'eager' ? ` loading="${loading}"` : '';
         const fetchPriorityAttr = loading === 'eager' ? ' fetchpriority="high"' : '';
-        return `<img crossorigin="anonymous" referrerpolicy="no-referrer" src="${imageUrl}" class="${className}" alt="${alt}"${loadingAttr}${fetchPriorityAttr} onerror="this.src='images/monochrome_logo.svg';this.onerror=null;">`;
+        return `<img referrerpolicy="no-referrer" src="${imageUrl}" class="${className}" alt="${alt}"${loadingAttr}${fetchPriorityAttr} onerror="this.src='images/monochrome_logo.svg';this.onerror=null;">`;
     }
 
     createBaseCardHTML({
@@ -5999,6 +5999,10 @@ export class UIRenderer {
                 if (addPlaylistBtn) addPlaylistBtn.style.display = 'none';
 
                 if (playlistData.cover) {
+                    imageEl.onerror = () => {
+                        imageEl.onerror = null;
+                        imageEl.src = 'images/monochrome_logo.svg';
+                    };
                     imageEl.src = playlistData.cover;
                     imageEl.style.display = 'block';
                     if (collageEl) collageEl.style.display = 'none';
