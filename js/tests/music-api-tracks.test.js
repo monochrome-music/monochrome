@@ -135,6 +135,20 @@ describe('MusicAPI primary search and streaming integration', () => {
         expect(result.album.title).toBe('RAM');
     });
 
+    it('fetches snowflake albums via tracks API on cold start (no cached id set)', async () => {
+        const mockAlbum = {
+            album: { id: '155142458219433984', title: 'RAM' },
+            tracks: [],
+        };
+        const getAlbumSpy = vi.spyOn(api.tracksStreamerAPI, 'getAlbum').mockResolvedValueOnce(mockAlbum);
+        api.tracksAlbumIds.clear();
+
+        const result = await api.getAlbum('155142458219433984');
+
+        expect(getAlbumSpy).toHaveBeenCalledWith('155142458219433984');
+        expect(result.album.title).toBe('RAM');
+    });
+
     it('fetches artists via tracksStreamerAPI when id has tracks provider', async () => {
         const mockArtist = {
             id: 'tracks:artist:153542153123926016',
@@ -145,6 +159,17 @@ describe('MusicAPI primary search and streaming integration', () => {
 
         const getArtistSpy = vi.spyOn(api.tracksStreamerAPI, 'getArtist').mockResolvedValueOnce(mockArtist);
         const result = await api.getArtist('153542153123926016', 'tracks');
+
+        expect(getArtistSpy).toHaveBeenCalledWith('153542153123926016');
+        expect(result.name).toBe('Daft Punk');
+    });
+
+    it('fetches snowflake artists via tracks API on cold start (no cached id set)', async () => {
+        const mockArtist = { id: '153542153123926016', name: 'Daft Punk', tracks: [] };
+        const getArtistSpy = vi.spyOn(api.tracksStreamerAPI, 'getArtist').mockResolvedValueOnce(mockArtist);
+        api.tracksArtistIds.clear();
+
+        const result = await api.getArtist('153542153123926016');
 
         expect(getArtistSpy).toHaveBeenCalledWith('153542153123926016');
         expect(result.name).toBe('Daft Punk');

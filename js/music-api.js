@@ -652,9 +652,8 @@ export class MusicAPI {
         if (id.startsWith(type ? `tracks:${type}:` : 'tracks:')) return true;
         if (id.startsWith('mono:')) return true;
         if (/^\d{17,20}$/.test(id)) {
-            if (type === 'album' && this.tracksAlbumIds.has(id)) return true;
-            if (type === 'artist' && this.tracksArtistIds.has(id)) return true;
-            if (type === 'track' && this.tracksTrackCache.has(id)) return true;
+            // Snowflake IDs are always tracks.monochrome.st entities (survives full page reload).
+            if (type === 'album' || type === 'artist' || type === 'track') return true;
             if (!type) {
                 return this.tracksTrackCache.has(id) || this.tracksAlbumIds.has(id) || this.tracksArtistIds.has(id);
             }
