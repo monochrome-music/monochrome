@@ -9,7 +9,7 @@ import {
     normalizeAppleArtist,
     normalizeAppleSearchResults,
 } from './apple-music-api.js';
-import { TracksStreamerAPI, tracksStreamerAPI, normalizeTracksSearchResults } from './tracks-api.js';
+import { TRACKS_API_BASE_URL, tracksStreamerAPI } from './tracks-api.js';
 import { getCommunityPlaylist } from './community-playlists.js';
 
 /**
@@ -488,8 +488,9 @@ export class MusicAPI {
     // Stream methods
     async getStreamUrl(id, quality, options = {}) {
         let track = options?.track || this.getCachedTracksTrack(id) || this.getCachedAppleTrack(id);
+        const isDirectTracks = this.isTracksId(id, 'track', track?.provider) || /^\d{17,20}$/.test(String(id || ''));
 
-        if (!track && (this.isTracksId(id) || this.isAppleId(id) || /^\d{17,20}$/.test(String(id)))) {
+        if (!track && !isDirectTracks && id != null) {
             track = await this.getTrackMetadata(id).catch(() => null);
         }
 
@@ -501,8 +502,18 @@ export class MusicAPI {
             return stream;
         }
 
-        const cleanId = this.getTracksId(id);
-        return this.tracksStreamerAPI.getStreamUrl(cleanId, quality, { track });
+        if (isDirectTracks) {
+            const cleanId = this.getTracksId(id, 'track');
+            return this.tracksStreamerAPI.getStreamUrl(cleanId, quality, { track });
+        }
+
+        const api = this.getAPI();
+        const cleanId = this.stripProviderPrefix(id);
+        return api.getStreamUrl(cleanId, quality, {
+            ...options,
+            track,
+            skipTracksResolve: true,
+        });
     }
 
     usesSingleUsePlaybackUrls() {

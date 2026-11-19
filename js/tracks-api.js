@@ -18,8 +18,23 @@ export function cleanString(str) {
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/\b(feat|featuring|ft)\.?\s+.*$/i, '')
-        .replace(/[\(\[\{].*?[\)\]\}]/g, '')
-        .replace(/[^a-z0-9]/g, '')
+        .replace(/[([{].*?[)\]}]/g, '')
+        .replace(/[^\p{L}\p{N}]/gu, '')
+        .trim();
+}
+
+/**
+ * Cleans and normalizes string while retaining parenthetical version/remix tokens.
+ * @param {string} str
+ * @returns {string}
+ */
+export function cleanStringWithVersion(str) {
+    return String(str || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\b(feat|featuring|ft)\.?\s+[^)\]}]+/gi, '')
+        .replace(/[^\p{L}\p{N}]/gu, '')
         .trim();
 }
 
@@ -358,14 +373,21 @@ export function scoreTrackCandidate(candidate, target) {
     let score = 0;
     const targetTitleClean = cleanString(target.title);
     const candidateTitleClean = cleanString(candidate.title);
+    const targetFullClean = cleanStringWithVersion(target.title);
+    const candidateFullClean = cleanStringWithVersion(candidate.title);
 
     if (targetTitleClean && candidateTitleClean) {
         if (targetTitleClean === candidateTitleClean) {
             score += 100;
+            if (targetFullClean && candidateFullClean && targetFullClean === candidateFullClean) {
+                score += 25;
+            }
         } else if (targetTitleClean.includes(candidateTitleClean) || candidateTitleClean.includes(targetTitleClean)) {
             score += 65;
         }
     }
+
+    if (score === 0) return 0;
 
     const targetArtistName = cleanString(target.artist?.name || target.artists?.[0]?.name || target.artist || '');
     const candidateArtistNames = (candidate.artistNames || [candidate.artist?.name || '']).map(cleanString);
@@ -398,8 +420,13 @@ export function scoreTrackCandidate(candidate, target) {
  * TracksStreamerAPI - Client for the Rust Music API Proxy & Track Streamer.
  */
 export class TracksStreamerAPI {
-    constructor(baseUrl = TRACKS_API_BASE_URL) {
+    constructor(baseUrl = TRACKS_API_BASE_URL, options = {}) {
         this.baseUrl = baseUrl.replace(/\/+$/, '');
+        this.requestTimeoutMs = options.requestTimeoutMs ?? 4000;
+        this.circuitCooldownMs = options.circuitCooldownMs ?? 30000;
+        this.circuitFailureThreshold = options.circuitFailureThreshold ?? 3;
+        this.consecutiveFailures = 0;
+        this.circuitOpenUntil = 0;
         this.searchCache = new Map();
         this.trackCache = new Map();
         this.releaseCache = new Map();
@@ -409,14 +436,54 @@ export class TracksStreamerAPI {
     }
 
     /**
-     * Internal fetch with retries on transient errors (502, 503, 504).
+     * Checks whether an ID or track object refers directly to a tracks.monochrome.st entity.
+     * @param {string|Object} idOrTrack
+     * @returns {boolean}
      */
-    async fetchWithRetry(url, options = {}, retries = 2) {
+    isDirectTrackId(idOrTrack) {
+        if (typeof idOrTrack === 'object' && idOrTrack !== null) {
+            if (idOrTrack.tracksTrackId || idOrTrack.recordingId) return true;
+            idOrTrack = idOrTrack.id;
+        }
+        const id = String(idOrTrack || '');
+        return id.startsWith('tracks:') || id.startsWith('mono:') || /^\d{17,20}$/.test(id);
+    }
+
+    /**
+     * Internal fetch with per-request timeout, circuit breaker, and retries on transient errors (502, 503, 504).
+     */
+    async fetchWithRetry(url, options = {}, retries = 1) {
+        if (this.circuitOpenUntil > Date.now()) {
+            throw new Error(`TracksStreamerAPI circuit open for ${this.baseUrl}`);
+        }
+
         let lastError = null;
         for (let attempt = 0; attempt <= retries; attempt++) {
+            const timeoutController = new AbortController();
+            let timedOut = false;
+            const timeoutId =
+                this.requestTimeoutMs > 0
+                    ? setTimeout(() => {
+                          timedOut = true;
+                          timeoutController.abort();
+                      }, this.requestTimeoutMs)
+                    : null;
+
+            const onCallerAbort = () => timeoutController.abort();
+            if (options.signal) {
+                if (options.signal.aborted) {
+                    if (timeoutId) clearTimeout(timeoutId);
+                    const abortErr = new Error('The operation was aborted.');
+                    abortErr.name = 'AbortError';
+                    throw abortErr;
+                }
+                options.signal.addEventListener('abort', onCallerAbort, { once: true });
+            }
+
             try {
                 const response = await fetch(url, {
                     ...options,
+                    signal: timeoutController.signal,
                     headers: {
                         Accept: 'application/json',
                         ...(options.headers || {}),
@@ -431,13 +498,34 @@ export class TracksStreamerAPI {
                     continue;
                 }
 
+                if (response.status >= 500) {
+                    this.consecutiveFailures += 1;
+                    if (this.consecutiveFailures >= this.circuitFailureThreshold) {
+                        this.circuitOpenUntil = Date.now() + this.circuitCooldownMs;
+                    }
+                } else {
+                    this.consecutiveFailures = 0;
+                    this.circuitOpenUntil = 0;
+                }
+
                 return response;
             } catch (err) {
-                lastError = err;
-                if (err.name === 'AbortError') throw err;
-                if (attempt < retries) {
+                if (options.signal?.aborted && !timedOut) {
+                    throw err;
+                }
+                lastError = timedOut ? new Error(`Request timed out after ${this.requestTimeoutMs}ms: ${url}`) : err;
+                this.consecutiveFailures += 1;
+                if (this.consecutiveFailures >= this.circuitFailureThreshold) {
+                    this.circuitOpenUntil = Date.now() + this.circuitCooldownMs;
+                }
+                if (!timedOut && attempt < retries) {
                     await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
                     continue;
+                }
+            } finally {
+                if (timeoutId) clearTimeout(timeoutId);
+                if (options.signal) {
+                    options.signal.removeEventListener('abort', onCallerAbort);
                 }
             }
         }
@@ -625,21 +713,11 @@ export class TracksStreamerAPI {
         const cleanQuery = (query || '').trim();
         if (!cleanQuery) return [];
 
-        try {
-            const results = await this.searchTracks(cleanQuery, {
-                limit: options.limit || 8,
-                signal: options.signal,
-            });
-            return extractTracksSuggestions(results.items, cleanQuery);
-        } catch {
-            return [
-                {
-                    kind: 'term',
-                    searchTerm: cleanQuery,
-                    displayTerm: cleanQuery,
-                },
-            ];
-        }
+        const results = await this.searchTracks(cleanQuery, {
+            limit: options.limit || 8,
+            signal: options.signal,
+        });
+        return extractTracksSuggestions(results.items, cleanQuery);
     }
 
     /**
@@ -839,9 +917,7 @@ export class TracksStreamerAPI {
         const resKey = `${inputTrack?.artist?.name || ''}::${inputTrack?.title || ''}::${inputTrack?.isrc || ''}::${id}`;
         if (this.resolutionCache.has(resKey)) {
             const cachedTrackId = this.resolutionCache.get(resKey);
-            if (cachedTrackId) {
-                return this.getStreamUrl(cachedTrackId, quality, { track: inputTrack });
-            }
+            return cachedTrackId ? this.getStreamUrl(cachedTrackId, quality, { track: inputTrack }) : null;
         }
 
         // 3. Resolve external track by metadata
@@ -903,6 +979,8 @@ export class TracksStreamerAPI {
         this.artistCache.clear();
         this.resolutionCache.clear();
         this.pendingRequests.clear();
+        this.consecutiveFailures = 0;
+        this.circuitOpenUntil = 0;
     }
 }
 
