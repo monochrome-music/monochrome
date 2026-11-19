@@ -1,4 +1,5 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
+import { tracksStreamerAPI } from '../tracks-api.js';
 
 vi.mock('../utils.js', () => ({
     RATE_LIMIT_ERROR_MESSAGE: 'rate limited',
@@ -44,6 +45,12 @@ vi.mock('../download-utils.ts', () => ({ triggerDownload: vi.fn(), applyAudioPos
 vi.mock('../ffmpegFormats.ts', () => ({ isCustomFormat: vi.fn(() => false) }));
 vi.mock('../progressEvents.js', () => ({ DownloadProgress: class {} }));
 vi.mock('../readableStreamIterator.js', () => ({ readableStreamIterator: vi.fn() }));
+vi.mock('../tracks-api.js', () => ({
+    tracksStreamerAPI: {
+        resolveTrackStream: vi.fn(async () => null),
+        getStreamUrl: vi.fn(),
+    },
+}));
 vi.mock('../HiFi.ts', () => ({
     HiFiClient: { instance: { query: vi.fn() } },
     TidalResponse: class {},
@@ -75,16 +82,21 @@ const { LosslessAPI } = await import('../api.js');
 describe('LosslessAPI HiFi streaming fallback', () => {
     let settings;
     let api;
+    let getTrackSpy;
+    let getDeezerStreamUrlSpy;
+    let tracksGetStreamUrlSpy;
 
     beforeEach(() => {
+        vi.clearAllMocks();
+        tracksGetStreamUrlSpy = vi.spyOn(tracksStreamerAPI, 'getStreamUrl');
         settings = {
             getInstances: vi.fn(async (type) => (type === 'streaming' ? [{ url: 'https://hifi.example' }] : [])),
         };
         api = new LosslessAPI(settings);
         vi.spyOn(api, 'getTrackMetadata').mockResolvedValue({ id: '123', isrc: 'TESTISRC123' });
         vi.spyOn(api, 'getUnifiedPlaybackStreamUrl').mockResolvedValue(null);
-        vi.spyOn(api, 'getDeezerStreamUrl').mockResolvedValue(null);
-        vi.spyOn(api, 'getTrack').mockResolvedValue({
+        getDeezerStreamUrlSpy = vi.spyOn(api, 'getDeezerStreamUrl').mockResolvedValue(null);
+        getTrackSpy = vi.spyOn(api, 'getTrack').mockResolvedValue({
             track: { id: 123, duration: 180 },
             info: {
                 audioQuality: 'LOSSLESS',
@@ -99,9 +111,10 @@ describe('LosslessAPI HiFi streaming fallback', () => {
 
     test('reports failure when Unified Playback and ISRC fallbacks cannot resolve', async () => {
         await expect(api.getStreamUrl('123', 'LOSSLESS')).rejects.toThrow(
-            'Could not resolve stream URL from Unified Playback or Deezer'
+            'Could not resolve stream URL for track ID: 123'
         );
-        expect(api.getTrack).not.toHaveBeenCalled();
+        expect(getTrackSpy).not.toHaveBeenCalled();
+        expect(tracksGetStreamUrlSpy).not.toHaveBeenCalled();
     });
 
     test('uses Unified Playback before Deezer when it resolves a stream URL', async () => {
@@ -132,8 +145,8 @@ describe('LosslessAPI HiFi streaming fallback', () => {
                 albumPeakAmplitude: 1,
             },
         });
-        expect(api.getDeezerStreamUrl).not.toHaveBeenCalled();
-        expect(api.getTrack).not.toHaveBeenCalled();
+        expect(getDeezerStreamUrlSpy).not.toHaveBeenCalled();
+        expect(getTrackSpy).not.toHaveBeenCalled();
     });
 
     test('uses Deezer when it resolves a fallback stream URL', async () => {
@@ -157,15 +170,15 @@ describe('LosslessAPI HiFi streaming fallback', () => {
             'LOSSLESS',
             expect.objectContaining({ track: expect.objectContaining({ id: '123' }) })
         );
-        expect(api.getTrack).not.toHaveBeenCalled();
+        expect(getTrackSpy).not.toHaveBeenCalled();
     });
 
     test('does not call HiFi streaming APIs when no streaming instances are available', async () => {
         settings.getInstances.mockResolvedValue([]);
 
         await expect(api.getStreamUrl('123', 'LOSSLESS')).rejects.toThrow(
-            'Could not resolve stream URL from Unified Playback or Deezer'
+            'Could not resolve stream URL for track ID: 123'
         );
-        expect(api.getTrack).not.toHaveBeenCalled();
+        expect(getTrackSpy).not.toHaveBeenCalled();
     });
 });

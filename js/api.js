@@ -2833,8 +2833,11 @@ export class LosslessAPI {
         }
 
         if (!streamResult?.url) {
-            const cleanId = String(id).replace(/^(?:tracks|mono):(?:track:)?/, '');
-            streamResult = tracksStreamerAPI.getStreamUrl(cleanId, quality, { track });
+            streamResult = await this.getUnifiedPlaybackStreamUrl(id, quality, { ...options, track });
+        }
+
+        if (!streamResult?.url && track?.isrc) {
+            streamResult = await this.getDeezerStreamUrl(track.isrc, quality);
         }
 
         if (streamResult?.url) {
