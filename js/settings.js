@@ -5856,12 +5856,37 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    // Download Lyrics Toggle
+    // Lyrics downloads: preserve legacy defaults and keep the old sidecar toggle in sync.
     const downloadLyricsToggle = document.getElementById('download-lyrics-toggle');
+    const lyricsFormatSelect = document.getElementById('download-lyrics-format');
+    const lyricsFallbackToggle = document.getElementById('download-lyrics-fallback');
+    const lyricsModeSelect = document.getElementById('download-lyrics-mode');
     if (downloadLyricsToggle) {
         downloadLyricsToggle.checked = lyricsSettings.shouldDownloadLyrics();
         downloadLyricsToggle.addEventListener('change', (e) => {
             lyricsSettings.setDownloadLyrics(e.target.checked);
+            if (lyricsModeSelect) lyricsModeSelect.value = lyricsSettings.getDownloadMode();
+        });
+    }
+    if (lyricsFormatSelect) {
+        lyricsFormatSelect.value = lyricsSettings.getPreferredFormat();
+        lyricsFormatSelect.addEventListener('change', (e) => {
+            lyricsSettings.setPreferredFormat(e.target.value);
+            if (lyricsFallbackToggle) lyricsFallbackToggle.disabled = e.target.value !== 'ttml';
+        });
+    }
+    if (lyricsFallbackToggle) {
+        lyricsFallbackToggle.checked = lyricsSettings.shouldFallbackToLRC();
+        lyricsFallbackToggle.disabled = lyricsSettings.getPreferredFormat() !== 'ttml';
+        lyricsFallbackToggle.addEventListener('change', (e) => {
+            lyricsSettings.setFallbackToLRC(e.target.checked);
+        });
+    }
+    if (lyricsModeSelect) {
+        lyricsModeSelect.value = lyricsSettings.getDownloadMode();
+        lyricsModeSelect.addEventListener('change', (e) => {
+            lyricsSettings.setDownloadMode(e.target.value);
+            if (downloadLyricsToggle) downloadLyricsToggle.checked = lyricsSettings.shouldDownloadLyrics();
         });
     }
 
