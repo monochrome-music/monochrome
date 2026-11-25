@@ -1,10 +1,23 @@
 import { libreFmSettings, lastFMStorage } from './storage.js';
 
 export class LibreFmScrobbler {
-    constructor() {
-        this.API_KEY = 'monochrome_music_app';
-        this.API_SECRET = 'monochrome_music_secret_2024';
-        this.API_URL = 'https://libre.fm/2.0/';
+    constructor({
+        name = 'Libre.fm',
+        apiKey = 'monochrome_music_app',
+        apiSecret = 'monochrome_music_secret_2024',
+        apiUrl = 'https://libre.fm/2.0/',
+        authUrl = 'https://libre.fm/api/auth/',
+        storagePrefix = 'librefm',
+        settings = libreFmSettings,
+    } = {}) {
+        this.name = name;
+        this.API_KEY = apiKey;
+        this.API_SECRET = apiSecret;
+        this.API_URL = apiUrl;
+        this.AUTH_URL = authUrl;
+        this.SESSION_KEY = `${storagePrefix}-session`;
+        this.PENDING_TOKEN_KEY = `${storagePrefix}-pending-token`;
+        this.settings = settings;
 
         this.sessionKey = null;
         this.username = null;
@@ -19,14 +32,14 @@ export class LibreFmScrobbler {
 
     loadSession() {
         try {
-            const session = localStorage.getItem('librefm-session');
+            const session = localStorage.getItem(this.SESSION_KEY);
             if (session) {
                 const data = JSON.parse(session);
                 this.sessionKey = data.key;
                 this.username = data.name;
             }
         } catch {
-            console.error('Failed to load Libre.fm session');
+            console.error(`Failed to load ${this.name} session`);
         }
     }
 
@@ -34,7 +47,7 @@ export class LibreFmScrobbler {
         this.sessionKey = sessionKey;
         this.username = username;
         localStorage.setItem(
-            'librefm-session',
+            this.SESSION_KEY,
             JSON.stringify({
                 key: sessionKey,
                 name: username,
@@ -45,11 +58,11 @@ export class LibreFmScrobbler {
     clearSession() {
         this.sessionKey = null;
         this.username = null;
-        localStorage.removeItem('librefm-session');
+        localStorage.removeItem(this.SESSION_KEY);
     }
 
     isAuthenticated() {
-        return !!this.sessionKey && libreFmSettings.isEnabled();
+        return !!this.sessionKey && this.settings.isEnabled();
     }
 
     _getScrobbleArtist(track) {
@@ -88,7 +101,7 @@ export class LibreFmScrobbler {
             return md5(signatureString);
         } catch {
             console.error('MD5 library not available');
-            throw new Error('MD5 library required for Libre.fm');
+            throw new Error(`MD5 library required for ${this.name}`);
         }
     }
 
@@ -123,27 +136,27 @@ export class LibreFmScrobbler {
             const data = await response.json();
 
             if (data.error) {
-                throw new Error(data.message || 'Libre.fm API error');
+                throw new Error(data.message || `${this.name} API error`);
             }
 
             return data;
         } catch (error) {
-            console.error('Libre.fm API request failed:', error);
+            console.error(`${this.name} API request failed:`, error);
             throw error;
         }
     }
 
     async getAuthUrl() {
         try {
-            // First, get a token from Libre.fm
+            // First, get a request token from the service
             const data = await this.makeRequest('auth.getToken');
             const token = data.token;
 
-            localStorage.setItem('librefm-pending-token', token);
+            localStorage.setItem(this.PENDING_TOKEN_KEY, token);
 
             return {
                 token,
-                url: `https://libre.fm/api/auth/?api_key=${this.API_KEY}&token=${token}`,
+                url: `${this.AUTH_URL}?api_key=${encodeURIComponent(this.API_KEY)}&token=${encodeURIComponent(token)}`,
             };
         } catch (error) {
             console.error('Failed to get auth URL:', error);
@@ -157,7 +170,7 @@ export class LibreFmScrobbler {
 
             if (data.session) {
                 this.saveSession(data.session.key, data.session.name);
-                localStorage.removeItem('librefm-pending-token');
+                localStorage.removeItem(this.PENDING_TOKEN_KEY);
                 return {
                     success: true,
                     username: data.session.name,
@@ -203,13 +216,13 @@ export class LibreFmScrobbler {
 
             await this.makeRequest('track.updateNowPlaying', params, true);
 
-            console.log('[Libre.fm] Now playing updated:', scrobbleTitle);
+            console.log(`[${this.name}] Now playing updated:`, scrobbleTitle);
 
             const scrobblePercentage = lastFMStorage.getScrobblePercentage() / 100;
             this.scrobbleThreshold = Math.min(track.duration * scrobblePercentage, 240);
             this.scheduleScrobble(this.scrobbleThreshold * 1000);
         } catch (error) {
-            console.error('[Libre.fm] Failed to update now playing:', error);
+            console.error(`[${this.name}] Failed to update now playing:`, error);
         }
     }
 
@@ -258,9 +271,9 @@ export class LibreFmScrobbler {
             await this.makeRequest('track.scrobble', params, true);
 
             this.hasScrobbled = true;
-            console.log('[Libre.fm] Scrobbled:', this.currentTrack.cleanTitle || this.currentTrack.title);
+            console.log(`[${this.name}] Scrobbled:`, this.currentTrack.cleanTitle || this.currentTrack.title);
         } catch (error) {
-            console.error('[Libre.fm] Failed to scrobble:', error);
+            console.error(`[${this.name}] Failed to scrobble:`, error);
         } finally {
             this.isScrobbling = false;
         }
@@ -276,9 +289,9 @@ export class LibreFmScrobbler {
             };
 
             await this.makeRequest('track.love', params, true);
-            console.log('[Libre.fm] Loved track:', track.title);
+            console.log(`[${this.name}] Loved track:`, track.title);
         } catch (error) {
-            console.error('[Libre.fm] Failed to love track:', error);
+            console.error(`[${this.name}] Failed to love track:`, error);
         }
     }
 

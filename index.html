@@ -3831,6 +3831,46 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
+                                        <span class="label">Sonosphere Scrobbling</span>
+                                        <span class="description" id="sonosphere-status"
+                                            >Connect your Sonosphere account to scrobble tracks</span
+                                        >
+                                    </div>
+                                    <div id="sonosphere-controls">
+                                        <button id="sonosphere-connect-btn" class="btn-secondary">
+                                            Connect Sonosphere
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="setting-item" id="sonosphere-toggle-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">Enable Scrobbling</span>
+                                        <span class="description">Automatically scrobble played tracks</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="sonosphere-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="setting-item" id="sonosphere-love-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">Love on Like</span>
+                                        <span class="description"
+                                            >Automatically 'love' tracks on Sonosphere when you like them</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="sonosphere-love-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
                                         <span class="label">Last.fm Scrobbling</span>
                                         <span class="description" id="lastfm-status"
                                             >Connect your Last.fm account to scrobble tracks</span

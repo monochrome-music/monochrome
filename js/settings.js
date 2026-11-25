@@ -24,6 +24,7 @@ import {
     playlistSettings,
     equalizerSettings,
     listenBrainzSettings,
+    sonosphereSettings,
     malojaSettings,
     libreFmSettings,
     homePageSettings,
@@ -511,6 +512,119 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 scrobblePercentageSlider.value = newPercentage;
                 lastFMStorage.setScrobblePercentage(newPercentage);
             }
+        });
+    }
+
+    // ========================================
+    // Sonosphere Settings
+    // ========================================
+    const sonoConnectBtn = document.getElementById('sonosphere-connect-btn');
+    const sonoStatus = document.getElementById('sonosphere-status');
+    const sonoToggle = document.getElementById('sonosphere-toggle');
+    const sonoToggleSetting = document.getElementById('sonosphere-toggle-setting');
+    const sonoLoveToggle = document.getElementById('sonosphere-love-toggle');
+    const sonoLoveSetting = document.getElementById('sonosphere-love-setting');
+
+    function updateSonosphereUI() {
+        // Use the stored session (not isAuthenticated) so turning scrobbling off
+        // doesn't make the account look disconnected.
+        const sono = scrobbler.sonosphere;
+        if (sono.sessionKey) {
+            sonoStatus.textContent = `Connected as ${sono.username}`;
+            sonoConnectBtn.textContent = 'Disconnect';
+            sonoConnectBtn.classList.add('danger');
+            sonoToggleSetting.style.display = 'flex';
+            sonoLoveSetting.style.display = 'flex';
+            sonoToggle.checked = sonosphereSettings.isEnabled();
+            sonoLoveToggle.checked = sonosphereSettings.shouldLoveOnLike();
+        } else {
+            sonoStatus.textContent = 'Connect your Sonosphere account to scrobble tracks';
+            sonoConnectBtn.textContent = 'Connect Sonosphere';
+            sonoConnectBtn.classList.remove('danger');
+            sonoToggleSetting.style.display = 'none';
+            sonoLoveSetting.style.display = 'none';
+        }
+    }
+
+    if (sonoConnectBtn) {
+        updateSonosphereUI();
+
+        sonoConnectBtn.addEventListener('click', async () => {
+            const sono = scrobbler.sonosphere;
+
+            if (sono.sessionKey) {
+                if (confirm('Disconnect from Sonosphere?')) {
+                    sono.disconnect();
+                    updateSonosphereUI();
+                }
+                return;
+            }
+
+            // Open synchronously within the click to avoid popup blockers
+            const authWindow = window.open('', '_blank');
+
+            const resetButton = () => {
+                sonoConnectBtn.textContent = 'Connect Sonosphere';
+                sonoConnectBtn.disabled = false;
+            };
+
+            sonoConnectBtn.disabled = true;
+            sonoConnectBtn.textContent = 'Opening Sonosphere...';
+
+            try {
+                const { token, url } = await sono.getAuthUrl();
+
+                if (!authWindow) {
+                    alert('Popup blocked! Please allow popups.');
+                    resetButton();
+                    return;
+                }
+                authWindow.location.href = url;
+
+                sonoConnectBtn.textContent = 'Waiting for authorization...';
+
+                let attempts = 0;
+                const maxAttempts = 60; // 2 minutes
+
+                const checkAuth = setInterval(async () => {
+                    attempts++;
+
+                    if (attempts > maxAttempts) {
+                        clearInterval(checkAuth);
+                        resetButton();
+                        if (!authWindow.closed) authWindow.close();
+                        alert('Authorization timed out. Please try again.');
+                        return;
+                    }
+
+                    try {
+                        const result = await sono.completeAuthentication(token);
+                        if (result.success) {
+                            clearInterval(checkAuth);
+                            if (!authWindow.closed) authWindow.close();
+                            sonosphereSettings.setEnabled(true);
+                            sonoConnectBtn.disabled = false;
+                            updateSonosphereUI();
+                            alert(`Successfully connected to Sonosphere as ${result.username}!`);
+                        }
+                    } catch {
+                        // Not authorized yet
+                    }
+                }, 2000);
+            } catch (error) {
+                console.error('Sonosphere connection failed:', error);
+                alert('Failed to connect to Sonosphere: ' + error.message);
+                resetButton();
+                if (authWindow && !authWindow.closed) authWindow.close();
+            }
+        });
+
+        sonoToggle?.addEventListener('change', (e) => {
+            sonosphereSettings.setEnabled(e.target.checked);
+        });
+
+        sonoLoveToggle?.addEventListener('change', (e) => {
+            sonosphereSettings.setLoveOnLike(e.target.checked);
         });
     }
 

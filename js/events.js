@@ -12,6 +12,7 @@ import {
     lastFMStorage,
     libreFmSettings,
     listenBrainzSettings,
+    sonosphereSettings,
     waveformSettings,
     silenceRemovalSettings,
     crossfadeSettings,
@@ -1612,6 +1613,9 @@ export async function handleTrackAction(
         await syncManager.syncLibraryItem(type, item, added);
 
         if (added && type === 'track' && scrobbler) {
+            if (sonosphereSettings.isEnabled() && sonosphereSettings.shouldLoveOnLike()) {
+                scrobbler.loveTrack(item);
+            }
             if (lastFMStorage.isEnabled() && lastFMStorage.shouldLoveOnLike()) {
                 scrobbler.loveTrack(item);
             }

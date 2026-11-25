@@ -2,13 +2,20 @@ import { LastFMScrobbler } from './lastfm.js';
 import { ListenBrainzScrobbler } from './listenbrainz.js';
 import { MalojaScrobbler } from './maloja.js';
 import { LibreFmScrobbler } from './librefm.js';
+import { SonosphereScrobbler } from './sonosphere.js';
 
 export class MultiScrobbler {
     constructor() {
+        this.sonosphere = new SonosphereScrobbler();
         this.lastfm = new LastFMScrobbler();
         this.listenbrainz = new ListenBrainzScrobbler();
         this.maloja = new MalojaScrobbler();
         this.librefm = new LibreFmScrobbler();
+    }
+
+    // Proxy method for Sonosphere specific usage (auth flow)
+    getSonosphere() {
+        return this.sonosphere;
     }
 
     // Proxy method for Last.fm specific usage (auth flow)
@@ -25,6 +32,7 @@ export class MultiScrobbler {
         // Return true if any service is configured, so events.js will proceed to call updateNowPlaying
         // Individual services check their own enabled/auth state internally
         return (
+            this.sonosphere.isAuthenticated() ||
             this.lastfm.isAuthenticated() ||
             this.listenbrainz.isEnabled() ||
             this.maloja.isEnabled() ||
@@ -35,6 +43,7 @@ export class MultiScrobbler {
     async updateNowPlaying(track) {
         await Promise.allSettled(
             [
+                this.sonosphere.updateNowPlaying(track),
                 this.lastfm.updateNowPlaying(track),
                 this.listenbrainz.updateNowPlaying(track),
                 this.maloja.updateNowPlaying(track),
@@ -46,6 +55,7 @@ export class MultiScrobbler {
     async onTrackChange(track) {
         await Promise.allSettled(
             [
+                this.sonosphere.onTrackChange(track),
                 this.lastfm.onTrackChange(track),
                 this.listenbrainz.onTrackChange(track),
                 this.maloja.onTrackChange(track),
@@ -55,6 +65,7 @@ export class MultiScrobbler {
     }
 
     onPlaybackStop() {
+        this.sonosphere.onPlaybackStop();
         this.lastfm.onPlaybackStop();
         this.listenbrainz.onPlaybackStop();
         this.maloja.onPlaybackStop();
@@ -64,9 +75,12 @@ export class MultiScrobbler {
     // Love/Like tracks on all services that support it
     async loveTrack(track) {
         await Promise.allSettled(
-            [this.lastfm.loveTrack(track), this.librefm.loveTrack(track), this.listenbrainz.loveTrack(track)].map((p) =>
-                p.catch(console.error)
-            )
+            [
+                this.sonosphere.loveTrack(track),
+                this.lastfm.loveTrack(track),
+                this.librefm.loveTrack(track),
+                this.listenbrainz.loveTrack(track),
+            ].map((p) => p.catch(console.error))
         );
         // Maloja feedback could be added here when supported
     }
