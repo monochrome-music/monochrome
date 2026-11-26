@@ -2589,15 +2589,17 @@ export class LosslessAPI {
         }
     }
 
-    getUnifiedPlaybackResource(envelope) {
+    getUnifiedPlaybackResource(envelope, { excludeSources = [] } = {}) {
         if (!Array.isArray(envelope?.playback)) return null;
+        const excludedSources = new Set(excludeSources.map((source) => String(source || '').toLowerCase()));
         return envelope.playback.find(
             (resource) =>
                 resource &&
                 typeof resource.url === 'string' &&
                 resource.url &&
                 (resource.kind === 'audio' || resource.kind === 'manifest') &&
-                (resource.delivery === 'direct' || resource.delivery === 'dash' || resource.delivery === 'hls')
+                (resource.delivery === 'direct' || resource.delivery === 'dash' || resource.delivery === 'hls') &&
+                !excludedSources.has(String(resource.source || envelope.selected_source || '').toLowerCase())
         );
     }
 
@@ -2681,8 +2683,11 @@ export class LosslessAPI {
             envelope = await this.fetchUnifiedPlaybackEnvelope(track, canonicalQuality, { ...options, intent });
             if (!envelope) return null;
 
-            const resource = this.getUnifiedPlaybackResource(envelope);
+            const resource = this.getUnifiedPlaybackResource(envelope, {
+                excludeSources: options.forceFallback ? ['mono', 'monochrome'] : [],
+            });
             if (!resource) {
+                if (options.forceFallback) return null;
                 throw new Error('Unified Playback response contained no supported playback resource');
             }
 
@@ -2714,6 +2719,7 @@ export class LosslessAPI {
             const baseResult = {
                 sourceUrl,
                 provider,
+                singleUse: true,
                 quality: normalizedQuality,
                 qualityRequested: envelope.quality_requested || canonicalQuality,
                 qualityDisplay:
@@ -2825,24 +2831,21 @@ export class LosslessAPI {
         const isApple = inputTrack?.provider === 'apple' || String(id || '').startsWith('apple:');
         const track = inputTrack || (id && !isApple ? await this.getTrackMetadata(id).catch(() => null) : null);
 
-        let streamResult = null;
-        try {
-            streamResult = await tracksStreamerAPI.resolveTrackStream(id, quality, { track });
-        } catch (err) {
-            console.debug('tracks.monochrome.st stream lookup failed in LosslessAPI:', err);
+        const unifiedStream = await this.getUnifiedPlaybackStreamUrl(id, quality, {
+            ...options,
+            track,
+        });
+        if (unifiedStream?.url) {
+            return unifiedStream;
         }
 
-        if (!streamResult?.url) {
-            const cleanId = String(id).replace(/^(?:tracks|mono):(?:track:)?/, '');
-            streamResult = tracksStreamerAPI.getStreamUrl(cleanId, quality, { track });
+        const deezerStream = track?.isrc ? await this.getDeezerStreamUrl(track.isrc, quality) : null;
+        if (deezerStream?.url) {
+            this.streamCache.set(cacheKey, deezerStream);
+            return deezerStream;
         }
 
-        if (streamResult?.url) {
-            this.streamCache.set(cacheKey, streamResult);
-            return streamResult;
-        }
-
-        throw new Error(`Could not resolve stream URL for track ID: ${id}`);
+        throw new Error('Could not resolve stream URL from Unified Playback or Deezer');
     }
 
     async getVideoStreamUrl(id) {

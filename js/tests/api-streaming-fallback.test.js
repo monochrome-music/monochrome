@@ -108,6 +108,7 @@ describe('LosslessAPI HiFi streaming fallback', () => {
         api.getUnifiedPlaybackStreamUrl.mockResolvedValue({
             url: 'blob:https://app.example/protected',
             provider: 'legacy',
+            singleUse: true,
             playbackType: 'direct',
             quality: 'HD_44',
             rgInfo: {
@@ -123,6 +124,7 @@ describe('LosslessAPI HiFi streaming fallback', () => {
         expect(result).toEqual({
             url: 'blob:https://app.example/protected',
             provider: 'legacy',
+            singleUse: true,
             playbackType: 'direct',
             quality: 'HD_44',
             rgInfo: {
@@ -134,6 +136,105 @@ describe('LosslessAPI HiFi streaming fallback', () => {
         });
         expect(api.getDeezerStreamUrl).not.toHaveBeenCalled();
         expect(api.getTrack).not.toHaveBeenCalled();
+    });
+
+    test('requests a fresh Unified Playback descriptor for forced fallback without caching it', async () => {
+        api.getUnifiedPlaybackStreamUrl
+            .mockResolvedValueOnce({
+                url: 'https://playback.example/first',
+                provider: 'legacy',
+                singleUse: true,
+            })
+            .mockResolvedValueOnce({
+                url: 'https://playback.example/fresh-fallback',
+                provider: 'legacy',
+                singleUse: true,
+            });
+
+        const first = await api.getStreamUrl('123', 'LOSSLESS');
+        const fallback = await api.getStreamUrl('123', 'LOSSLESS', { forceFallback: true });
+
+        expect(first.url).toBe('https://playback.example/first');
+        expect(fallback.url).toBe('https://playback.example/fresh-fallback');
+        expect(api.getUnifiedPlaybackStreamUrl).toHaveBeenCalledTimes(2);
+        expect(api.getUnifiedPlaybackStreamUrl).toHaveBeenNthCalledWith(
+            2,
+            '123',
+            'LOSSLESS',
+            expect.objectContaining({ forceFallback: true })
+        );
+        expect(api.streamCache.size).toBe(0);
+    });
+
+    test('skips the rejected Mono source while retaining another Unified Playback source', async () => {
+        api.getUnifiedPlaybackStreamUrl.mockRestore();
+        vi.spyOn(api, 'fetchUnifiedPlaybackEnvelope').mockResolvedValue({
+            quality_requested: 'LOSSLESS',
+            playback: [
+                {
+                    source: 'mono',
+                    kind: 'audio',
+                    delivery: 'direct',
+                    url: 'https://tracks.example/rejected',
+                    mime_type: 'audio/flac',
+                },
+                {
+                    source: 'legacy',
+                    kind: 'audio',
+                    delivery: 'direct',
+                    url: 'https://legacy.example/fallback',
+                    quality: 'LOSSLESS',
+                },
+            ],
+        });
+        const options = { track: { id: '123' } };
+
+        const ordinary = await api.getUnifiedPlaybackStreamUrl('123', 'LOSSLESS', options);
+        const forced = await api.getUnifiedPlaybackStreamUrl('123', 'LOSSLESS', {
+            ...options,
+            forceFallback: true,
+        });
+
+        expect(ordinary).toMatchObject({
+            url: 'https://tracks.example/rejected',
+            provider: 'monochrome',
+            singleUse: true,
+        });
+        expect(forced).toMatchObject({
+            url: 'https://legacy.example/fallback',
+            provider: 'legacy',
+            singleUse: true,
+        });
+    });
+
+    test('uses Deezer when forced fallback leaves only the rejected Mono source', async () => {
+        api.getUnifiedPlaybackStreamUrl.mockRestore();
+        vi.spyOn(api, 'fetchUnifiedPlaybackEnvelope').mockResolvedValue({
+            quality_requested: 'LOSSLESS',
+            playback: [
+                {
+                    source: 'mono',
+                    kind: 'audio',
+                    delivery: 'direct',
+                    url: 'https://tracks.example/rejected',
+                    mime_type: 'audio/flac',
+                },
+            ],
+        });
+        api.getDeezerStreamUrl.mockResolvedValue({
+            url: 'https://audio.example/deezer-fallback.flac',
+            format: 'FLAC',
+            provider: 'deezer',
+            rgInfo: null,
+        });
+
+        const result = await api.getStreamUrl('123', 'LOSSLESS', { forceFallback: true });
+
+        expect(result).toMatchObject({
+            url: 'https://audio.example/deezer-fallback.flac',
+            provider: 'deezer',
+        });
+        expect(api.getDeezerStreamUrl).toHaveBeenCalledWith('TESTISRC123', 'LOSSLESS');
     });
 
     test('uses Deezer when it resolves a fallback stream URL', async () => {

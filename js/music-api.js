@@ -493,6 +493,13 @@ export class MusicAPI {
             track = await this.getTrackMetadata(id).catch(() => null);
         }
 
+        if (options.forceFallback) {
+            return this.tidalAPI.getStreamUrl(this.getTracksId(id), quality, {
+                ...options,
+                track,
+            });
+        }
+
         const stream = await this.tracksStreamerAPI.resolveTrackStream(id, quality, {
             ...options,
             track,
