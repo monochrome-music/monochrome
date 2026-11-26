@@ -28,6 +28,7 @@ import { audioContextManager } from './audio-context.js';
 import { isIos, isSafari, isEdge } from './platform-detection.js';
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
+import { getPlaybackFailureNotificationMessage, isUnsupportedMediaError } from './playback-errors.js';
 import { getReplayGainScale } from './replay-gain.js';
 import { waveformGenerator } from './waveform.js';
 
@@ -710,8 +711,8 @@ export class Player {
                     continue;
                 }
 
-                // Warm connection and pre-fetch adaptive manifests.
-                if (!streamUrl.startsWith('blob:')) {
+                // Single-use URLs must reach the media element exactly once.
+                if (!crossfadeStreamInfo.singleUse && !streamUrl.startsWith('blob:')) {
                     const shakaPreloadMimeType = null;
                     if (streamUrl.includes('.mpd') || streamUrl.includes('.m3u8')) {
                         if (
@@ -1484,6 +1485,7 @@ export class Player {
                 await this.safePlay(activeElement);
             } else {
                 if (
+                    !options.forceFallback &&
                     shouldPreserveGestureToken &&
                     this.tryStartPreloadedTrackImmediately({
                         track,
@@ -1498,12 +1500,16 @@ export class Player {
                 }
 
                 // Tidal: Try to get ReplayGain from manifest first, supplement with track info if needed
-                const cachedStreamInfo = preparedPlayback ? null : this.preloadCache.get(track.id);
+                const cachedStreamInfo =
+                    preparedPlayback || options.forceFallback ? null : this.preloadCache.get(track.id);
                 const streamInfoPromise = preparedPlayback?.streamInfo
                     ? Promise.resolve(preparedPlayback.streamInfo)
                     : cachedStreamInfo
                       ? Promise.resolve(cachedStreamInfo)
-                      : this.api.getStreamUrl(track.id, this.quality, { track });
+                      : this.api.getStreamUrl(track.id, this.quality, {
+                            track,
+                            forceFallback: options.forceFallback === true,
+                        });
 
                 // We only need the legacy track info if we missed getting ReplayGain from the manifest endpoint
                 let resolvedStreamInfo = await streamInfoPromise;
@@ -1667,7 +1673,18 @@ export class Player {
                 return;
             }
 
-            if (this.quality === 'HI_RES_LOSSLESS' && !this.isFallbackRetry) {
+            if (isUnsupportedMediaError(error) && !options.forceFallback) {
+                await this.discardCachedPreload(track.id);
+                if (this.playbackSequence !== currentSequence) return;
+                await this.playTrackFromQueue(startTime, recursiveCount, true, {
+                    ...options,
+                    forceFallback: true,
+                    preparedPlayback: null,
+                });
+                return;
+            }
+
+            if (this.quality === 'HI_RES_LOSSLESS' && !this.isFallbackRetry && !options.forceFallback) {
                 this.isFallbackRetry = true;
                 const originalQuality = this.quality;
                 this.quality = 'LOSSLESS';
@@ -1687,9 +1704,12 @@ export class Player {
             }
 
             console.error(`Could not play track: ${trackTitle}`, error);
-            if (error?.code === 'UNSUPPORTED_PLAYBACK_CODEC' || error?.code === 'STRICT_QUALITY_UNAVAILABLE') {
+            const notificationMessage = getPlaybackFailureNotificationMessage(error, {
+                forceFallback: options.forceFallback === true,
+            });
+            if (notificationMessage) {
                 import('./downloads.js')
-                    .then(({ showNotification }) => showNotification(error.message))
+                    .then(({ showNotification }) => showNotification(notificationMessage))
                     .catch(() => {});
             }
         } finally {

@@ -118,6 +118,30 @@ describe('MusicAPI primary search and streaming integration', () => {
         expect(streamInfo.provider).toBe('monochrome');
     });
 
+    it('uses the provider fallback when requested after native playback rejects a stream', async () => {
+        const resolveSpy = vi
+            .spyOn(api.tracksStreamerAPI, 'resolveTrackStream')
+            .mockClear()
+            .mockResolvedValueOnce({ url: 'https://tracks.example/should-not-be-used' });
+        const tidalStreamSpy = vi.spyOn(api.tidalAPI, 'getStreamUrl').mockResolvedValueOnce({
+            url: 'https://fallback.example/track/101',
+            provider: 'deezer',
+        });
+        const track = { id: '101', isrc: 'TESTISRC101' };
+
+        const streamInfo = await api.getStreamUrl('101', 'LOSSLESS', {
+            track,
+            forceFallback: true,
+        });
+
+        expect(resolveSpy).not.toHaveBeenCalled();
+        expect(tidalStreamSpy).toHaveBeenCalledWith('101', 'LOSSLESS', {
+            track,
+            forceFallback: true,
+        });
+        expect(streamInfo.provider).toBe('deezer');
+    });
+
     it('fetches albums via tracksStreamerAPI when id has tracks prefix or provider', async () => {
         const mockAlbum = {
             album: {
