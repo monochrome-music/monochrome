@@ -1670,7 +1670,9 @@ export class Player {
 
             // A 429 reaches the audio element as a "format error". Don't retry at a lower quality
             // (same file, guaranteed second 429); tell the user what actually happened.
-            if (await this.isStreamRateLimited(activeElement?.src)) {
+            const rateLimited = await this.isStreamRateLimited(activeElement?.src);
+            if (this.playbackSequence !== currentSequence) return;
+            if (rateLimited) {
                 console.warn(`Stream rate-limited (429): ${trackTitle}`);
                 import('./downloads.js')
                     .then(({ showNotification }) =>
@@ -1719,7 +1721,7 @@ export class Player {
     async isStreamRateLimited(url) {
         if (typeof url !== 'string' || !url.startsWith(`${TRACKS_API_BASE_URL}/track/`)) return false;
         try {
-            const res = await fetch(url, { headers: { Range: 'bytes=0-0' } });
+            const res = await fetch(url, { headers: { Range: 'bytes=0-0' }, signal: AbortSignal.timeout(5000) });
             res.body?.cancel().catch(() => {});
             return res.status === 429;
         } catch {

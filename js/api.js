@@ -476,7 +476,13 @@ export class LosslessAPI {
 
         const albumIdsToFetch = [];
         for (const track of tracks) {
-            if (!track?.album?.cover && track?.album?.id && !albumIdsToFetch.includes(track.album.id)) {
+            if (
+                !track?.album?.cover &&
+                track?.album?.id &&
+                // catalog release IDs (17-20 digits) can't be looked up on TIDAL
+                !/^\d{17,20}$/.test(String(track.album.id)) &&
+                !albumIdsToFetch.includes(track.album.id)
+            ) {
                 albumIdsToFetch.push(track.album.id);
             }
         }
