@@ -476,7 +476,13 @@ export class LosslessAPI {
 
         const albumIdsToFetch = [];
         for (const track of tracks) {
-            if (!track?.album?.cover && track?.album?.id && !albumIdsToFetch.includes(track.album.id)) {
+            if (
+                !track?.album?.cover &&
+                track?.album?.id &&
+                // catalog release IDs (17-20 digits) can't be looked up on TIDAL
+                !/^\d{17,20}$/.test(String(track.album.id)) &&
+                !albumIdsToFetch.includes(track.album.id)
+            ) {
                 albumIdsToFetch.push(track.album.id);
             }
         }
@@ -1591,12 +1597,17 @@ export class LosslessAPI {
     async getRecommendedTracksForPlaylist(tracks, limit = 20, options = {}) {
         if (!tracks || tracks.length === 0) return [];
 
-        const seenTrackIds = new Set(tracks.map((t) => t.id));
+        // 17-20 digit IDs belong to tracks.monochrome.st; TIDAL endpoints can never resolve them.
+        const stripTracksPrefix = (id) => String(id).replace(/^tracks:[^:]+:/, '');
+        const isTracksSnowflake = (id) => /^\d{17,20}$/.test(stripTracksPrefix(id));
+
+        // Keep numeric TIDAL IDs as numbers so seenTrackIds.has(t.id) still matches them.
+        const seenTrackIds = new Set(tracks.map((t) => (typeof t.id === 'string' ? stripTracksPrefix(t.id) : t.id)));
         const recommendedTracks = [];
 
         const seedTracks = tracks.slice(0, 3);
         for (const seed of seedTracks) {
-            if (!seed?.id) continue;
+            if (!seed?.id || isTracksSnowflake(seed.id)) continue;
             try {
                 const recs = await this.getTrackRecommendations(seed.id);
                 for (const t of recs) {
@@ -1620,6 +1631,18 @@ export class LosslessAPI {
             }
             const artistsToProcess = Array.from(artistMap.values()).slice(0, 10);
             for (const artist of artistsToProcess) {
+                if (isTracksSnowflake(artist.id)) {
+                    try {
+                        const artistData = await tracksStreamerAPI.getArtist(stripTracksPrefix(artist.id));
+                        for (const t of artistData?.tracks || []) {
+                            if (t?.id && !seenTrackIds.has(t.id)) {
+                                seenTrackIds.add(t.id);
+                                recommendedTracks.push(t);
+                            }
+                        }
+                    } catch {}
+                    continue;
+                }
                 try {
                     const artistData = await this.getArtist(artist.id, {
                         lightweight: true,

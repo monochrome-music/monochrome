@@ -28,6 +28,7 @@ import { audioContextManager } from './audio-context.js';
 import { isIos, isSafari, isEdge } from './platform-detection.js';
 import { db } from './db.js';
 import { getProxyUrl } from './proxy-utils.js';
+import { TRACKS_API_BASE_URL } from './tracks-api.js';
 import { getReplayGainScale } from './replay-gain.js';
 import { waveformGenerator } from './waveform.js';
 
@@ -1667,6 +1668,23 @@ export class Player {
                 return;
             }
 
+            // A 429 reaches the audio element as a "format error". Don't retry at a lower quality
+            // (same file, guaranteed second 429); tell the user what actually happened.
+            const rateLimited = await this.isStreamRateLimited(activeElement?.src);
+            if (this.playbackSequence !== currentSequence) return;
+            if (rateLimited) {
+                console.warn(`Stream rate-limited (429): ${trackTitle}`);
+                import('./downloads.js')
+                    .then(({ showNotification }) =>
+                        showNotification('Streaming is rate-limited for your IP. Wait a few minutes and try again.', {
+                            type: 'error',
+                            reportIssue: false,
+                        })
+                    )
+                    .catch(() => {});
+                return;
+            }
+
             if (this.quality === 'HI_RES_LOSSLESS' && !this.isFallbackRetry) {
                 this.isFallbackRetry = true;
                 const originalQuality = this.quality;
@@ -1696,6 +1714,18 @@ export class Player {
             if (this.playbackSequence === currentSequence) {
                 this.setLoadingState(false);
             }
+        }
+    }
+
+    // Only called after a playback failure: one 1-byte request to read the real status code.
+    async isStreamRateLimited(url) {
+        if (typeof url !== 'string' || !url.startsWith(`${TRACKS_API_BASE_URL}/track/`)) return false;
+        try {
+            const res = await fetch(url, { headers: { Range: 'bytes=0-0' }, signal: AbortSignal.timeout(5000) });
+            res.body?.cancel().catch(() => {});
+            return res.status === 429;
+        } catch {
+            return false;
         }
     }
 
@@ -2794,6 +2824,9 @@ export class Player {
     }
 
     async wipeQueue() {
+        // Cancel any in-flight playback attempt so it can't resume against an empty queue.
+        this.playbackSequence++;
+        this.setLoadingState(false);
         const el = this.activeElement;
         el.pause();
         el.src = '';
