@@ -9,7 +9,12 @@ import {
     normalizeAppleArtist,
     normalizeAppleSearchResults,
 } from './apple-music-api.js';
-import { TracksStreamerAPI, tracksStreamerAPI, normalizeTracksSearchResults } from './tracks-api.js';
+import {
+    TracksStreamerAPI,
+    tracksStreamerAPI,
+    normalizeTracksSearchResults,
+    TRACKS_API_BASE_URL,
+} from './tracks-api.js';
 import { getCommunityPlaylist } from './community-playlists.js';
 
 /**
@@ -651,15 +656,9 @@ export class MusicAPI {
         if (typeof id !== 'string') return false;
         if (id.startsWith(type ? `tracks:${type}:` : 'tracks:')) return true;
         if (id.startsWith('mono:')) return true;
-        if (/^\d{17,20}$/.test(id)) {
-            if (type === 'album' && this.tracksAlbumIds.has(id)) return true;
-            if (type === 'artist' && this.tracksArtistIds.has(id)) return true;
-            if (type === 'track' && this.tracksTrackCache.has(id)) return true;
-            if (!type) {
-                return this.tracksTrackCache.has(id) || this.tracksAlbumIds.has(id) || this.tracksArtistIds.has(id);
-            }
-        }
-        return false;
+        // 17-20 digit snowflakes are always tracks.monochrome.st IDs (TIDAL/Apple IDs are much shorter).
+        // Don't rely on the in-memory caches: they're empty after a reload or on a direct/shared link.
+        return /^\d{17,20}$/.test(id);
     }
 
     getTracksId(id, type = null) {
