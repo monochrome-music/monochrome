@@ -1597,12 +1597,13 @@ export class LosslessAPI {
     async getRecommendedTracksForPlaylist(tracks, limit = 20, options = {}) {
         if (!tracks || tracks.length === 0) return [];
 
-        const seenTrackIds = new Set(tracks.map((t) => t.id));
-        const recommendedTracks = [];
-
         // 17-20 digit IDs belong to tracks.monochrome.st; TIDAL endpoints can never resolve them.
         const stripTracksPrefix = (id) => String(id).replace(/^tracks:[^:]+:/, '');
         const isTracksSnowflake = (id) => /^\d{17,20}$/.test(stripTracksPrefix(id));
+
+        // Keep numeric TIDAL IDs as numbers so seenTrackIds.has(t.id) still matches them.
+        const seenTrackIds = new Set(tracks.map((t) => (typeof t.id === 'string' ? stripTracksPrefix(t.id) : t.id)));
+        const recommendedTracks = [];
 
         const seedTracks = tracks.slice(0, 3);
         for (const seed of seedTracks) {
