@@ -57,6 +57,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
         upc,
         explicit,
         lyrics,
+        lyricsTTML,
         stik = Mp4Stik.Normal,
         extra,
         returnType = 'uint8array',
@@ -141,6 +142,8 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
         }
         if (upc) props.replace('UPC', [upc]);
         if (lyrics) props.replace('LYRICS', [lyrics.replace(/\r/g, '').replace(/\n/g, '\r\n')]);
+        // Vorbis comment / ID3 TXXX / MP4 com.apple.iTunes freeform property.
+        if (lyricsTTML && (isFlac || isMpeg || isMp4)) props.replace('LYRICS_TTML', [lyricsTTML]);
 
         if (explicit !== undefined) {
             if (isMp4) {
@@ -225,6 +228,7 @@ export async function getMetadataFromAudio(message: _GetMetadataMessage): Promis
     if (ap) data.duration = ap.lengthInSeconds;
 
     const props = ref.properties();
+    data.lyricsTTML = props.get('LYRICS_TTML')?.[0];
 
     data.title = props.get('TITLE')?.[0] || undefined;
     data.artist = props.get('ARTIST')?.[0] || undefined;

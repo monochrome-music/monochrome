@@ -12,7 +12,8 @@ import {
     getTrackDiscNumber,
     buildErrorReportUrl,
 } from './utils.js';
-import { lyricsSettings, playlistSettings } from './storage.js';
+import { playlistSettings } from './storage.js';
+import { createLyricsEntries } from './download-lyrics.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
 import { ZipStreamWriter, ZipBlobWriter, FolderPickerWriter, SequentialFileWriter } from './bulk-download-writer.ts';
 import { FfmpegProgress } from './ffmpeg.types.js';
@@ -422,33 +423,13 @@ async function bulkDownload({
                     input: blob,
                 };
 
-                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-                    try {
-                        const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
-                        if (lyricsData) {
-                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                            if (lrcContent) {
-                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                yield {
-                                    name: buildZipTrackPath(folderName, lrcFilename, separateByDisc, discNumber),
-                                    lastModified: new Date(),
-                                    input: lrcContent,
-                                };
-                            }
-                            const ttmlContent = lyricsManager.generateTTMLContent(lyricsData, track);
-                            if (ttmlContent) {
-                                const ttmlFilename = filename.replace(/\.[^.]+$/, '.ttml');
-                                yield {
-                                    name: buildZipTrackPath(folderName, ttmlFilename, separateByDisc, discNumber),
-                                    lastModified: new Date(),
-                                    input: ttmlContent,
-                                };
-                            }
-                        }
-                    } catch {
-                        /* ignore */
-                    }
-                }
+                yield* createLyricsEntries(
+                    blob,
+                    buildZipTrackPath(folderName, filename, separateByDisc, discNumber),
+                    lyricsManager || LyricsManager.instance,
+                    track,
+                    signal
+                );
             } catch (err) {
                 if (err?.name === 'AbortError' || signal.aborted) throw err;
                 stats.failed += 1;
@@ -865,43 +846,13 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                             input: blob,
                         };
 
-                        if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-                            try {
-                                const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
-                                if (lyricsData) {
-                                    const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                                    if (lrcContent) {
-                                        const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                        yield {
-                                            name: buildZipTrackPath(
-                                                fullFolderPath,
-                                                lrcFilename,
-                                                separateByDisc,
-                                                discNumber
-                                            ),
-                                            lastModified: new Date(),
-                                            input: lrcContent,
-                                        };
-                                    }
-                                    const ttmlContent = lyricsManager.generateTTMLContent(lyricsData, track);
-                                    if (ttmlContent) {
-                                        const ttmlFilename = filename.replace(/\.[^.]+$/, '.ttml');
-                                        yield {
-                                            name: buildZipTrackPath(
-                                                fullFolderPath,
-                                                ttmlFilename,
-                                                separateByDisc,
-                                                discNumber
-                                            ),
-                                            lastModified: new Date(),
-                                            input: ttmlContent,
-                                        };
-                                    }
-                                }
-                            } catch {
-                                /* ignore */
-                            }
-                        }
+                        yield* createLyricsEntries(
+                            blob,
+                            buildZipTrackPath(fullFolderPath, filename, separateByDisc, discNumber),
+                            lyricsManager || LyricsManager.instance,
+                            track,
+                            signal
+                        );
                     } catch (err) {
                         if (err?.name === 'AbortError' || signal.aborted) throw err;
                         stats.failed += 1;
@@ -1144,7 +1095,7 @@ function completeBulkDownload(notifEl, success = true, message = null, { failedT
  * - Enriches track metadata via the API
  * - Downloads the audio blob with progress tracking
  * - Organizes the file into subfolders based on the folder template
- * - Optionally downloads and saves lyrics in LRC format
+ * - Downloads original TTML or LRC lyrics according to persisted preferences
  * - Updates the local media folder cache if using LocalMedia download method
  * - Handles errors gracefully and updates download task status
  */
@@ -1226,32 +1177,15 @@ export async function downloadTrackWithMetadata(
         // Write to folder using IBulkDownloadWriter.write() via singleWriterEntry().
         await folderWriter.write(singleWriterEntry({ name: entryName, lastModified: new Date(), input: blob }));
 
-        if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-            try {
-                const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
-                if (lyricsData) {
-                    await folderWriter.write(
-                        singleWriterEntry({
-                            name: [...entryName.split('.').slice(0, -1), 'lrc'].join('.'),
-                            lastModified: new Date(),
-                            input: lyricsManager.getLRC(lyricsData, track),
-                        })
-                    );
-                    const ttmlFile = lyricsManager.getTTML(lyricsData, track);
-                    if (ttmlFile) {
-                        await folderWriter.write(
-                            singleWriterEntry({
-                                name: [...entryName.split('.').slice(0, -1), 'ttml'].join('.'),
-                                lastModified: new Date(),
-                                input: ttmlFile,
-                            })
-                        );
-                    }
-                }
-            } catch {
-                console.log('Could not download lyrics for track');
-            }
-        }
+        await folderWriter.write(
+            createLyricsEntries(
+                blob,
+                entryName,
+                lyricsManager || LyricsManager.instance,
+                enrichedTrack,
+                controller.signal
+            )
+        );
 
         // If the target is the local media folder, do a cheap partial update:
         // pass the downloaded blob and base filename so only this one track's metadata

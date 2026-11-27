@@ -1,5 +1,5 @@
 //js/lyrics.js
-import { getTrackTitle, getTrackArtists, buildTrackFilename, escapeHtml } from './utils.js';
+import { getTrackTitle, getTrackArtists, buildTrackFilename } from './utils.js';
 import {
     SVG_CLOSE,
     SVG_GENIUS_ACTIVE,
@@ -11,6 +11,7 @@ import {
 } from './icons.js';
 import { sidePanelManager } from './side-panel.js';
 import { disableBlurEffectsSettings } from './storage.js';
+import { getNativeTTML } from './native-ttml.js';
 
 function applyBlurEffectsPreferenceToLyrics() {
     // am-lyrics renders its blur styles inside a shadow root.
@@ -98,24 +99,12 @@ class GeniusManager {
         this.loading = false;
     }
 
-    // idgaf anymore im js hardcoding this lmaooo
-    getToken() {
-        const hostname = window.location.hostname;
-        if (hostname.endsWith('monochrome.tf') || hostname === 'monochrome.tf') {
-            return 'OpITG-h86oehKYuJJ5QVY5F-HxUWXb31EwGKarx2Tle3W9rBUVnMaUL9qo_Oh9Q7';
-        }
-        return 'QmS9OvsS-7ifRBKx_ochIPQU7oejIS9Eo_z5iWHmCPyhwLVQID3pYTHJmJTa6z8z';
-    }
-
     async searchTrack(title, artist) {
         const cleanTitle = title.split('(')[0].split('-')[0].trim();
         const query = encodeURIComponent(`${cleanTitle} ${artist}`);
-        const token = this.getToken();
+        const response = await fetch(`/api/genius?type=search&q=${query}`);
 
-        const url = `https://api.genius.com/search?q=${query}&access_token=${token}`;
-        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-
-        if (!response.ok) throw new Error('Failed to search Genius');
+        if (!response.ok) throw new Error('Genius annotations are unavailable on this instance.');
 
         const data = await response.json();
         if (data.response.hits.length === 0) return null;
@@ -135,9 +124,7 @@ class GeniusManager {
     }
 
     async getReferents(songId) {
-        const token = this.getToken();
-        const url = `https://api.genius.com/referents?song_id=${songId}&text_format=plain&per_page=50&access_token=${token}`;
-        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+        const response = await fetch(`/api/genius?type=referents&song_id=${encodeURIComponent(songId)}`);
 
         if (!response.ok) throw new Error('Failed to fetch annotations');
 
@@ -461,7 +448,7 @@ export class LyricsManager {
         }
     }
 
-    async fetchLyrics(trackId, track = null) {
+    async fetchLyrics(trackId, track = null, { signal } = {}) {
         if (track) {
             if (this.lyricsCache.has(trackId)) {
                 return this.lyricsCache.get(trackId);
@@ -488,7 +475,9 @@ export class LyricsManager {
                 if (album) params.append('album_name', album);
                 if (duration) params.append('duration', duration.toString());
 
-                const response = await fetch(`https://lrclib.net/api/get?${params.toString()}`);
+                const response = await fetch(`https://lrclib.net/api/get?${params.toString()}`, {
+                    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000),
+                });
 
                 if (response.ok) {
                     const data = await response.json();
@@ -579,49 +568,8 @@ export class LyricsManager {
         return `${pad(h)}:${pad(m)}:${pad(s)}.${pad(ms, 3)}`;
     }
 
-    generateTTMLContent(lyricsData, track) {
-        if (!lyricsData || !lyricsData.subtitles) return null;
-        const lines = this.parseSyncedLyrics(lyricsData.subtitles);
-        if (!lines.length) return null;
-
-        const trackTitle = getTrackTitle(track);
-        const trackArtist = getTrackArtists(track);
-
-        // Detect per-line singer prefixes ("V1:", "V2:", ...) for ttm:agent.
-        const agents = new Set();
-        const paras = lines.map((line, i) => {
-            let text = line.text;
-            let agent = '';
-            const match = text.match(/^\s*V\s?(\d+)\s*[:\-–—]\s*/i);
-            if (match) {
-                agent = `v${parseInt(match[1], 10)}`;
-                agents.add(agent);
-                text = text.slice(match[0].length);
-            }
-            const nextBegin = i + 1 < lines.length ? lines[i + 1].time : null;
-            let end = nextBegin ?? line.time + 4;
-            if (Number.isFinite(track?.duration) && track.duration > line.time) {
-                end = Math.min(end, track.duration);
-            }
-            if (!(end > line.time)) end = line.time + 1;
-            return { begin: line.time, end, agent, text };
-        });
-
-        let ttml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-        ttml += '<tt xmlns="http://www.w3.org/ns/ttml" xmlns:ttm="http://www.w3.org/ns/ttml#metadata" xml:lang="">\n';
-        ttml += '<head>\n<metadata>\n';
-        ttml += `<ttm:title>${escapeHtml(trackTitle)}</ttm:title>\n`;
-        if (trackArtist) ttml += `<ttm:copyright>${escapeHtml(trackArtist)}</ttm:copyright>\n`;
-        for (const agent of agents) {
-            ttml += `<ttm:agent type="person" xml:id="${agent}"/>\n`;
-        }
-        ttml += '</metadata>\n</head>\n<body>\n<div>\n';
-        for (const para of paras) {
-            const agentAttr = para.agent ? ` ttm:agent="${para.agent}"` : '';
-            ttml += `<p begin="${this.formatTTMLTime(para.begin)}" end="${this.formatTTMLTime(para.end)}"${agentAttr}>${escapeHtml(para.text)}</p>\n`;
-        }
-        ttml += '</div>\n</body>\n</tt>';
-        return ttml;
+    generateTTMLContent(lyricsData, _track) {
+        return getNativeTTML(lyricsData?.originalTTML);
     }
 
     getTTML(lyricsData, track) {
