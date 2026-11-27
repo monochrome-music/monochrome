@@ -1601,7 +1601,8 @@ export class LosslessAPI {
         const recommendedTracks = [];
 
         // 17-20 digit IDs belong to tracks.monochrome.st; TIDAL endpoints can never resolve them.
-        const isTracksSnowflake = (id) => /^\d{17,20}$/.test(String(id));
+        const stripTracksPrefix = (id) => String(id).replace(/^tracks:[^:]+:/, '');
+        const isTracksSnowflake = (id) => /^\d{17,20}$/.test(stripTracksPrefix(id));
 
         const seedTracks = tracks.slice(0, 3);
         for (const seed of seedTracks) {
@@ -1631,7 +1632,7 @@ export class LosslessAPI {
             for (const artist of artistsToProcess) {
                 if (isTracksSnowflake(artist.id)) {
                     try {
-                        const artistData = await tracksStreamerAPI.getArtist(String(artist.id));
+                        const artistData = await tracksStreamerAPI.getArtist(stripTracksPrefix(artist.id));
                         for (const t of artistData?.tracks || []) {
                             if (t?.id && !seenTrackIds.has(t.id)) {
                                 seenTrackIds.add(t.id);

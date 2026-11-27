@@ -2824,6 +2824,9 @@ export class Player {
     }
 
     async wipeQueue() {
+        // Cancel any in-flight playback attempt so it can't resume against an empty queue.
+        this.playbackSequence++;
+        this.setLoadingState(false);
         const el = this.activeElement;
         el.pause();
         el.src = '';
